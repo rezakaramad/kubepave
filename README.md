@@ -15,7 +15,7 @@
 
 ## 🚀 Getting started
 
-Make sure [task](https://taskfile.dev/docs/installation) is installed before getting started.
+Make sure [task](https://taskfile.dev/docs/installation) is installed on your local machine.
 
 Clone the repository:
 ```
