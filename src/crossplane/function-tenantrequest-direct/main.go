@@ -2,7 +2,9 @@
 package main
 
 import (
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/crossplane/function-sdk-go"
@@ -60,12 +62,18 @@ func (c *CLI) Run() error {
 		return err
 	}
 
+	// Create a custom HTTP client to control timeouts, transport, retries, etc.
+	httpClient := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
 	// Create a PowerDNS client using settings from environment variables.
 	// PDNS_API_URL tells it where the PowerDNS API is, and PDNS_API_KEY is used for authentication.
 	// If those env vars are missing, fall back to the default URL and an empty API key.
 	pdnsClient := NewPowerDNSClient(
 		getEnv("PDNS_API_URL", "http://host.minikube.internal:5380/api/v1"),
 		getEnv("PDNS_API_KEY", ""),
+		httpClient,
 	)
 
 	// ------------------------------------------------------------------

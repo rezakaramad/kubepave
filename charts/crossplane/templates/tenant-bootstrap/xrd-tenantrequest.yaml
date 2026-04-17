@@ -25,9 +25,14 @@ spec:
           required: ["spec"]
 
           x-kubernetes-validations:
+            - rule: "self.metadata.name.size() <= 20"
+              message: "Tenant name must be 20 characters or less"
+
+            - rule: "!self.metadata.name.matches('(^|-)(dev|test|stage|prod)(-|$)')"
+              message: "Tenant name must not contain environment names (dev, test, stage, prod)"
+
             - rule: >
                 oldSelf == null || (
-                  self.spec.name == oldSelf.spec.name &&
                   self.spec.dnsName == oldSelf.spec.dnsName &&
                   self.spec.environmentPrefix == oldSelf.spec.environmentPrefix &&
                   self.spec.displayName == oldSelf.spec.displayName &&
@@ -39,15 +44,9 @@ spec:
           properties:
             spec:
               type: object
-              required: ["name", "dnsName", "environmentPrefix", "owner", "argocd"]
+              required: ["dnsName", "environmentPrefix", "owner", "argocd"]
 
               properties:
-                name:
-                  type: string
-                  minLength: 1
-                  maxLength: 63
-                  pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-
                 dnsName:
                   type: string
                   minLength: 1
@@ -100,13 +99,8 @@ spec:
                   enum:
                     - Validating
                     - PendingApproval
-                    - Provisioning
                     - Ready
                     - Failed
-
-                tenantName:
-                  type: string
-                  description: Name of the created Tenant resource.
 
                 conditions:
                   type: array
@@ -118,7 +112,7 @@ spec:
       additionalPrinterColumns:
         - name: Tenant
           type: string
-          jsonPath: .spec.name
+          jsonPath: .metadata.name
         - name: Team
           type: string
           jsonPath: .spec.owner.team

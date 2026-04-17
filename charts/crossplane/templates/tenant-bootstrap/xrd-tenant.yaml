@@ -24,20 +24,23 @@ spec:
           type: object
           required: ["spec"]
 
+          # ------------------------------------------------------------------
+          # Metadata-based validation (platform rules)
+          # ------------------------------------------------------------------
+          x-kubernetes-validations:
+            - rule: "self.metadata.name.size() <= 20"
+              message: "Tenant name must be 20 characters or less"
+
+            - rule: "!self.metadata.name.matches('(^|-)(dev|test|stage|prod)(-|$)')"
+              message: "Tenant name must not include reserved environment segments (dev, test, stage, prod)"
+
           properties:
 
             spec:
               type: object
-              required: ["name", "dnsName", "environmentPrefix", "owner", "argocd"]
+              required: ["dnsName", "environmentPrefix", "owner", "argocd"]
 
               properties:
-
-                name:
-                  type: string
-                  description: Human-readable tenant name. Lowercase + hyphens only.
-                  minLength: 1
-                  maxLength: 63
-                  pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
 
                 dnsName:
                   type: string
@@ -77,7 +80,6 @@ spec:
                 argocd:
                   type: object
                   description: Argo CD specific configuration for tenant isolation and access control.
-
                   required: ["syncRepos"]
 
                   properties:
@@ -161,10 +163,6 @@ spec:
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
 
-                tenantName:
-                  type: string
-                  description: Name of the created Tenant resource.
-
                 observedGeneration:
                   type: integer
                   format: int64
@@ -173,7 +171,7 @@ spec:
 
         - name: Tenant
           type: string
-          jsonPath: .spec.name
+          jsonPath: .metadata.name
 
         - name: DNS
           type: string

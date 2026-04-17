@@ -489,16 +489,35 @@ create_crossplane_azure_secret() {
 create_github_app_secret_crossplane() {
   echo "🔐 Writing Crossplane GitHub App secret..."
 
-  APP_ID=$(pass show private/github/apps/Crossplane-Managed-GitHub-Repos/app-id | head -n1)
-  INSTALLATION_ID=$(pass show private/github/apps/Crossplane-Managed-GitHub-Repos/installation-id | head -n1)
-  PRIVATE_KEY=$(pass show private/github/apps/Crossplane-Managed-GitHub-Repos/private-key)
+  # Access to https://github.com/rezakaramad
+  echo "🔐 Copying 'rezakaramad-crossplane' GitHub App credentials from 'pass' local password store..."
+  APP_ID=$(pass show private/github/apps/rezakaramad-crossplane/app-id | head -n1)
+  INSTALLATION_ID=$(pass show private/github/apps/rezakaramad-crossplane/installation-id | head -n1)
+  PRIVATE_KEY=$(pass show private/github/apps/rezakaramad-crossplane/private-key)
 
-  vault kv put local/management/github/apps/crossplane-managed-github-repos \
+  echo "🔐 Storing 'rezakaramad-crossplane' GitHub App credentials in Vault..."
+  vault kv put local/management/github/apps/crossplane/rezakaramad \
     app-id="$APP_ID" \
     installation-id="$INSTALLATION_ID" \
     private-key="$PRIVATE_KEY"
 
-  echo "✅ Crossplane GitHub App secret written to Vault"
+  echo "✅ Crossplane GitHub App secret for 'https://github.com/rezakaramad' written to Vault"
+
+  # Access to https://github.com/fluxdojo
+  echo "🔐 Copying 'fluxdojo-crossplane' GitHub App credentials from 'pass' local password store..."
+  APP_ID=$(pass show private/github/apps/fluxdojo-crossplane/app-id | head -n1)
+  INSTALLATION_ID=$(pass show private/github/apps/fluxdojo-crossplane/installation-id | head -n1)
+  PRIVATE_KEY=$(pass show private/github/apps/fluxdojo-crossplane/private-key)
+
+  echo "🔐 Storing 'fluxdojo-crossplane' GitHub App credentials in Vault..."
+  vault kv put local/management/github/apps/crossplane/fluxdojo \
+    app-id="$APP_ID" \
+    installation-id="$INSTALLATION_ID" \
+    private-key="$PRIVATE_KEY"
+
+  echo "✅ Crossplane GitHub App secret for 'https://github.com/fluxdojo' written to Vault"
+
+  echo "🎉 All Crossplane GitHub App secrets successfully stored in Vault so Argo CD can access GitHub repositories securely."
 }
 
 
@@ -552,31 +571,6 @@ create_powerdns_secrets() {
       key="$POWERDNS_API_KEY" > /dev/null
 
   echo "✅ Secrets stored in Vault"
-}
-
-
-# ----------------------------------------------------------------------------
-# Configure systemd-resolved to forward DNS queries for *.rezakara.demo to local PowerDNS instance
-# ----------------------------------------------------------------------------
-configure_resolved() {
-  echo "Backing up existing config..."
-  sudo cp /etc/systemd/resolved.conf /etc/systemd/resolved.conf.bak.$(date +%s)
-
-  echo "Applying new DNS config..."
-
-  sudo tee /etc/systemd/resolved.conf > /dev/null <<EOF
-[Resolve]
-DNSStubListener=no
-DNS=127.0.0.1
-FallbackDNS=8.8.8.8 1.1.1.1
-Domains=~demo
-EOF
-
-  echo "Restarting systemd-resolved..."
-  sudo systemctl restart systemd-resolved
-
-  echo "Verifying..."
-  resolvectl status | grep -E "DNS Servers|DNS Domain"
 }
 
 
@@ -834,7 +828,6 @@ main() {
   # Also it's needed to ensure that the self-signed certificate issued for *.mgmt.rezakara.demo is trusted and matches the hostname used to access the services.
   # After bootstrapping, it will be cleaned up and DNS requestes will be responded by the local PowerDNS instance.
   update_hosts
-  configure_resolved
   vault_login
   create_github_app_secret_argocd
   register_clusters_argocd

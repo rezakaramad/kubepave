@@ -236,7 +236,7 @@ mode: Pipeline
 pipeline:
   - step: render
     functionRef:
-      name: function-tenantrequest
+      name: function-tenantrequest-direct
 ```
 
 - Defines which function runs

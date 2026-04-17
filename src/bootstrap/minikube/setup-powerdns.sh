@@ -113,6 +113,34 @@ start_compose() {
   echo "🎉 Stack started"
 }
 
+
+# ----------------------------------------------------------------------------
+# Configure systemd-resolved to forward DNS queries for *.rezakara.demo to local PowerDNS instance
+# ----------------------------------------------------------------------------
+configure_resolved() {
+  echo "Backing up existing config..."
+  sudo cp /etc/systemd/resolved.conf /etc/systemd/resolved.conf.bak
+
+  echo "Applying new DNS config..."
+
+  sudo tee /etc/systemd/resolved.conf > /dev/null <<EOF
+[Resolve]
+DNSStubListener=yes
+FallbackDNS=8.8.8.8 1.1.1.1
+EOF
+
+  echo "Restarting systemd-resolved..."
+  sudo systemctl restart systemd-resolved
+
+  echo "Configuring split DNS for rezakara.demo..."
+  sudo resolvectl dns lo 127.0.0.1
+  sudo resolvectl domain lo ~rezakara.demo
+
+  echo "Verifying..."
+  resolvectl status | grep -E "DNS Servers|DNS Domain"
+}
+
+
 # -----------------------------------------------------
 # Main
 # -----------------------------------------------------

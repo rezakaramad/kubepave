@@ -1,4 +1,4 @@
-module github.com/crossplane/function-tenantrequest
+module github.com/crossplane/function-tenantrequest-gitops
 
 go 1.24.9
 
