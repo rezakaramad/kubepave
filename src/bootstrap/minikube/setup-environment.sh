@@ -522,33 +522,7 @@ create_github_app_secret_crossplane() {
 
 
 # ----------------------------------------------------------------------------
-# TSIG secret for external-dns (RFC2136)
-# ----------------------------------------------------------------------------
-create_external_dns_tsig_secret() {
-  echo "🔐 Generating TSIG secret for external-dns..."
-
-  VAULT_PATH="local/management/external-dns/rfc2136"
-
-  # Check if secret already exists (idempotency)
-  if vault kv get "$VAULT_PATH" >/dev/null 2>&1; then
-    echo "⚠️  TSIG secret already exists in Vault. Skipping generation."
-    return
-  fi
-
-  # Generate secure base64 secret (compatible with BIND + external-dns)
-  TSIG_SECRET="$(openssl rand -base64 32)"
-
-  vault kv put "$VAULT_PATH" \
-    tsig_key_name="externaldns-key" \
-    tsig_secret="$TSIG_SECRET" \
-    algorithm="hmac-sha256" > /dev/null
-
-  echo "✅ TSIG secret stored in Vault at $VAULT_PATH"
-}
-
-
-# ----------------------------------------------------------------------------
-# TSIG secret for external-dns (RFC2136)
+# PowerDNS secret for external-dns
 # ----------------------------------------------------------------------------
 create_powerdns_secrets() {
   VAULT_BASE_PATH="local/powerdns"
@@ -557,7 +531,7 @@ create_powerdns_secrets() {
 
   POSTGRES_USER="pdns"
 
-  echo "🔐 Generating and storing secrets for PowerDNS..."
+  echo "🔐 Generating and storing PowerDNS secret for external-dns operator..."
 
   POSTGRES_PASSWORD="$(openssl rand -hex 32)"
   POWERDNS_API_KEY="$(openssl rand -hex 32)"
@@ -838,7 +812,6 @@ main() {
   create_crossplane_azure_secret
   install_kubectl_plugins
   create_github_app_secret_crossplane
-  create_external_dns_tsig_secret
   create_powerdns_secrets
   install_kubectl_plugins
   install_plugin_completion

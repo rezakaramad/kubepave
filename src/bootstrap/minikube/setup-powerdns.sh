@@ -13,7 +13,6 @@ MANAGEMENT_PROFILE="minikube-management"
 VAULT_BASE_PATH="local/powerdns"
 VAULT_DB_PATH="$VAULT_BASE_PATH/db"
 VAULT_API_PATH="$VAULT_BASE_PATH/api"
-VAULT_EXTERNALDNS_PATH="local/management/external-dns/rfc2136"
 
 # -----------------------------------------------------
 # Authenticate to Vault

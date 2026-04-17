@@ -1,5 +1,3 @@
-{{- if .Capabilities.APIVersions.Has "realm.keycloak.m.crossplane.io/v1alpha1/Realm" }}
-
 apiVersion: realm.keycloak.m.crossplane.io/v1alpha1
 kind: Realm
 metadata:
@@ -7,6 +5,7 @@ metadata:
   namespace: keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "25"  
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   forProvider:
     realm: management
@@ -15,4 +14,3 @@ spec:
     name: keycloak
 
 ---
-{{- end }}
