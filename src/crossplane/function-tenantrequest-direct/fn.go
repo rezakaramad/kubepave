@@ -465,7 +465,7 @@ func (f *Function) validate(ctx context.Context, xr *resource.Composite) *Valida
 		}
 
 		if !result.Available {
-			return &ValidationError{"DnsNameTaken", result.Message, false}
+			return &ValidationError{"DnsNameTaken", result.Reason, false}
 		}
 
 		return nil
