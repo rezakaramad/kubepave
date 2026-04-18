@@ -21,7 +21,7 @@
 // -----------------------------------------------------------------------------
 //
 // ✔ Validate tenant input (name, DNS, ownership, repos)
-// ✔ Enforce uniqueness across existing tenants
+// ✔ Rely on Kubernetes API for name uniqueness
 // ✔ Check DNS availability via PowerDNS
 // ✔ Gate provisioning on approval
 // ✔ Generate tenant configuration as YAML
@@ -139,10 +139,6 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 	//       ├── spec
 	//       └── status
 	name := xr.Resource.GetName()
-	if err != nil {
-		response.Fatal(rsp, errors.Wrap(err, "cannot read spec.name"))
-		return rsp, nil
-	}
 
 	dnsName, err := xr.Resource.GetString("spec.dnsName")
 	if err != nil {
@@ -324,7 +320,7 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 
 	// Create the desired RepositoryFile that publishes tenant metadata to Git (only after Valid + Approved)
 	repoFile := composed.New()
-	repoFile.SetAPIVersion("github.crossplane.io/v1alpha1")
+	repoFile.SetAPIVersion("repo.github.upbound.io/v1alpha1")
 	repoFile.SetKind("RepositoryFile")
 	repoFile.SetName(fmt.Sprintf("tenant-metadata-%s", name))
 
@@ -355,10 +351,15 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 	)
 
 	if err := repoFile.SetValue("spec.forProvider", map[string]any{
-		"repository": f.gitRepository,
-		"branch":     f.gitBranch,
-		"file":       filePath,
-		"content":    content,
+		"repository":        f.gitRepository,
+		"branch":            f.gitBranch,
+		"file":              filePath,
+		"content":           content,
+		"autocreateBranch":  true,
+		"commitMessage":     fmt.Sprintf("Create/update tenant %s", name),
+		"overwriteOnCreate": true,
+		"commitAuthor":      "crossplane",
+		"commitEmail":       "platform@rezakara.demo",
 	}); err != nil {
 		response.Fatal(rsp, err)
 		return rsp, nil
@@ -370,13 +371,12 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 	}
 
 	_ = xr.Resource.SetValue("status.phase", PhaseReady)
-	_ = xr.Resource.SetValue("status.tenantName", name)
 
 	response.ConditionTrue(rsp, "Ready", "GitCommitted").
 		WithMessage("Tenant configuration written to Git").
 		TargetCompositeAndClaim()
 
-	response.ConditionTrue(rsp, "Published", "GitWritten").
+	response.ConditionTrue(rsp, "Synced", "GitWritten").
 		WithMessage("Tenant config is available in Git repository").
 		TargetCompositeAndClaim()
 
