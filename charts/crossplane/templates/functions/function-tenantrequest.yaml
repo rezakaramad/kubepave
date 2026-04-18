@@ -12,7 +12,6 @@ spec:
 
 ---
 {{- end }}
-
 {{- if .Capabilities.APIVersions.Has "pkg.crossplane.io/v1beta1/DeploymentRuntimeConfig" }}
 apiVersion: pkg.crossplane.io/v1beta1
 kind: DeploymentRuntimeConfig
@@ -36,8 +35,13 @@ spec:
                       key: key
                 - name: DNS_BASE_DOMAIN
                   value: "rezakara.demo"
+                - name: GIT_REPOSITORY
+                  value: "kubepave-tenants"
+                - name: GIT_BRANCH
+                  value: "main"
+                - name: GIT_BASE_PATH
+                  value: "tenants"
 
 ---
 {{- end }}
-
 {{- end }}

@@ -309,7 +309,7 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 		TargetCompositeAndClaim()
 
 	// GitOps flow:
-	//   1. Generate tenant input data (values.yaml)
+	//   1. Generate tenant input data (tenant.yaml)
 	//   2. Commit it to Git via RepositoryFile
 	//   3. Argo CD consumes it and deploys resources
 	desired, err := request.GetDesiredComposedResources(req)
@@ -320,7 +320,7 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 
 	// Create the desired RepositoryFile that publishes tenant metadata to Git (only after Valid + Approved)
 	repoFile := composed.New()
-	repoFile.SetAPIVersion("repo.github.upbound.io/v1alpha1")
+	repoFile.SetAPIVersion("repo.github.m.upbound.io/v1alpha1")
 	repoFile.SetKind("RepositoryFile")
 	repoFile.SetName(fmt.Sprintf("tenant-metadata-%s", name))
 
@@ -340,7 +340,7 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 		return rsp, nil
 	}
 
-	filePath := fmt.Sprintf("%s/%s/values.yaml", f.gitBasePath, name)
+	filePath := fmt.Sprintf("%s/%s/tenant.yaml", f.gitBasePath, name)
 
 	f.log.Info(
 		"Publishing tenant configuration",
@@ -360,6 +360,14 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 		"overwriteOnCreate": true,
 		"commitAuthor":      "crossplane",
 		"commitEmail":       "platform@rezakara.demo",
+	}); err != nil {
+		response.Fatal(rsp, err)
+		return rsp, nil
+	}
+
+	if err := repoFile.SetValue("spec.providerConfigRef", map[string]any{
+		"name": "github-fluxdojo",
+		"kind": "ClusterProviderConfig",
 	}); err != nil {
 		response.Fatal(rsp, err)
 		return rsp, nil
