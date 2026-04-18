@@ -113,11 +113,7 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 		return rsp, nil
 	}
 
-	email, err := xr.Resource.GetString("spec.owner.email")
-	if err != nil {
-		response.Fatal(rsp, errors.Wrap(err, "cannot read spec.owner.email"))
-		return rsp, nil
-	}
+	email, _ := xr.Resource.GetString("spec.owner.email")
 
 	syncRepos, err := xr.Resource.GetValue("spec.argocd.syncRepos")
 	if err != nil {
