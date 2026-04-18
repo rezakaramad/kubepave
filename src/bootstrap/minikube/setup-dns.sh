@@ -23,7 +23,6 @@ DNSMASQ_CONF="/etc/dnsmasq.d/rezakara.conf"
 DNSMASQ_MAIN_CONF="/etc/dnsmasq.conf"
 DNSMASQ_EXPECTED_CONF=$(cat <<'EOF'
 # Rezakara DNS config
-no-resolv
 listen-address=127.0.0.1
 bind-interfaces
 server=/rezakara.demo/127.0.0.1#5300
@@ -104,8 +103,12 @@ start_compose() {
 # Ensure dnsmasq loads configs from /etc/dnsmasq.d (required for our custom config)
 # -----------------------------------------------------
 ensure_dnsmasq_main_conf() {
-  if ! sudo grep -q 'conf-dir=.*/dnsmasq.d' "$DNSMASQ_MAIN_CONF"; then
-    echo "🔧 Ensuring dnsmasq loads /etc/dnsmasq.d..."
+  echo "🔧 Ensuring dnsmasq loads /etc/dnsmasq.d..."
+
+  if ! grep -Eq '^\s*conf-dir=/etc/dnsmasq\.d' "$DNSMASQ_MAIN_CONF"; then
+    echo "Adding conf-dir directive..."
+
+    sudo sed -i '/^#conf-dir=\/etc\/dnsmasq\.d/s/^#//' "$DNSMASQ_MAIN_CONF" || \
     echo "conf-dir=/etc/dnsmasq.d" | sudo tee -a "$DNSMASQ_MAIN_CONF" >/dev/null
   fi
 }

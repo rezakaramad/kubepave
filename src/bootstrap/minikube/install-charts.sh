@@ -84,16 +84,18 @@ helm_install () {
 # -----------------------------------------------------------------------------
 # Traefik LoadBalancer IP in management cluster
 # -----------------------------------------------------------------------------
-
 start_minikube_tunnel() {
   echo "🔌 Ensuring minikube tunnel is running..."
 
-  if ! pgrep -f "minikube tunnel -p $MANAGEMENT_PROFILE" >/dev/null; then
-    minikube tunnel -p $MANAGEMENT_PROFILE >/dev/null 2>&1 &
-    sleep 5
-  else
-    echo "Tunnel already running"
-  fi
+  get_minikube_profiles | while read -r profile; do
+    if ! pgrep -f "minikube tunnel -p $profile" >/dev/null; then
+      echo "Starting tunnel for $profile..."
+      minikube tunnel -p "${profile}" >/tmp/minikube-tunnel-${profile}.log 2>&1 &
+      sleep 3
+    else
+      echo "Tunnel already running for $profile"
+    fi
+  done
 }
 
 
