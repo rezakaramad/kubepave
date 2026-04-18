@@ -44,9 +44,7 @@ spec:
 
             spec:
               type: object
-              minProperties: 1
               required: ["dnsName", "environmentPrefix", "owner", "argocd"]
-              additionalProperties: false
 
               properties:
                 crossplane:
@@ -55,92 +53,64 @@ spec:
 
                 dnsName:
                   type: string
-                  description: Abbreviated identifier used as subdomain label.
                   minLength: 1
                   maxLength: 63
                   pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
 
                 environmentPrefix:
                   type: string
-                  description: Environment prefix used for routing and hostnames.
                   minLength: 1
                   maxLength: 16
                   pattern: "^[a-z0-9-]+$"
 
                 displayName:
                   type: string
-                  description: Human readable tenant name shown in UI and dashboards.
                   minLength: 1
                   maxLength: 128
 
                 owner:
                   type: object
-                  description: Ownership metadata for auditing and routing.
                   required: ["team"]
-                  additionalProperties: false
-
                   properties:
                     team:
                       type: string
-                      description: Owning team identifier (e.g. GitHub team, AD group).
                       minLength: 1
                       maxLength: 128
-
                     email:
                       type: string
-                      description: Optional contact email.
                       maxLength: 256
 
                 argocd:
                   type: object
-                  description: Argo CD specific configuration.
                   required: ["syncRepos"]
-                  additionalProperties: false
-
                   properties:
-
                     syncRepos:
                       type: array
-                      description: Git repositories Argo CD is allowed to sync from.
                       minItems: 1
-
                       items:
                         type: string
                         pattern: "^(https://|ssh://|git@).+"
 
                     syncPolicy:
                       type: object
-                      description: Defaults for generated Argo CD Applications.
-                      additionalProperties: false
-
                       properties:
                         automatedSync:
                           type: boolean
-                          default: true
-
                         prune:
                           type: boolean
-                          default: true
-
                         selfHeal:
                           type: boolean
-                          default: true
 
                 options:
                   type: object
-                  description: Platform-specific options.
-                  additionalProperties: false
-
                   properties:
                     costCenter:
                       type: string
                       maxLength: 64
-
                     labels:
                       type: object
                       additionalProperties:
                         type: string
-
                     annotations:
                       type: object
                       additionalProperties:
