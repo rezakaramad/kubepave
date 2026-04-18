@@ -14,6 +14,9 @@ spec:
     kind: Tenant
     plural: tenants
 
+  defaultCompositionRef:
+    name: tenant-default
+
   versions:
     - name: v1alpha1
       served: true

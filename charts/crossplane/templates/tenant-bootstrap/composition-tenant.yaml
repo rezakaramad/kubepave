@@ -4,7 +4,7 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: tenant.idp.rezakara.demo
+  name: tenant-default
   labels:
     crossplane.io/xrd: tenants.idp.rezakara.demo
 
