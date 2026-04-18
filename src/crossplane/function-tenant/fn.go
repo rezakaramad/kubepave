@@ -64,7 +64,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	//       ├── metadata
 	//       ├── spec
 	//       └── status
-	name, _ := xr.Resource.GetString("spec.name")
+	name := xr.Resource.GetName()
 	dnsName, _ := xr.Resource.GetString("spec.dnsName")
 	team, _ := xr.Resource.GetString("spec.owner.team")
 	email, _ := xr.Resource.GetString("spec.owner.email")

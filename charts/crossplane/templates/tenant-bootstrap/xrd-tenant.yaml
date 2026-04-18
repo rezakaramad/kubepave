@@ -25,11 +25,14 @@ spec:
           required: ["spec"]
 
           # ------------------------------------------------------------------
-          # Metadata-based validation (platform rules)
+          # Metadata-based validation (identity rules)
           # ------------------------------------------------------------------
           x-kubernetes-validations:
             - rule: "self.metadata.name.size() <= 20"
               message: "Tenant name must be 20 characters or less"
+
+            - rule: "self.metadata.name.matches('^[a-z0-9]+(-[a-z0-9]+)*$')"
+              message: "Tenant name must be lowercase alphanumeric with hyphens"
 
             - rule: "!self.metadata.name.matches('(^|-)(dev|test|stage|prod)(-|$)')"
               message: "Tenant name must not include reserved environment segments (dev, test, stage, prod)"
@@ -38,13 +41,15 @@ spec:
 
             spec:
               type: object
+              minProperties: 1
               required: ["dnsName", "environmentPrefix", "owner", "argocd"]
+              additionalProperties: false
 
               properties:
 
                 dnsName:
                   type: string
-                  description: Abbreviated identifier used e.g. as subdomain label.
+                  description: Abbreviated identifier used as subdomain label.
                   minLength: 1
                   maxLength: 63
                   pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
@@ -66,12 +71,15 @@ spec:
                   type: object
                   description: Ownership metadata for auditing and routing.
                   required: ["team"]
+                  additionalProperties: false
+
                   properties:
                     team:
                       type: string
-                      description: Owning team identifier (e.g. github team, AD group, etc.)
+                      description: Owning team identifier (e.g. GitHub team, AD group).
                       minLength: 1
                       maxLength: 128
+
                     email:
                       type: string
                       description: Optional contact email.
@@ -79,14 +87,15 @@ spec:
 
                 argocd:
                   type: object
-                  description: Argo CD specific configuration for tenant isolation and access control.
+                  description: Argo CD specific configuration.
                   required: ["syncRepos"]
+                  additionalProperties: false
 
                   properties:
 
                     syncRepos:
                       type: array
-                      description: List of git repository URLs Argo CD is permitted to sync from.
+                      description: Git repositories Argo CD is allowed to sync from.
                       minItems: 1
 
                       items:
@@ -96,9 +105,9 @@ spec:
                     syncPolicy:
                       type: object
                       description: Defaults for generated Argo CD Applications.
+                      additionalProperties: false
 
                       properties:
-
                         automatedSync:
                           type: boolean
                           default: true
@@ -113,10 +122,10 @@ spec:
 
                 options:
                   type: object
-                  description: Platform options (non-ArgoCD).
+                  description: Platform-specific options.
+                  additionalProperties: false
 
                   properties:
-
                     costCenter:
                       type: string
                       maxLength: 64
@@ -139,9 +148,7 @@ spec:
                 phase:
                   type: string
                   description: Current lifecycle phase of the tenant.
-
                   enum:
-                    - Provisioning
                     - Ready
                     - Failed
 
@@ -150,7 +157,6 @@ spec:
                   description: Identity resources created for the tenant.
 
                   properties:
-
                     aadGroupId:
                       type: string
                       description: Azure AD Group Object ID.

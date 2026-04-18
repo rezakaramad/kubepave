@@ -107,7 +107,7 @@ xr, err := request.GetObservedCompositeResource(req)
 And then we read fields like:
 
 ```
-name, _ := xr.Resource.GetString("spec.name")
+name := xr.Resource.GetName()
 dns, _ := xr.Resource.GetString("spec.dnsName")
 ```
 

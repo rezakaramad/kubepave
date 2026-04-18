@@ -138,7 +138,7 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 	//       ├── metadata
 	//       ├── spec
 	//       └── status
-	name, err := xr.Resource.GetString("spec.name")
+	name := xr.Resource.GetName()
 	if err != nil {
 		response.Fatal(rsp, errors.Wrap(err, "cannot read spec.name"))
 		return rsp, nil

@@ -83,7 +83,7 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 	//       ├── metadata
 	//       ├── spec
 	//       └── status
-	name, err := xr.Resource.GetString("spec.name")
+	name := xr.Resource.GetName()
 	if err != nil {
 		response.Fatal(rsp, errors.Wrap(err, "cannot read spec.name"))
 		return rsp, nil
@@ -424,7 +424,7 @@ func (f *Function) validate(ctx context.Context, xr *resource.Composite) *Valida
 	// Gets the Kubernetes name of the XR itself (e.g. tenantrequest-sample-12345) so we can use it for ownership detection and uniqueness checks.
 	requestName := xr.Resource.GetName()
 
-	name, _ := xr.Resource.GetString("spec.name")
+	name := xr.Resource.GetName()
 	dnsName, _ := xr.Resource.GetString("spec.dnsName")
 	envPrefix, _ := xr.Resource.GetString("spec.environmentPrefix")
 
@@ -531,7 +531,7 @@ func (f *Function) getOwnedTenant(ctx context.Context, requestName string) (*uns
 
 func validateRequiredFields(xr *resource.Composite) *ValidationError {
 	// Check that 'name' is present in the XR spec, and return a ValidationError if any are missing.
-	name, _ := xr.Resource.GetString("spec.name")
+	name := xr.Resource.GetName()
 	if name == "" {
 		return &ValidationError{"InvalidSpec", "spec.name is required", false}
 	}
