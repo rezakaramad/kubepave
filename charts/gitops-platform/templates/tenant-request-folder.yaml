@@ -6,7 +6,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: tenant-system
+  project: tenant-request-system
   source:
     repoURL: https://github.com/rezakaramad/kubepave-tenant-requests
     targetRevision: HEAD
