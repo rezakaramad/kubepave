@@ -36,40 +36,39 @@ func isApproved(xr *resource.Composite) bool {
 	return false
 }
 
-// buildTenantValuesYAML converts TenantRequest spec into a YAML document
-// that is stored in Git and consumed by Argo CD + Helm.
-//
-// The output is NOT a Kubernetes resource.
-// It is a values file used for templating downstream resources.
-//
-// This function must produce stable, deterministic output to avoid unnecessary Git diffs.
-func buildTenantValuesYAML(
+// buildTenantYAML constructs a Kubernetes manifest for a custom Tenant resource based on the provided parameters.
+func buildTenantYAML(
 	name string,
 	dnsName string,
-	env string,
+	envPrefix string,
 	displayName string,
 	team string,
 	email string,
-	repos any,
+	syncRepos any,
 ) string {
-
-	data := map[string]any{
-		"tenantName":  name,
-		"dnsName":     dnsName,
-		"environment": env,
-		"displayName": displayName,
-		"owner": map[string]any{
-			"team":  team,
-			"email": email,
+	obj := map[string]any{
+		"apiVersion": "idp.rezakara.demo/v1alpha1",
+		"kind":       "Tenant",
+		"metadata": map[string]any{
+			"name": name,
 		},
-		"argocd": map[string]any{
-			"syncRepos": repos,
+		"spec": map[string]any{
+			"dnsName":           dnsName,
+			"environmentPrefix": envPrefix,
+			"displayName":       displayName,
+			"owner": map[string]any{
+				"team":  team,
+				"email": email,
+			},
+			"argocd": map[string]any{
+				"syncRepos": syncRepos,
+			},
 		},
 	}
 
-	out, err := yaml.Marshal(data)
+	out, err := yaml.Marshal(obj)
 	if err != nil {
-		return fmt.Sprintf("# ERROR: failed to render tenant YAML: %v", err)
+		return ""
 	}
 
 	return string(out)

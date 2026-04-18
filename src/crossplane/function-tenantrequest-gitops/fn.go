@@ -13,8 +13,8 @@
 // The function does NOT provision infrastructure directly.
 // Instead, it follows a GitOps model:
 //
-//	TenantRequest → Crossplane Function → Git (RepositoryFile)
-//	              → Argo CD → Helm → Infrastructure
+//	TenantRequest → Crossplane Function → Git (Tenant manifest)
+//	              → Argo CD → Kubernetes
 //
 // -----------------------------------------------------------------------------
 // Responsibilities
@@ -326,7 +326,7 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 	repoFile.SetName(fmt.Sprintf("tenant-metadata-%s", name))
 	repoFile.SetNamespace(f.crossplaneNamespace)
 
-	content := buildTenantValuesYAML(
+	content := buildTenantYAML(
 		name,
 		dnsName,
 		envPrefix,
