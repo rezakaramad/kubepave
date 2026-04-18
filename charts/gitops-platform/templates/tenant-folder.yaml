@@ -8,14 +8,13 @@ metadata:
 spec:
   project: tenant-system
   source:
-    repoURL: https://github.com/rezakaramad/kubepave
+    repoURL: https://github.com/rezakaramad/kubepave-tenant-requests
     targetRevision: HEAD
-    path: tenants/
+    path: requests/
     directory:
       recurse: true
   destination:
     name:  in-cluster
-    namespace: argocd
   syncPolicy:
     automated:
       prune: true
@@ -30,7 +29,7 @@ metadata:
 spec:
   description: Project for tenant Argo CD resources.
   sourceRepos:
-    - https://github.com/rezakaramad/kubepave
+    - https://github.com/rezakaramad/kubepave-tenant-requests
   destinations:
   - name:  in-cluster
     namespace: '*'
