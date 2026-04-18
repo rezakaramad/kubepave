@@ -30,10 +30,10 @@ tenantBootstrap:
 
     # crossplane tenant function
     tenant:
-      providerPackage: ghcr.io/rezakaramad/function-tenant:0461f04581e1ec09ea2b683e4c5c78202d5e1925
+      providerPackage: ghcr.io/rezakaramad/function-tenant:9f8c0c8f5b5350f581c11022c5f317b802801bea
 
     # crossplane tenant-request function
     tenantrequest:
-      providerPackage: ghcr.io/rezakaramad/function-tenantrequest-gitops:0461f04581e1ec09ea2b683e4c5c78202d5e1925
+      providerPackage: ghcr.io/rezakaramad/function-tenantrequest-gitops:9f8c0c8f5b5350f581c11022c5f317b802801bea
 
 ---
