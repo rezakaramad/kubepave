@@ -49,6 +49,9 @@ spec:
               additionalProperties: false
 
               properties:
+                crossplane:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
 
                 dnsName:
                   type: string
