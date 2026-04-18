@@ -41,6 +41,8 @@ spec:
                   value: "main"
                 - name: GIT_BASE_PATH
                   value: "tenants"
+                - name: CROSSPLANE_NAMESPACE
+                  value: "crossplane"
 
 ---
 {{- end }}

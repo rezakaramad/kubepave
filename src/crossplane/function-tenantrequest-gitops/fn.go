@@ -97,9 +97,10 @@ type Function struct {
 	dnsBaseDomain string
 
 	// Git configuration
-	gitRepository string
-	gitBranch     string
-	gitBasePath   string
+	gitRepository       string
+	gitBranch           string
+	gitBasePath         string
+	crossplaneNamespace string
 }
 
 // RunFunction is the method Crossplane calls to execute this function (tenantrequest).
@@ -323,6 +324,7 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 	repoFile.SetAPIVersion("repo.github.m.upbound.io/v1alpha1")
 	repoFile.SetKind("RepositoryFile")
 	repoFile.SetName(fmt.Sprintf("tenant-metadata-%s", name))
+	repoFile.SetNamespace(f.crossplaneNamespace)
 
 	content := buildTenantValuesYAML(
 		name,

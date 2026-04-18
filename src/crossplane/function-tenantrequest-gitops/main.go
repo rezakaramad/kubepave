@@ -85,9 +85,10 @@ func (c *CLI) Run() error {
 		pdns:          pdnsClient,
 		dnsBaseDomain: getEnv("DNS_BASE_DOMAIN", "rezakara.demo"),
 
-		gitRepository: getEnv("GIT_REPOSITORY", "kubepave"),
-		gitBranch:     getEnv("GIT_BRANCH", "main"),
-		gitBasePath:   getEnv("GIT_BASE_PATH", "tenants"),
+		gitRepository:       getEnv("GIT_REPOSITORY", "kubepave"),
+		gitBranch:           getEnv("GIT_BRANCH", "main"),
+		gitBasePath:         getEnv("GIT_BASE_PATH", "tenants"),
+		crossplaneNamespace: getEnv("CROSSPLANE_NAMESPACE", "crossplane"),
 	}
 
 	// Run a server, and whenever a Crossplane request comes in, hand it to this fn object
