@@ -78,7 +78,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	)
 
 	if name == "" {
-		response.Fatal(rsp, fmt.Errorf("spec.name is required"))
+		response.Fatal(rsp, fmt.Errorf("metadata.name is required"))
 		return rsp, nil
 	}
 
