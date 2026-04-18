@@ -153,7 +153,9 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		)
 
 		// Reads the Azure group ID
-		aadGroupID, _ = groupRes.Resource.GetString("status.atProvider.objectId")
+		if id, err := groupRes.Resource.GetString("status.atProvider.objectId"); err == nil {
+			aadGroupID = id
+		}
 
 		if aadGroupID != "" {
 			f.log.Info(
@@ -270,11 +272,17 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	// That block exists because your function must wait for the Entra group to exist
 	// before creating dependent resources, and Crossplane accomplishes this through repeated reconciliation loops.
 
-	if aadGroupID == "" {
+	// Always reflect observed state
+	if aadGroupID != "" {
+		_ = xr.Resource.SetValue("status.identity.aadGroupId", aadGroupID)
+	}
 
-		f.log.Info(
-			"Waiting for Entra group",
+	// If not ready yet → wait
+	if groupReady != resource.ReadyTrue {
+
+		f.log.Info("Waiting for Entra group",
 			"tenant", name,
+			"aadGroupID", aadGroupID,
 		)
 
 		_ = xr.Resource.SetValue("status.phase", PhaseProvisioning)
