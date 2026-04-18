@@ -368,7 +368,7 @@ func (f *Function) RunFunction(ctx context.Context, req *fnv1.RunFunctionRequest
 	}
 
 	if err := repoFile.SetValue("spec.providerConfigRef", map[string]any{
-		"name": "github-fluxdojo",
+		"name": "github-rezakaramad",
 		"kind": "ClusterProviderConfig",
 	}); err != nil {
 		response.Fatal(rsp, err)
