@@ -1,62 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# This script configures authentication between Vault and one or more Kubernetes clusters.
+# It:
+#   - Ensures a reviewer ServiceAccount and token exist
+#   - Retrieves cluster details (API server, CA, JWT)
+#   - Configures the Kubernetes auth backend in Vault
+#   - Creates a Vault role for workloads (e.g. External Secrets)
+# Result:
+# 🎉 Kubernetes workloads can securely authenticate to Vault using their ServiceAccount identity and access secrets.
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# shellcheck source=libs/common.sh
+source "$DIR/libs/common.sh"
+# shellcheck source=libs/utils.sh
+source "$DIR/libs/utils.sh"
+
+
 VAULT_ADDR="https://vault.mgmt.rezakara.demo"
-MANAGEMENT_PROFILE="minikube-management"
-VAULT_NAMESPACE="vault"
 
 echo "🔐 Configuring Vault access for workload clusters..."
 
-# -----------------------------------------------------
-# Authenticate to Vault
-# -----------------------------------------------------
-
-vault_login() {
-
-  echo "🔐 Authenticating to Vault..."
-
-  kubectl --context "$MANAGEMENT_PROFILE" wait \
-    --for=condition=Ready pod \
-    -l app.kubernetes.io/name=vault \
-    -n "$VAULT_NAMESPACE" \
-    --timeout=120s
-
-  VAULT_POD=$(kubectl --context "$MANAGEMENT_PROFILE" \
-    get pods -n "$VAULT_NAMESPACE" \
-    -l app.kubernetes.io/name=vault \
-    -o jsonpath='{.items[0].metadata.name}')
-
-  VAULT_TOKEN=$(kubectl --context "$MANAGEMENT_PROFILE" \
-    exec -n "$VAULT_NAMESPACE" "$VAULT_POD" -- \
-    sh -c "grep 'Initial Root Token:' /vault/data/init.txt | awk '{print \$4}'")
-
-  export VAULT_ADDR
-  export VAULT_TOKEN
-  export VAULT_SKIP_VERIFY=true
-
-  echo "✅ Vault authenticated"
-
-  vault secrets enable -path=local kv-v2 2>/dev/null || true
-}
-
-# -----------------------------------------------------
-# Discover workload clusters
-# -----------------------------------------------------
-
-get_minikube_workload_profiles() {
-  minikube profile list -o json \
-  | jq -r '
-      .valid[]
-      | select(.Status == "OK")
-      | .Name
-      | select(startswith("minikube-") and . != "minikube-management")
-    '
-}
 
 # -----------------------------------------------------
 # Ensure reviewer SA + token exist
 # -----------------------------------------------------
-
 ensure_reviewer_token() {
 
   local profile="$1"
@@ -96,10 +65,10 @@ EOF
   fi
 }
 
+
 # -----------------------------------------------------
 # Configure Kubernetes auth for workload clusters
 # -----------------------------------------------------
-
 configure_cluster() {
 
   local profile="$1"
@@ -150,15 +119,15 @@ configure_cluster() {
   echo "✅ Vault auth configured for $profile"
 }
 
+
 # -----------------------------------------------------
 # Main
 # -----------------------------------------------------
-
 vault_login
 
 while read -r profile; do
   configure_cluster "$profile"
-done < <(get_minikube_workload_profiles)
+done < <(get_minikube_tenant_profiles)
 
 echo ""
 echo "🎉 Workload clusters successfully configured in Vault"

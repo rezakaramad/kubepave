@@ -10,23 +10,34 @@ tasks:
     desc: "Start Minikube clusters"
     deps: [check]
     cmds:
-      - ./src/bootstrap/minikube/setup-minikube.sh
-      - ./src/bootstrap/minikube/setup-networking.sh
+      - ./src/bootstrap/minikube/setup-minikube.sh start
+      - ./src/bootstrap/minikube/setup-iptables.sh
   up:
-    desc: "Run Micro IDP"
+    desc: "Run kubepave on Minikube"
     deps: [start]
+    silent: true
     cmds:
-      - ./src/bootstrap/minikube/install-charts.sh
-      - ./src/bootstrap/minikube/update-coredns.sh
-      - ./src/bootstrap/minikube/setup-environment.sh
-      - ./src/bootstrap/minikube/setup-vault.sh
-      - ./src/bootstrap/minikube/setup-powerdns.sh
-      # - ./src/bootstrap/minikube/clean-hosts.sh
-  tuns:
+      - |
+        start=$(date +%s)
+
+        ./src/bootstrap/minikube/install-charts.sh
+        ./src/bootstrap/minikube/setup-secrets.sh
+        ./src/bootstrap/minikube/setup-trust.sh
+        ./src/bootstrap/minikube/setup-vault.sh
+        ./src/bootstrap/minikube/setup-dns.sh start
+        ./src/bootstrap/minikube/setup-dns.sh clean_etc_hosts
+        ./src/bootstrap/minikube/setup-kubectl.sh
+
+        end=$(date +%s)
+
+        echo ""
+        echo "⏱️  Total time: $((end - start)) seconds"
+  tunnels:
     desc: "List Minikube tunnels"
     cmds:
-      - ./src/bootstrap/minikube/list-minikube-tunnels.sh
+      - ./src/bootstrap/minikube/setup-minikube.sh tunnels
   down:
     desc: "Tear down everything"
     cmds:
-      - ./src/bootstrap/minikube/destroy.sh
+      - ./src/bootstrap/minikube/setup-minikube.sh destroy
+      - ./src/bootstrap/minikube/setup-dns.sh reset

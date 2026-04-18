@@ -1,71 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "🚀 Bootstrapping core platform charts..."
+DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Compute repo root dynamically 
-# Returns absolute path to script location, in my case it's '/home/kara/github/r-karamad/kubepave/src/bootstrap/minikube'
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Go three folders up from where the script lives, and give me that absolute path.
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-# Absolute path to 'charts/'' directory
-CHARTS_DIR="$REPO_ROOT/charts"
-
-# Specify platform components namespaces
-PLATFORM_NAMESPACE="platform-system"
-VAULT_NAMESPACE="vault"
-ARGOCD_NAMESPACE="argocd"
+# shellcheck source=libs/common.sh
+source "$DIR/libs/common.sh"
+# shellcheck source=libs/utils.sh
+source "$DIR/libs/utils.sh"
 
 # Gateway API version
 GATEWAY_API_VERSION="v1.4.1"
 
-MANAGEMENT_PROFILE="minikube-management"
 
-# CoreDNS Adjustment
-COREDNS_NS="kube-system"
-TRAEFIK_SVC="traefik-mgmt"
-DNS_DOMAIN="mgmt.rezakara.demo"
-DNS_HOSTS=(
-  vault
-)
+echo "🚀 Bootstrapping core platform charts..."
 
-# -----------------------------------------------------------------------------
-# Discover Minikube clusters
-# -----------------------------------------------------------------------------
-
-# All clusters
-get_minikube_profiles() {
-  minikube profile list -o json \
-    | jq -r '
-        .valid[]
-        | select(.Status == "OK")
-        | .Name
-        | select(startswith("minikube-"))
-      '
-}
-
-# Workload clusters only
-get_minikube_tenant_profiles() {
-  minikube profile list -o json \
-    | jq -r --arg mgmt "$MANAGEMENT_PROFILE" '
-        .valid[]
-        | select(.Status == "OK")
-        | .Name
-        | select(startswith("minikube-") and . != $mgmt)
-      '
-}
 
 # -----------------------------------------------------------------------------
 # helm_install — Small wrapper around `helm upgrade --install`
-#
 # Usage:
 #   helm_install <release> <chart> <namespace> [extra helm args...]
-#
 # Examples:
 #   helm_install cert-manager cert-manager platform-system
 #   helm_install platform-namespaces platform-namespaces default -f values.yaml
 #   helm_install vault vault vault --set server.dev.enabled=true
-#
 # Any arguments after the first 3 are forwarded directly to Helm.
 # This lets us pass -f, --set, --wait, etc. without modifying this function.
 # -----------------------------------------------------------------------------
@@ -123,6 +80,7 @@ helm_install () {
   fi
 }
 
+
 # -----------------------------------------------------------------------------
 # Traefik LoadBalancer IP in management cluster
 # -----------------------------------------------------------------------------
@@ -138,6 +96,10 @@ start_minikube_tunnel() {
   fi
 }
 
+
+# -----------------------------------------------------------------------------
+# Wait for Traefik LoadBalancer IP and update CoreDNS in workload clusters
+# -----------------------------------------------------------------------------
 wait_for_traefik_ip() {
   local ip=""
 
@@ -160,10 +122,10 @@ wait_for_traefik_ip() {
   exit 1
 }
 
+
 # -----------------------------------------------------------------------------
 # Update CoreDNS in workload clusters
 # -----------------------------------------------------------------------------
-
 update_dns() {
   local profile=$1
   local ip=$2
@@ -203,7 +165,6 @@ $hosts_block        fallthrough
 }
 # END rezakara DNS
 "
-
   kubectl --context "$profile" -n "$COREDNS_NS" patch cm coredns \
     --type merge \
     -p "{\"data\":{\"Corefile\":$(jq -Rs . <<< "$corefile")}}"
@@ -214,10 +175,10 @@ $hosts_block        fallthrough
   echo "✅ DNS updated"
 }
 
+
 # ----------------------------------------------------------------------------
 # Install Kubernetes Gateway API on Minikube clusters
 # ----------------------------------------------------------------------------
-
 install_gateway_api() {
 
   echo "🚀 Installing Kubernetes Gateway API..."
@@ -254,10 +215,10 @@ install_gateway_api() {
   done
 }
 
-# ----------------------------------------------------------------------------
-# Install core components
-# ----------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------
+# Install CRDs that are required by platform components (e.g. cert-manager, external-secrets)
+# ----------------------------------------------------------------------------
 install_crds() {
   # Install external-secrets CRDs
   CHART_PATH="$CHARTS_DIR/external-secrets"
@@ -285,14 +246,13 @@ install_crds() {
     > "$CHART_PATH/crds/bundle.yaml"
 
   kubectl apply --server-side -f $CHART_PATH/crds/bundle.yaml
-
 }
+
 
 # ----------------------------------------------------------------------------
 # Install platform charts
 # ----------------------------------------------------------------------------
 install_platform_components() {
-
   helm_install baseline-management baseline-management "default"
   helm_install cert-manager cert-manager "$PLATFORM_NAMESPACE"
   helm_install vault vault "$VAULT_NAMESPACE"
@@ -302,7 +262,7 @@ install_platform_components() {
 
   # Argo CD has dependancy to all the above services and controllers, 
   # therefore we need to make sure that those are up and running before deploying Argo CD.
-  echo "⏳ Waiting for components to become ready..."
+  echo "⏳ Waiting for components to get ready..."
 
   kubectl wait --for=condition=Available deployment \
     -l app.kubernetes.io/name=traefik \
@@ -347,23 +307,22 @@ install_platform_components() {
     --timeout=180s
 
   # This readiness verification is required because components deployed later depend on it.
-  echo "⏳ Waiting for ClusterSecretStore to become ready..."
+  echo "⏳ Waiting for ClusterSecretStore to get ready..."
 
   kubectl --context="$MANAGEMENT_PROFILE" wait \
     --for=condition=Ready \
     clustersecretstore.external-secrets.io/vault-local \
     --timeout=180s
 
-
   # Bootstrap the GitOps structure (application folders and system AppProject resources).
   helm_install gitops-platform gitops-platform "$PLATFORM_NAMESPACE"
 }
+
 
 # ----------------------------------------------------------------------------
 # Install workload charts
 # ----------------------------------------------------------------------------
 install_workload_components() {
-
   get_minikube_tenant_profiles | while read -r profile; do
     helm_install baseline-workload baseline-workload "default" "$profile"
     helm_install external-secrets external-secrets "$PLATFORM_NAMESPACE" "$profile"
@@ -382,7 +341,6 @@ fetch_credentials() {
   # -----------------------------
   # Argo CD admin password
   # -----------------------------
-
   until kubectl -n "$ARGOCD_NAMESPACE" get secret argocd-initial-admin-secret >/dev/null 2>&1; do
     sleep 2
   done
@@ -395,7 +353,6 @@ fetch_credentials() {
   # -----------------------------
   # Vault root token
   # -----------------------------
-
   kubectl wait --for=condition=Ready pod \
     -l app.kubernetes.io/name=vault \
     -n "$VAULT_NAMESPACE" \

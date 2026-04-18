@@ -1,38 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# -----------------------------------------------------------------------------
-# Configuration
-# -----------------------------------------------------------------------------
+DIR="$(cd "$(dirname "$0")" && pwd)"
 
-PROFILE_PREFIX="minikube-"
-MANAGEMENT_PROFILE="minikube-management"
+# shellcheck source=libs/common.sh
+source "$DIR/libs/common.sh"
+# shellcheck source=libs/utils.sh
+source "$DIR/libs/utils.sh"
 
-COREDNS_NS="kube-system"
-TRAEFIK_NS="platform-system"
-TRAEFIK_SVC="traefik-mgmt"
 
+# CoreDNS configuration for workload clusters to resolve vault and oidc endpoints in management cluster
 DNS_DOMAIN="mgmt.rezakara.demo"
 DNS_HOST="vault.mgmt.rezakara.demo"
 
-# -----------------------------------------------------------------------------
-# Discover workload clusters
-# -----------------------------------------------------------------------------
-
-get_profiles() {
-  minikube profile list -o json \
-    | jq -r '
-        .valid[]
-        | select(.Status == "OK")
-        | .Name
-        | select(startswith("minikube-"))
-      '
-}
 
 # -----------------------------------------------------------------------------
 # Wait for Traefik LoadBalancer IP in management cluster
 # -----------------------------------------------------------------------------
-
 wait_for_traefik_ip() {
   local ip=""
 
@@ -55,10 +39,10 @@ wait_for_traefik_ip() {
   exit 1
 }
 
+
 # -----------------------------------------------------------------------------
 # Update CoreDNS in workload clusters
 # -----------------------------------------------------------------------------
-
 update_dns() {
   local profile=$1
   local ip=$2
@@ -95,16 +79,16 @@ $DNS_DOMAIN:53 {
   echo "✅ DNS updated"
 }
 
+
 # -----------------------------------------------------------------------------
 # Main workflow
 # -----------------------------------------------------------------------------
-
 main() {
   local ip
 
   ip=$(wait_for_traefik_ip)
 
-  get_profiles | while read -r profile; do
+  get_minikube_profiles | while read -r profile; do
     echo "🔎 Cluster: $profile"
     update_dns "$profile" "$ip"
     echo "--------------------------------"
