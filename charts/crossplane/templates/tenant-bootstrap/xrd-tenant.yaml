@@ -118,6 +118,7 @@ spec:
 
             status:
               type: object
+              x-kubernetes-preserve-unknown-fields: true 
 
               properties:
 
@@ -125,6 +126,7 @@ spec:
                   type: string
                   description: Current lifecycle phase of the tenant.
                   enum:
+                    - Provisioning
                     - Ready
                     - Failed
 

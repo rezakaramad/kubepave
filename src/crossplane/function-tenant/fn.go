@@ -38,8 +38,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 
 	start := time.Now()
 
-	f.log.Info("Running function",
-		"tag", req.GetMeta().GetTag())
+	f.log.Info("Running function", "tag", req.GetMeta().GetTag())
 
 	// This is the object Crossplane expects the function to return.
 	// It copies metadata from the request so Crossplane can correlate the response with the correct pipeline execution.
@@ -70,12 +69,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	email, _ := xr.Resource.GetString("spec.owner.email")
 	envPrefix, _ := xr.Resource.GetString("spec.environmentPrefix")
 
-	f.log.Info(
-		"Reconciling tenant",
-		"tenant", name,
-		"dnsName", dnsName,
-		"team", team,
-	)
+	f.log.Info("Reconciling tenant", "tenant", name, "dnsName", dnsName, "team", team)
 
 	if name == "" {
 		response.Fatal(rsp, fmt.Errorf("metadata.name is required"))
@@ -126,11 +120,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		return rsp, nil
 	}
 
-	f.log.Debug(
-		"Loaded observed resources",
-		"tenant", name,
-		"count", len(observed),
-	)
+	f.log.Debug("Loaded observed resources", "tenant", name, "count", len(observed))
 
 	var aadGroupID string
 
@@ -147,10 +137,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 
 		// If the resource exists in the observed graph
 		// AND it has a valid Kubernetes object
-		f.log.Info(
-			"Observed Entra group",
-			"tenant", name,
-		)
+		f.log.Info("Observed Entra group", "tenant", name)
 
 		// Reads the Azure group ID
 		if id, err := groupRes.Resource.GetString("status.atProvider.objectId"); err == nil {
@@ -158,11 +145,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		}
 
 		if aadGroupID != "" {
-			f.log.Info(
-				"Entra group exists",
-				"tenant", name,
-				"aadGroupID", aadGroupID,
-			)
+			f.log.Info("Entra group exists", "tenant", name, "aadGroupID", aadGroupID)
 		}
 
 		// Check if the resource has a Ready condition with status True
@@ -177,11 +160,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		if hasConditionTrue(groupRes.Resource, "Ready") {
 			groupReady = resource.ReadyTrue
 
-			f.log.Info(
-				"Entra group ready",
-				"tenant", name,
-				"aadGroupID", aadGroupID,
-			)
+			f.log.Info("Entra group ready", "tenant", name, "aadGroupID", aadGroupID)
 		}
 	}
 
@@ -195,10 +174,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		if isArgoAppHealthy(appRes.Resource) {
 			gitopsReady = resource.ReadyTrue
 
-			f.log.Info(
-				"GitOps application healthy",
-				"tenant", name,
-			)
+			f.log.Info("GitOps application healthy", "tenant", name)
 		}
 	}
 
@@ -212,10 +188,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		if isArgoAppHealthy(appRes.Resource) {
 			baselineReady = resource.ReadyTrue
 
-			f.log.Info(
-				"Baseline application healthy",
-				"tenant", name,
-			)
+			f.log.Info("Baseline application healthy", "tenant", name)
 		}
 	}
 
@@ -228,13 +201,8 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	// compare this desired state with the observed state and create or update
 	// the Azure AD group if needed during reconciliation.
 
+	f.log.Info("Ensuring Entra group", "tenant", name)
 	group := composed.New()
-
-	f.log.Info(
-		"Ensuring Entra group",
-		"tenant", name,
-	)
-
 	group.SetAPIVersion("groups.azuread.m.upbound.io/v1beta1")
 	group.SetKind("Group")
 	group.SetName(fmt.Sprintf("entra-%s", name))
@@ -280,12 +248,15 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 	// If not ready yet → wait
 	if groupReady != resource.ReadyTrue {
 
-		f.log.Info("Waiting for Entra group",
-			"tenant", name,
-			"aadGroupID", aadGroupID,
-		)
+		f.log.Info("Waiting for Entra group", "tenant", name, "aadGroupID", aadGroupID)
 
 		_ = xr.Resource.SetValue("status.phase", PhaseProvisioning)
+
+		response.ConditionFalse(rsp, "Ready", "Provisioning").
+			TargetCompositeAndClaim()
+
+		response.ConditionTrue(rsp, "Synced", "ReconcileSuccess").
+			TargetCompositeAndClaim()
 
 		xr.Resource.SetManagedFields(nil)
 
@@ -345,10 +316,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		gitops = existing.Resource
 	}
 
-	f.log.Info(
-		"Ensuring GitOps application",
-		"tenant", name,
-	)
+	f.log.Info("Ensuring GitOps application", "tenant", name)
 
 	// Declare the desired ArgoCD Application that installs the gitops-tenant Helm chart.
 	// ArgoCD will reconcile this application and apply the chart
@@ -424,10 +392,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		baseline = existing.Resource
 	}
 
-	f.log.Info(
-		"Ensuring baseline application",
-		"tenant", name,
-	)
+	f.log.Info("Ensuring baseline application", "tenant", name)
 
 	// Declare the desired ArgoCD Application that installs the baseline-tenant Helm chart.
 	baseline.SetAPIVersion("argoproj.io/v1alpha1")
@@ -482,11 +447,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 
 	if allReady {
 
-		f.log.Info(
-			"Tenant ready",
-			"tenant", name,
-			"aadGroupID", aadGroupID,
-		)
+		f.log.Info("Tenant ready", "tenant", name, "aadGroupID", aadGroupID)
 
 		_ = xr.Resource.SetValue("status.phase", PhaseReady)
 
@@ -495,16 +456,16 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 
 	} else {
 
-		f.log.Info(
-			"Tenant still provisioning",
-			"tenant", name,
-		)
+		f.log.Info("Tenant still provisioning", "tenant", name)
 
 		_ = xr.Resource.SetValue("status.phase", PhaseProvisioning)
 
 		response.ConditionFalse(rsp, "Ready", "Provisioning").
 			TargetCompositeAndClaim()
 	}
+
+	response.ConditionTrue(rsp, "Synced", "ReconcileSuccess").
+		TargetCompositeAndClaim()
 
 	xr.Resource.SetManagedFields(nil)
 
@@ -519,11 +480,7 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 		return rsp, nil
 	}
 
-	f.log.Info(
-		"Reconciliation finished",
-		"tenant", name,
-		"duration", time.Since(start),
-	)
+	f.log.Info("Reconciliation finished", "tenant", name, "duration", time.Since(start))
 
 	return rsp, nil
 }
