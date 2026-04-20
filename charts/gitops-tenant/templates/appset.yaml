@@ -9,7 +9,6 @@ metadata:
   {{ include "common.labels" . | nindent 4 }}
     platform.rezakara.demo/tenant: "{{ $.Values.tenant.name | lower }}"
     platform.rezakara.demo/rbac-group-id: "{{ $.Values.tenant.argocd.aadGroupId | lower }}"
-    platform.rezakara.demo/cluster: "{{ $cluster.clusterName | lower }}"
 spec:
   goTemplate: true
   goTemplateOptions:
