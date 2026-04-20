@@ -6,7 +6,7 @@ tenant:
 
 argocd:
   clusters:
-    - clusterName: workload
+    - clusterName: minikube-workload
       environmentPrefix: wl
       tenantAppProject:
         policies:
