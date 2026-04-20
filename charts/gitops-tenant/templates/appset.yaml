@@ -20,7 +20,7 @@ spec:
               repoURL: {{ $repoURL | quote }}
               revision: HEAD
               directories:
-                - path: apps/*/*
+                - path: apps/*
           - clusters:
               selector:
                 matchExpressions:

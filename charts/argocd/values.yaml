@@ -75,7 +75,7 @@ argocd:
       application.namespaces: argocd, argocd-*
 
       # -- Allow Argo CD to discover and reconcile ApplicationSet resources in argocd and all argocd-* namespaces
-      applicationsetcontroller.namespaces: argocd, argocd-*
+      applicationsetcontroller.namespaces: argocd, gitops-*
 
       # -- # Required when ApplicationSets are watched outside the argocd namespace
       applicationsetcontroller.allowed.scm.providers: github
