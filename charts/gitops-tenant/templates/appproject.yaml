@@ -89,6 +89,7 @@ spec:
       kind: "App"
   sourceRepos:
     - {{ include "tenant.repoURL" $.Values.tenant.name | quote }}
+    - {{ printf "%s.git" (include "tenant.repoURL" $.Values.tenant.name) | quote }}
   roles:
   - name: default
     description: Default roles for {{ $.Values.tenant.name }}
