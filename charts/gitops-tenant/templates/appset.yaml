@@ -31,7 +31,7 @@ spec:
                     values: ["tenant"]
                   - key: argocd.mgmt.rezakara.demo/environment
                     operator: In
-                    values: ["wl", "dev","test","prod"]
+                    values: ["wl"]
   template:
     metadata:
       name: '{{ `{{ .path.basename }}` }}-{{ `{{ index .metadata.labels "argocd.mgmt.rezakara.demo/environment" }}` }}'
@@ -56,17 +56,14 @@ spec:
         automated:
           enabled: true 
           prune: false
-          selfHeal: true
+          selfHeal: false
         syncOptions:
         - ServerSideApply=true
         - ApplyOutOfSyncOnly=true
         - RespectIgnoreDifferences=true
-      ignoreDifferences:
-        - group: argoproj.io
-          kind: Application
-          jsonPointers:
-            - /spec/syncPolicy/automated
-            - /spec/source/targetRevision
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/syncPolicy
 
 ---
 {{- end }}
