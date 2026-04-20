@@ -12,7 +12,7 @@ metadata:
     platform.rezakara.demo/cluster: "{{ $cluster.clusterName | lower }}"
 spec:
   sourceNamespaces:
-    - "argocd-{{ $.Values.tenant.name }}"
+    - "gitops-{{ $.Values.tenant.name }}"
   clusterResourceWhitelist:
     - group: ""
       kind: ""
