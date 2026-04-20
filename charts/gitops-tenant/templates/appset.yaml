@@ -1,5 +1,4 @@
 {{- $repoURL := include "tenant.repoURL" $.Values.tenant.name   }}
-{{- range $cluster := $.Values.argocd.clusters -}}
 
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
@@ -66,4 +65,3 @@ spec:
         - /spec/syncPolicy
 
 ---
-{{- end }}
