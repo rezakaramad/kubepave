@@ -128,3 +128,4 @@ argocd:
       # 'policy.csv' lives in argocd-rbac-cm
       policy.csv: |
         g, "ACL.GCP.PLT.Administrators", role:admin
+        g, admin, role:admin
