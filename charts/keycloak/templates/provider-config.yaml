@@ -1,4 +1,3 @@
-{{- if .Capabilities.APIVersions.Has "keycloak.m.crossplane.io/v1beta1/ProviderConfig" }}
 apiVersion: keycloak.m.crossplane.io/v1beta1
 kind: ProviderConfig
 metadata:
@@ -6,8 +5,8 @@ metadata:
   namespace: keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   credentialsSecretRef:
     name: crossplane-admin
     key: credentials
-{{- end }}
