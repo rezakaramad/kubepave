@@ -40,3 +40,8 @@ DNS_HOSTS=(
   vault
 )
 
+
+log()  { echo "➡️  $*"; }
+ok()   { echo "✅ $*"; }
+warn() { echo "⚠️  $*"; }
+err()  { echo "❌ $*"; }

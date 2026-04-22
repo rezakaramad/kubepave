@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+
+# This script sets up local split-DNS for the `rezakara.demo` domain.
+# We keep `systemd-resolved` as the system resolver (`/etc/resolv.conf` -> 127.0.0.53),
+# but point it to `dnsmasq` on 127.0.0.1 for actual upstream resolution.
+#
+# `dnsmasq` is used because it can reliably do per-domain forwarding:
+#   - `*.rezakara.demo` -> PowerDNS on 127.0.0.1:5300
+#   - everything else   -> normal public DNS upstreams
+#
+# We use this design because `systemd-resolved` does not handle custom-port split DNS
+# for PowerDNS on :5300 as reliably as `dnsmasq` does.
+# Final flow:
+#   apps -> systemd-resolved -> dnsmasq -> PowerDNS/public DNS
+
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -24,34 +38,128 @@ DNSMASQ_MAIN_CONF="/etc/dnsmasq.conf"
 DNSMASQ_EXPECTED_CONF=$(cat <<'EOF'
 # Rezakara DNS config
 listen-address=127.0.0.1
-bind-interfaces
 server=/rezakara.demo/127.0.0.1#5300
-server=8.8.8.8
+# Prevent circular resolution through system resolver
+no-resolv
 server=1.1.1.1
+server=8.8.4.4
 EOF
 )
+
+
+# -----------------------------------------------------
+# Global error handler to provide better context on failures
+# -----------------------------------------------------
+on_error() {
+  local exit_code=$?
+  err "Command failed at line $1: $2"
+  exit "$exit_code"
+}
+trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
+
+
+# -----------------------------------------------------
+# Verifies a required systemd service exists on the machine before the script continues
+# -----------------------------------------------------
+require_service_unit() {
+  local unit="$1"
+  systemctl list-unit-files "${unit}.service" 2>/dev/null | grep -q "^${unit}\.service" || {
+    err "Required systemd service not installed: ${unit}.service"
+    exit 1
+  }
+}
+
+
+# -----------------------------------------------------
+# Ensures systemd-resolved is running and warns if /etc/resolv.conf 
+# is not using its expected stub resolver setup.
+# -----------------------------------------------------
+ensure_systemd_resolved_running() {
+  if ! sudo systemctl is-active --quiet systemd-resolved; then
+    log "Starting systemd-resolved..."
+    sudo systemctl enable --now systemd-resolved
+  fi
+
+  if [[ -L /etc/resolv.conf ]]; then
+    if [[ "$(readlink -f /etc/resolv.conf)" != "/run/systemd/resolve/stub-resolv.conf" ]]; then
+      warn "/etc/resolv.conf is symlinked, but not to systemd-resolved stub"
+    fi
+  else
+    warn "/etc/resolv.conf is not a symlink; system DNS may be managed differently"
+  fi
+
+  ok "systemd-resolved is active"
+}
+
+
+# -----------------------------------------------------
+# Flush DNS cache for systemd-resolved or dnsmasq depending on which is active
+# -----------------------------------------------------
+flush_dns_cache() {
+  log "Flushing DNS cache..."
+
+  if sudo systemctl is-active --quiet systemd-resolved 2>/dev/null; then
+    if command -v resolvectl >/dev/null 2>&1; then
+      sudo resolvectl flush-caches || warn "Failed to flush with resolvectl"
+      ok "DNS cache flushed (systemd-resolved)"
+      return 0
+    fi
+
+    if command -v systemd-resolve >/dev/null 2>&1; then
+      sudo systemd-resolve --flush-caches || warn "Failed to flush with systemd-resolve"
+      ok "DNS cache flushed (systemd-resolve)"
+      return 0
+    fi
+  fi
+
+  if sudo systemctl is-active --quiet dnsmasq 2>/dev/null; then
+    restart_dnsmasq
+    ok "dnsmasq refreshed"
+    return 0
+  fi
+
+  warn "No active DNS cache service found; skipping flush"
+}
+
+
+# -----------------------------------------------------
+# Restart dnsmasq service and verify it's running
+# -----------------------------------------------------
+restart_dnsmasq() {
+  log "Validating dnsmasq configuration..."
+  sudo dnsmasq --test --conf-file=/etc/dnsmasq.conf >/dev/null
+
+  log "Restarting dnsmasq..."
+  sudo systemctl restart dnsmasq
+
+  sudo systemctl is-active --quiet dnsmasq || {
+    err "dnsmasq is not running after restart"
+    exit 1
+  }
+}
+
 
 # -----------------------------------------------------
 # Load secrets from Vault and export as environment variables
 # -----------------------------------------------------
 load_powerdns_secrets() {
-  echo "📥 Loading secrets from Vault..."
+  log "Loading secrets from Vault..."
 
   POSTGRES_DB="pdns"
-  POSTGRES_USER="$(vault kv get -field=user $VAULT_DB_PATH)"
-  POSTGRES_PASSWORD="$(vault kv get -field=password $VAULT_DB_PATH)"
-  PDNS_API_KEY="$(vault kv get -field=key $VAULT_API_PATH)"
+  POSTGRES_USER="$(vault kv get -field=user "$VAULT_DB_PATH")"
+  POSTGRES_PASSWORD="$(vault kv get -field=password "$VAULT_DB_PATH")"
+  PDNS_API_KEY="$(vault kv get -field=key "$VAULT_API_PATH")"
 
-  [ -n "$POSTGRES_USER" ] || { echo "❌ DB user missing"; exit 1; }
-  [ -n "$POSTGRES_PASSWORD" ] || { echo "❌ DB password missing"; exit 1; }
-  [ -n "$PDNS_API_KEY" ] || { echo "❌ API key missing"; exit 1; }
+  [[ -n "$POSTGRES_USER" ]] || { err "DB user missing"; exit 1; }
+  [[ -n "$POSTGRES_PASSWORD" ]] || { err "DB password missing"; exit 1; }
+  [[ -n "$PDNS_API_KEY" ]] || { err "API key missing"; exit 1; }
 
   export POSTGRES_DB
   export POSTGRES_USER
   export POSTGRES_PASSWORD
   export PDNS_API_KEY
 
-  echo "✅ Secrets loaded and exported"
+  ok "Secrets loaded and exported"
 }
 
 
@@ -59,58 +167,55 @@ load_powerdns_secrets() {
 # Start PowerDNS stack using Docker Compose
 # -----------------------------------------------------
 start_compose() {
-  local SCHEMA_FILE="${DIR}/../powerdns/schema.pgsql.sql"
-  local SCHEMA_URL="https://raw.githubusercontent.com/PowerDNS/pdns/rel/${POWERDNS_IMAGE_BRANCH}/modules/gpgsqlbackend/schema.pgsql.sql"
+  local schema_file="${DIR}/../powerdns/schema.pgsql.sql"
+  local schema_url="https://raw.githubusercontent.com/PowerDNS/pdns/rel/${POWERDNS_IMAGE_BRANCH}/modules/gpgsqlbackend/schema.pgsql.sql"
 
   export POWERDNS_IMAGE_NAME
   export POWERDNS_IMAGE_TAG
 
-  echo "🚀 Starting PowerDNS stack..."
-  echo "🔧 Using:"
+  log "Starting PowerDNS stack..."
   echo "  Image: powerdns/${POWERDNS_IMAGE_NAME}:${POWERDNS_IMAGE_TAG}"
-  echo "  Schema: $SCHEMA_URL"
+  echo "  Schema: ${schema_url}"
 
-  echo "🧹 Resetting environment (full clean)..."
+  log "Resetting Docker Compose environment..."
   docker compose -f "$POWERDNS_COMPOSE_FILE" down -v --remove-orphans || true
 
-  mkdir -p "$(dirname "$SCHEMA_FILE")"
+  mkdir -p "$(dirname "$schema_file")"
 
-  echo "📥 Downloading schema..."
-  curl -fsSL -o "$SCHEMA_FILE" "$SCHEMA_URL" || {
-    echo "❌ Failed to download schema"
+  log "Downloading schema..."
+  curl -fsSL -o "$schema_file" "$schema_url"
+
+  grep -q "CREATE TABLE" "$schema_file" || {
+    err "Downloaded schema looks invalid"
     exit 1
   }
 
-  if ! grep -q "CREATE TABLE" "$SCHEMA_FILE"; then
-    echo "❌ Downloaded schema looks invalid"
-    exit 1
-  fi
-
-  echo "🐳 Pulling PowerDNS image..."
+  log "Pulling PowerDNS image..."
   docker pull "powerdns/${POWERDNS_IMAGE_NAME}:${POWERDNS_IMAGE_TAG}"
 
-  echo "🚀 Starting Docker Compose..."
-  docker compose -f "$POWERDNS_COMPOSE_FILE" up -d --remove-orphans || {
-    echo "❌ Docker Compose failed"
-    exit 1
-  }
+  log "Starting Docker Compose..."
+  docker compose -f "$POWERDNS_COMPOSE_FILE" up -d --remove-orphans
 
-  echo "🎉 Stack started"
+  ok "PowerDNS stack started"
 }
 
 
 # -----------------------------------------------------
-# Ensure dnsmasq loads configs from /etc/dnsmasq.d (required for our custom config)
+# Ensure dnsmasq loads configs from /etc/dnsmasq.d
 # -----------------------------------------------------
 ensure_dnsmasq_main_conf() {
-  echo "🔧 Ensuring dnsmasq loads /etc/dnsmasq.d..."
+  log "Ensuring dnsmasq loads /etc/dnsmasq.d..."
 
   if ! grep -Eq '^\s*conf-dir=/etc/dnsmasq\.d' "$DNSMASQ_MAIN_CONF"; then
-    echo "Adding conf-dir directive..."
+    log "Adding conf-dir directive to ${DNSMASQ_MAIN_CONF}..."
+    sudo sed -i '/^#conf-dir=\/etc\/dnsmasq\.d/s/^#//' "$DNSMASQ_MAIN_CONF" || true
 
-    sudo sed -i '/^#conf-dir=\/etc\/dnsmasq\.d/s/^#//' "$DNSMASQ_MAIN_CONF" || \
-    echo "conf-dir=/etc/dnsmasq.d" | sudo tee -a "$DNSMASQ_MAIN_CONF" >/dev/null
+    if ! grep -Eq '^\s*conf-dir=/etc/dnsmasq\.d' "$DNSMASQ_MAIN_CONF"; then
+      echo "conf-dir=/etc/dnsmasq.d" | sudo tee -a "$DNSMASQ_MAIN_CONF" >/dev/null
+    fi
   fi
+
+  ok "dnsmasq main config ready"
 }
 
 
@@ -118,7 +223,7 @@ ensure_dnsmasq_main_conf() {
 # Configure dnsmasq to forward *.rezakara.demo to local PowerDNS instance
 # ----------------------------------------------------------------------------
 configure_dnsmasq() {
-  echo "🔧 Configuring dnsmasq..."
+  log "Configuring dnsmasq..."
 
   local changed=0
   sudo mkdir -p /etc/dnsmasq.d
@@ -129,153 +234,176 @@ configure_dnsmasq() {
   fi
 
   if (( changed )); then
-    echo "🔄 Restarting dnsmasq..."
-    sudo systemctl restart dnsmasq || sudo systemctl start dnsmasq
+    restart_dnsmasq
   else
-    echo "✅ dnsmasq already up to date"
+    ok "dnsmasq config already up to date"
+    if ! sudo systemctl is-active --quiet dnsmasq; then
+      restart_dnsmasq
+    fi
   fi
 
-  if ! sudo systemctl is-active --quiet dnsmasq; then
-    echo "❌ dnsmasq is not running"
+  sudo systemctl is-active --quiet dnsmasq || {
+    err "dnsmasq is not running"
+    exit 1
+  }
+
+  if ! dig @127.0.0.1 google.com +short | grep -q .; then
+    err "dnsmasq is running but cannot resolve public domains"
     exit 1
   fi
+
+  ok "dnsmasq is active and resolving"
 }
 
 
 # ----------------------------------------------------------------------------
-# Configure systemd-resolved to forward DNS queries for *.rezakara.demo to local PowerDNS instance
+# Configure NetworkManager to use dnsmasq on 127.0.0.1
 # ----------------------------------------------------------------------------
 configure_networkmanager_dns() {
-  echo "🔧 Configuring DNS via NetworkManager → dnsmasq..."
+  log "Configuring NetworkManager DNS -> dnsmasq..."
 
   local connection
   local current_dns
   local current_ignore_auto
   local restart_needed=0
 
-  # Get active connection (WiFi / Ethernet)
   connection="$(get_active_connection)"
-  if [[ -z "$connection" ]]; then
-    echo "❌ Could not detect active NetworkManager connection"
-    exit 1
-  fi
+  [[ -n "$connection" ]] || { err "Could not detect active NetworkManager connection"; exit 1; }
 
   echo "🌐 Connection: $connection"
 
-  # Check if DNS already includes 127.0.0.1
-  if ! nmcli -g ipv4.dns connection show "$connection" | grep -wq "127.0.0.1"; then
-    nmcli connection modify "$connection" ipv4.dns "127.0.0.1"
+  current_dns="$(sudo nmcli -g ipv4.dns connection show "$connection" | tr -d ' ')"
+  current_ignore_auto="$(sudo nmcli -g ipv4.ignore-auto-dns connection show "$connection" | tr -d ' ')"
+
+  if [[ "$current_dns" != "127.0.0.1" ]]; then
+    sudo nmcli connection modify "$connection" ipv4.dns "127.0.0.1"
+    sudo nmcli connection modify "$connection" ipv6.dns ""
     restart_needed=1
   fi
 
-  # Check ignore-auto-dns
-  current_ignore_auto="$(nmcli -g ipv4.ignore-auto-dns connection show "$connection" | tr -d ' ')"
-
   if [[ "$current_ignore_auto" != "yes" ]]; then
-    nmcli connection modify "$connection" ipv4.ignore-auto-dns yes
-    nmcli connection modify "$connection" ipv6.ignore-auto-dns yes
+    sudo nmcli connection modify "$connection" ipv4.ignore-auto-dns yes
+    sudo nmcli connection modify "$connection" ipv6.ignore-auto-dns yes
     restart_needed=1
   fi
 
   if (( restart_needed )); then
-    echo "🔄 Restarting connection..."
-    nmcli connection down "$connection"
-    nmcli connection up "$connection"
+    log "Restarting NetworkManager connection..."
+    sudo nmcli connection down "$connection" || true
+    sudo nmcli connection up "$connection"
   else
-    echo "✅ NetworkManager DNS already configured"
+    ok "NetworkManager DNS already configured"
   fi
 
-  echo "🧹 Flushing DNS cache..."
-  sudo resolvectl flush-caches
+  ensure_systemd_resolved_running
+  flush_dns_cache
 
-  echo "🔍 Verifying..."
+  log "Verifying DNS chain..."
 
-  # Internet via dnsmasq
+  # dnsmasq should resolve public names
   if ! dig @127.0.0.1 google.com +short | grep -q .; then
-    echo "❌ dnsmasq not resolving internet domains"
+    err "dnsmasq is not resolving internet domains"
     exit 1
   fi
 
-  # PowerDNS (authoritative for internal domains)
-  if ! dig @127.0.0.1 argocd.mgmt.rezakara.demo +short | grep -q .; then
-    echo "❌ dnsmasq not resolving internal domains"
-    exit 1
-  fi
-
-  # Internal domains via dnsmasq → PowerDNS
-  if ! dig @127.0.0.1 -p 5300 argocd.mgmt.rezakara.demo +short | grep -q .; then
-    echo "⚠️ PowerDNS has no records yet (expected before ArgoCD sync)"
+  # PowerDNS may legitimately have no records yet; warn only
+  if dig @127.0.0.1 -p 5300 argocd.mgmt.rezakara.demo +short | grep -q .; then
+    ok "PowerDNS resolves internal domains directly"
   else
-    echo "✅ PowerDNS resolving internal domains"
+    warn "PowerDNS is reachable on :5300 but has no records yet"
   fi
 
-  # System DNS resolving internet domains
+  # System resolver should still resolve public names
   if ! dig google.com +short | grep -q .; then
-    echo "❌ system DNS not resolving internet domains"
+    err "System DNS is not resolving internet domains"
     exit 1
   fi
 
-  # System DNS resolving internal domains (via dnsmasq → PowerDNS)
-  if ! dig argocd.mgmt.rezakara.demo +short | grep -q .; then
-    echo "❌ system DNS not using dnsmasq"
-    exit 1
+  # Internal resolution through system DNS may not work until records exist
+  if dig argocd.mgmt.rezakara.demo +short | grep -q .; then
+    ok "System DNS resolves internal domain via dnsmasq -> PowerDNS"
+  else
+    warn "System DNS path is configured, but no internal record is resolving yet"
   fi
 
-  echo "✅ DNS fully configured (system → dnsmasq → PowerDNS)"
+  ok "DNS configured: system -> systemd-resolved -> dnsmasq -> PowerDNS"
 }
 
 
+# ----------------------------------------------------------------------------
+# Restore default DNS settings by removing dnsmasq config and resetting NetworkManager
+# ----------------------------------------------------------------------------
 reset_dns() {
-  echo "♻️  Restoring default DNS (NetworkManager)..."
+  log "Restoring default DNS through NetworkManager/systemd-resolved..."
 
-  local connection current_dns current_ignore_auto restart_needed=0
+  local connection
+  local current_dns
+  local current_ignore_auto
+  local restart_needed=0
 
   connection="$(get_active_connection)"
-  if [[ -z "$connection" ]]; then
-    echo "❌ Could not detect active connection"
-    exit 1
-  fi
+  [[ -n "$connection" ]] || { err "Could not detect active NetworkManager connection"; exit 1; }
 
   echo "🌐 Connection: $connection"
 
-  current_dns="$(nmcli -g ipv4.dns connection show "$connection" | tr -d ' ')"
-  current_ignore_auto="$(nmcli -g ipv4.ignore-auto-dns connection show "$connection" | tr -d ' ')"
+  current_dns="$(sudo nmcli -g ipv4.dns connection show "$connection" | tr -d ' ')"
+  current_ignore_auto="$(sudo nmcli -g ipv4.ignore-auto-dns connection show "$connection" | tr -d ' ')"
 
   if [[ -n "$current_dns" ]]; then
-    nmcli connection modify "$connection" ipv4.dns ""
-    nmcli connection modify "$connection" ipv6.dns ""
+    sudo nmcli connection modify "$connection" ipv4.dns ""
+    sudo nmcli connection modify "$connection" ipv6.dns ""
     restart_needed=1
   fi
 
   if [[ "$current_ignore_auto" != "no" ]]; then
-    nmcli connection modify "$connection" ipv4.ignore-auto-dns no
-    nmcli connection modify "$connection" ipv6.ignore-auto-dns no
+    sudo nmcli connection modify "$connection" ipv4.ignore-auto-dns no
+    sudo nmcli connection modify "$connection" ipv6.ignore-auto-dns no
     restart_needed=1
   fi
 
   if (( restart_needed )); then
-    echo "🔄 Restarting connection..."
-    nmcli connection down "$connection"
-    nmcli connection up "$connection"
+    log "Restarting NetworkManager connection..."
+    sudo nmcli connection down "$connection" || true
+    sudo nmcli connection up "$connection"
   else
-    echo "✅ NetworkManager DNS already at default"
+    ok "NetworkManager DNS already at default"
   fi
 
-  sudo resolvectl flush-caches
-  echo "✅ DNS restored to default"
+  ensure_systemd_resolved_running
+  flush_dns_cache
+
+  if ! dig google.com +short | grep -q .; then
+    err "Default system DNS is not resolving public domains after reset"
+    exit 1
+  fi
+
+  ok "DNS restored to default (dnsmasq bypassed)"
 }
 
+
+# ----------------------------------------------------------------------------
+# Remove dnsmasq custom config and stop service
+# ----------------------------------------------------------------------------
 reset_dnsmasq() {
-  echo "🧹 Removing dnsmasq custom config..."
+  log "Removing dnsmasq custom config..."
+
+  # Remove stale direct include if present
+  if grep -Eq '^\s*conf-file=/etc/dnsmasq\.d/rezakara\.conf' "$DNSMASQ_MAIN_CONF"; then
+    log "Removing direct conf-file reference to ${DNSMASQ_CONF}..."
+    sudo sed -i '\|^\s*conf-file=/etc/dnsmasq\.d/rezakara\.conf$|d' "$DNSMASQ_MAIN_CONF"
+  fi
 
   if sudo test -f "$DNSMASQ_CONF"; then
     sudo rm -f "$DNSMASQ_CONF"
-    sudo systemctl restart dnsmasq
+
+    if sudo systemctl is-active --quiet dnsmasq; then
+      restart_dnsmasq
+    fi
   else
-    echo "✅ dnsmasq custom config already absent"
+    ok "dnsmasq custom config already absent"
   fi
 
-  echo "✅ dnsmasq reset"
+  ok "dnsmasq reset complete"
 }
 
 
@@ -283,32 +411,19 @@ reset_dnsmasq() {
 # Stop and remove PowerDNS containers
 # -------------------------------
 stop_powerdns_containers() {
+  local found=0
+
   for container in pdns pdns-admin pdns-db; do
     if docker container inspect "$container" >/dev/null 2>&1; then
       docker rm -f "$container" >/dev/null
       echo "🧹 Removed $container"
+      found=1
     else
       echo "✅ No $container container found"
     fi
   done
-}
 
-
-# -------------------------------
-# Flush DNS cache
-# -------------------------------
-flush_dns_cache() {
-  echo "🔄 Flushing DNS cache..."
-
-  if command -v resolvectl >/dev/null 2>&1; then
-    sudo resolvectl flush-caches
-    echo "✅ DNS cache flushed (systemd-resolved)"
-  elif command -v systemd-resolve >/dev/null 2>&1; then
-    sudo systemd-resolve --flush-caches
-    echo "✅ DNS cache flushed (systemd-resolve)"
-  else
-    echo "⚠️ No supported DNS cache tool found"
-  fi
+  (( found == 1 )) || ok "No PowerDNS containers were running"
 }
 
 
@@ -316,27 +431,25 @@ flush_dns_cache() {
 # Clean up /etc/hosts entries and flush DNS cache after bootstrapping is complete
 # ----------------------------------------------------------------------------
 clean_etc_hosts() {
-  echo "🧼 Cleaning /etc/hosts entries..."
+  log "Cleaning /etc/hosts entries..."
 
-  if grep -q 'rezakara.demo' /etc/hosts; then
-    echo "🧹 Removing rezakara.demo entries"
+  if grep -q 'rezakara\.demo' /etc/hosts; then
+    log "Removing rezakara.demo entries..."
 
-    # Backup /etc/hosts if not already backed up
     [[ -f /etc/hosts.bak ]] || sudo cp /etc/hosts /etc/hosts.bak
-
     sudo sed -i '/rezakara\.demo/d' /etc/hosts
 
-    echo "✅ /etc/hosts cleaned. We use PowerDNS going forward, so no need for local entries."
+    ok "/etc/hosts cleaned"
   else
-    echo "✅ No rezakara.demo entries found"
+    ok "No rezakara.demo entries found in /etc/hosts"
   fi
 
-  echo "🔄 Flushing DNS cache..."
   flush_dns_cache
 }
 
 
 start() {
+  ensure_systemd_resolved_running
   vault_login
   load_powerdns_secrets
   start_compose
@@ -345,12 +458,15 @@ start() {
   configure_networkmanager_dns
 }
 
+
 reset() {
-  reset_dns
+  ensure_systemd_resolved_running
   reset_dnsmasq
+  reset_dns
   stop_powerdns_containers
   flush_dns_cache
 }
+
 
 case "${1:-start}" in
   start)
