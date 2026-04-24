@@ -122,7 +122,7 @@ create_keycloak_azure_secret_management_realm() {
 
   VAULT_PATH="local/management/keycloak/azure/apps/rezakara-keycloak-management-idp"
 
-  CLIENT_SECRET=$(pass show private/azure/entra-id/apps/keycloak/client-secrets/rezakara-keycloak-management-idp/value | head -n1)
+  CLIENT_SECRET=$(pass show private/azure/entra-id/apps/keycloak/client-secrets/keycloak/value | head -n1)
   CLIENT_ID=$(pass show private/azure/entra-id/apps/keycloak/client-id | head -n1)
 
   if [[ -z "$CLIENT_SECRET" ]]; then
@@ -187,9 +187,9 @@ create_keycloak_administrator_secret() {
 create_crossplane_azure_secret() {
   echo "🔐 Writing Crossplane Entra ID App secret..."
 
-  VAULT_PATH="local/management/crossplane/azure/apps/rezakara-crossplane"
+  VAULT_PATH="local/management/crossplane/azure/apps/crossplane"
 
-  CLIENT_SECRET=$(pass show private/azure/entra-id/apps/crossplane/client-secrets/rezakara-crossplane/value | head -n1)
+  CLIENT_SECRET=$(pass show private/azure/entra-id/apps/crossplane/client-secrets/crossplane/value | head -n1)
   CLIENT_ID=$(pass show private/azure/entra-id/apps/crossplane/client-id | head -n1)
   TENANT_ID=$(pass show private/azure/entra-id/apps/crossplane/tenant-id | head -n1)
 

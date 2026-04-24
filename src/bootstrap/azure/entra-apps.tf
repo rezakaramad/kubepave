@@ -12,7 +12,7 @@ resource "azuread_application" "argocd" {
 
   web {
     redirect_uris = [
-      "https://argocd.example.com/auth/callback"
+      "https://argocd.mgmt.rezakara.demo/auth/callback"
     ]
   }
 

@@ -96,6 +96,22 @@ argocd:
       # -- Track resources via annotations instead of labels to avoid label collisions.
       application.resourceTrackingMethod: annotation
 
+      # -- OIDC SSO configuration for Azure AD
+      oidc.config: |
+        name: Azure
+        issuer: https://login.microsoftonline.com/c6ba6fd6-0fdd-4458-ad98-0c292dd79188/v2.0
+        clientID: 3bb8c767-9c1f-4ce2-823e-39e8fa6b907c
+        enablePKCEAuthentication: true
+        requestedIDTokenClaims:
+          roles:
+            essential: true
+        requestedScopes:
+          - openid
+          - profile
+          - email
+
+      scopes: '[roles, email]'
+
       resource.customizations.health.k8s.keycloak.org_KeycloakRealmImport: |
         hs = {}
         if obj.status ~= nil and obj.status.conditions ~= nil then
@@ -127,5 +143,4 @@ argocd:
       # g, EntraID Group ID, role: ArgoCD Role
       # 'policy.csv' lives in argocd-rbac-cm
       policy.csv: |
-        g, "ACL.GCP.PLT.Administrators", role:admin
-        g, admin, role:admin
+        g, administrator, role:admin
