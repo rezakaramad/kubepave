@@ -16,8 +16,6 @@ spec:
     kind: ClusterProviderConfig
     name: {{ printf "github-%s" $githubOrg | quote }}
 
-  managementPolicies: ["Create", "Observe"]
-
   forProvider:
     name: {{ $repoName | quote }}
     description: "Tenant environment configuration managed via GitOps and continuously reconciled by Argo CD."
