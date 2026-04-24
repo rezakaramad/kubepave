@@ -26,49 +26,41 @@ It provisions:
 #### Prerequisites
 
 Login to Azure:
-```
+```bash
 az login
 ```
 
 Verify the active tenant:
-```
+```bash
 az account show
 ```
 
 Install OpenTofu:
-```
+```bash
 tofu version
 ```
 Install Azure CLI:
-```
+```bash
 az version
 ```
 [Install Azure CLI on Ubuntu](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?view=azure-cli-latest&pivots=apt).
 
 Make sure **gpg** is installed (it is usually included by default on Ubuntu):
-```
+```bash
 gpg --version
 ```
 If not installed:
-```
+```bash
 sudo apt update && sudo apt install -y gnupg
 ```
 
 Initialize & apply:
+```bash
+task azure:up
 ```
-cd src/bootstrap/azure
-```
-```
-tofu init
-tofu plan
-tofu apply
-```
-Outputs (secrets):
-
-Sensitive values such as client secrets are exposed via outputs:
-```
-tofu output -raw crossplane_client_secret
-tofu output -raw keycloak_client_secret
+Destoy:
+```bash
+task azure:down
 ```
 
 State management (no cloud backend):
@@ -79,11 +71,20 @@ Yes, this is a bit manual; that’s the price of avoiding a paid backend 🙂
 
 Note: `*.tfstate` and `*.tftstate.backup` are ignored. 
 
-Encrypt state:
+When you run `task azure:up`, encryption and decryption of the Terraform state file are handled automatically.
 
-```
+If you need to manage it manually:
+
+**Encrypt the state file:**
+```bash
 gpg --encrypt --recipient "$(pass private/tofu/gpg-recipient)" terraform.tfstate
 ```
+
+Decrypt the state file:
+```bash
+gpg -d terraform.tfstate.gpg > terraform.tfstate
+```
+
 
 Commit encrypted file:
 ```
@@ -91,22 +92,12 @@ git add terraform.tfstate.gpg
 git commit -m "Add encrypted state"
 ```
 
-Decrypt before running OpenTofu:
-```
-gpg -d terraform.tfstate.gpg > terraform.tfstate
-```
-
-Re-encrypt after changes:
-```
-gpg --encrypt --recipient "$(pass private/tofu/gpg-recipient)" terraform.tfstate
-```
-
 ### Bootstrap K8s
 
 Make sure [task](https://taskfile.dev/docs/installation) is installed on your local machine.
 
 Clone the repository:
-```
+```bash
 git clone git@github.com:rezakaramad/kubepave.git && cd kubepave
 ```
 Check dependencies:
@@ -118,13 +109,13 @@ task check
 Start clusters only:
 
 ```bash
-task start
+task minikube:start
 ```
 
 Bootstrap everything:
 
 ```bash
-task up
+task minikube:up
 ```
 
 Load the Argo CD admin password and Vault token into your shell:
@@ -145,7 +136,7 @@ printf %s "$ARGOCD_ADMIN_PASSWORD" | xclip -selection clipboard
 ## 🧹 Destroy everything
 
 ```bash
-task down
+task minikube:down
 ```
 ---
 

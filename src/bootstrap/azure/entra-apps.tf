@@ -18,6 +18,14 @@ resource "azuread_application" "argocd" {
     ]
   }
 
+  # We want to manage app roles with Terraform, but we don't want Terraform to delete and recreate the app 
+  # every time we change the app roles. So we use lifecycle.ignore_changes to tell Terraform to ignore changes 
+  # to the app_role_ids and app_role properties, which are the properties that define the app roles.
+  lifecycle {
+    ignore_changes = [
+      app_role
+    ]
+  }
 }
 
 resource "azuread_service_principal" "argocd" {
@@ -50,11 +58,9 @@ resource "azuread_application_password" "argocd" {
 # Your group gives you a role, the role goes into your login token, and Argo CD uses that to decide what you’re allowed to do.
 
 # Argo CD admin role: can do everything in Argo CD
-resource "random_uuid" "argocd_admin" {}
-
 resource "azuread_application_app_role" "argocd_admin" {
   application_id = azuread_application.argocd.id
-  role_id        = random_uuid.argocd_admin.id
+  role_id        = "c9e9bd06-4b17-4559-85b0-f2a17bd8cb8f" # This is a fixed UUID that we can hardcode since it won't change
 
   allowed_member_types = ["User"]
   description          = "Argo CD Administers can perform all operations in Argo CD, including managing applications, repositories, and settings."
@@ -67,7 +73,7 @@ resource "random_uuid" "argocd_viewer" {}
 
 resource "azuread_application_app_role" "argocd_viewer" {
   application_id = azuread_application.argocd.id
-  role_id        = random_uuid.argocd_viewer.id
+  role_id        = "89f1dec8-7153-4bbc-a2ee-82e16ce9ffac"
 
   allowed_member_types = ["User"]
   description          = "Argo CD Viewers can view all resources in Argo CD, but cannot make any changes."
@@ -88,12 +94,18 @@ resource "azuread_app_role_assignment" "platform_viewer_group" {
   resource_object_id  = azuread_service_principal.argocd.object_id
 }
 
+# Argo CD outputs
 output "argocd_client_id" {
   value = azuread_application.argocd.client_id
 }
 
-output "argocd_tenant_id" {
-  value = data.azuread_client_config.current.tenant_id
+output "argocd_client_secret_id" {
+  value = azuread_application_password.argocd.key_id
+}
+
+output "argocd_client_secret" {
+  value     = azuread_application_password.argocd.value
+  sensitive = true
 }
 
 # ---------------------------------------------------------------
@@ -133,12 +145,9 @@ resource "azuread_application_password" "crossplane" {
   display_name   = "crossplane"
 }
 
+# Crossplane outputs
 output "crossplane_client_id" {
   value = azuread_application.crossplane.client_id
-}
-
-output "crossplane_tenant_id" {
-  value = data.azuread_client_config.current.tenant_id
 }
 
 output "crossplane_client_secret_id" {
@@ -188,12 +197,9 @@ resource "azuread_application_password" "keycloak" {
   display_name   = "keycloak"
 }
 
+# Keycloak outputs
 output "keycloak_client_id" {
   value = azuread_application.keycloak.client_id
-}
-
-output "keycloak_tenant_id" {
-  value = data.azuread_client_config.current.tenant_id
 }
 
 output "keycloak_client_secret_id" {
@@ -203,4 +209,11 @@ output "keycloak_client_secret_id" {
 output "keycloak_client_secret" {
   value     = azuread_application_password.keycloak.value
   sensitive = true
+}
+
+# ---------------------------------------------------------------
+# General outputs
+# ---------------------------------------------------------------
+output "tenant_id" {
+  value = data.azuread_client_config.current.tenant_id
 }

@@ -6,15 +6,15 @@ tasks:
     desc: "Verify required dependencies are installed"
     cmds:
       - ./src/bootstrap/minikube/check-dependencies.sh
-  start:
+  minikube:start:
     desc: "Start Minikube clusters"
     deps: [check]
     cmds:
       - ./src/bootstrap/minikube/setup-minikube.sh start
       - ./src/bootstrap/minikube/setup-iptables.sh
-  up:
+  minikube:up:
     desc: "Run kubepave on Minikube"
-    deps: [start]
+    deps: [minikube:start]
     silent: true
     cmds:
       - |
@@ -32,12 +32,21 @@ tasks:
 
         echo ""
         echo "⏱️  Total time: $((end - start)) seconds"
-  tunnels:
+  minikube:tunnels:
     desc: "List Minikube tunnels"
     cmds:
       - ./src/bootstrap/minikube/setup-minikube.sh tunnels
-  down:
+  minikube:down:
     desc: "Tear down everything"
     cmds:
       - ./src/bootstrap/minikube/setup-minikube.sh destroy
       - ./src/bootstrap/minikube/setup-dns.sh reset
+  azure:up:
+    desc: "Bootstrap Azure Entra ID for kubepave"
+    cmds:
+      - ./src/bootstrap/azure/tofu-apply.sh src/bootstrap/azure
+
+  azure:down:
+    desc: "Tear down Azure Entra ID"
+    cmds:
+      - ./src/bootstrap/azure/tofu-destroy.sh src/bootstrap/azure
