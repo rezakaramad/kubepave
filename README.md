@@ -45,6 +45,15 @@ az version
 ```
 [Install Azure CLI on Ubuntu](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?view=azure-cli-latest&pivots=apt).
 
+Make sure **gpg** is installed (it is usually included by default on Ubuntu):
+```
+gpg --version
+```
+If not installed:
+```
+sudo apt update && sudo apt install -y gnupg
+```
+
 Initialize & apply:
 ```
 cd src/bootstrap/azure
@@ -78,8 +87,8 @@ gpg --encrypt --recipient "$(pass infra/tofu/gpg-recipient)" terraform.tfstate
 
 Commit encrypted file:
 ```
-git add terraform.tfstate.gpg git
-commit -m "Add encrypted state"
+git add terraform.tfstate.gpg
+git commit -m "Add encrypted state"
 ```
 
 Decrypt before running OpenTofu:
@@ -87,7 +96,7 @@ Decrypt before running OpenTofu:
 gpg -d terraform.tfstate.gpg > terraform.tfstate
 ```
 
-Re-encrypt after changes
+Re-encrypt after changes:
 ```
 gpg --encrypt --recipient "$(pass infra/tofu/gpg-recipient)" terraform.tfstate
 ```
@@ -169,7 +178,7 @@ But there’s no perfect tool for everyone — and this is no exception.
 It started with Minikube for local development.
 Later it grew to support other environments too (Kind, maybe AWS/GCP in the future).
 
-For local setup, plain **shell scripts** work best — they run everywhere without extra dependencies.
+For local setup, plain **shell scripts** work best, they run everywhere without extra dependencies.
 
 So the repo uses a few scripts to:
 - start clusters

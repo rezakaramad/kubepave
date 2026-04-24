@@ -43,6 +43,9 @@ DEPENDENCIES=(
   # Containers
   "docker|https://docs.docker.com/engine/install/"
 
+  # GPG
+  "gpg|https://gnupg.org/download/"
+
   # Keycloak
   "kcadm.sh|bundled with Keycloak"
 )
