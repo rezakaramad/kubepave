@@ -70,25 +70,16 @@ resource "azuread_application_app_role" "argocd_viewer" {
   value                = "viewer"
 }
 
-# EntraID groups
-data "azuread_group" "platform_admins" {
-  display_name = "platform-admins"
-}
-
-data "azuread_group" "platform_viewers" {
-  display_name = "platform-viewers"
-}
-
 # Role assignments
 resource "azuread_app_role_assignment" "platform_admin_group" {
   app_role_id         = azuread_application_app_role.argocd_admin.role_id
-  principal_object_id = data.azuread_group.platform_admins.object_id
+  principal_object_id = azuread_group.platform_admins.object_id
   resource_object_id  = azuread_service_principal.argocd.object_id
 }
 
 resource "azuread_app_role_assignment" "platform_viewer_group" {
   app_role_id         = azuread_application_app_role.argocd_viewer.role_id
-  principal_object_id = data.azuread_group.platform_viewers.object_id
+  principal_object_id = azuread_group.platform_viewers.object_id
   resource_object_id  = azuread_service_principal.argocd.object_id
 }
 
@@ -106,6 +97,7 @@ output "argocd_tenant_id" {
 resource "azuread_application" "crossplane" {
   display_name     = "Crossplane"
   sign_in_audience = "AzureADMyOrg"
+  owners = [ data.azuread_client_config.current.object_id ]
 
   required_resource_access {
     resource_app_id = "00000003-0000-0000-c000-000000000000"
@@ -134,6 +126,10 @@ resource "azuread_service_principal" "crossplane" {
 resource "azuread_application_password" "crossplane" {
   application_id = azuread_application.crossplane.id
   display_name   = "crossplane"
+
+  depends_on = [
+    azuread_application.crossplane
+  ]
 }
 
 output "crossplane_client_id" {
@@ -159,6 +155,7 @@ output "crossplane_client_secret" {
 resource "azuread_application" "keycloak" {
   display_name     = "Keycloak"
   sign_in_audience = "AzureADMyOrg"
+  owners = [ data.azuread_client_config.current.object_id ]
 
   group_membership_claims = [
     "SecurityGroup",
@@ -188,6 +185,10 @@ resource "azuread_service_principal" "keycloak" {
 resource "azuread_application_password" "keycloak" {
   application_id = azuread_application.keycloak.id
   display_name   = "keycloak"
+
+  depends_on = [
+    azuread_application.keycloak
+  ]
 }
 
 output "keycloak_client_id" {

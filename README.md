@@ -82,7 +82,7 @@ Note: `*.tfstate` and `*.tftstate.backup` are ignored.
 Encrypt state:
 
 ```
-gpg --encrypt --recipient "$(pass infra/tofu/gpg-recipient)" terraform.tfstate
+gpg --encrypt --recipient "$(pass private/tofu/gpg-recipient)" terraform.tfstate
 ```
 
 Commit encrypted file:
@@ -98,7 +98,7 @@ gpg -d terraform.tfstate.gpg > terraform.tfstate
 
 Re-encrypt after changes:
 ```
-gpg --encrypt --recipient "$(pass infra/tofu/gpg-recipient)" terraform.tfstate
+gpg --encrypt --recipient "$(pass private/tofu/gpg-recipient)" terraform.tfstate
 ```
 
 ### Bootstrap K8s
