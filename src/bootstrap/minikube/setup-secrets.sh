@@ -115,26 +115,53 @@ EOF
 
 
 # ----------------------------------------------------------------------------
-# Keycloak credentials
+# Argo CD App registration credential in Azure
 # ----------------------------------------------------------------------------
-create_keycloak_azure_secret_management_realm() {
-  echo "🔐 Writing Entra ID App secret..."
+create_argocd_app_registration_azure() {
+  echo "🔐 Writing Argo CD Entra ID App secret..."
 
-  VAULT_PATH="local/management/keycloak/azure/apps/rezakara-keycloak-management-idp"
+  VAULT_PATH="local/management/argocd/azure/apps/argocd"
 
-  CLIENT_SECRET=$(pass show private/azure/entra-id/apps/keycloak/client-secrets/keycloak/value | head -n1)
-  CLIENT_ID=$(pass show private/azure/entra-id/apps/keycloak/client-id | head -n1)
+  CLIENT_SECRET=$(pass show private/azure/entra-id/apps/argocd/client-secrets/argocd/value | head -n1)
+  CLIENT_ID=$(pass show private/azure/entra-id/apps/argocd/client-id | head -n1)
+  TENANT_ID=$(pass show private/azure/entra-id/apps/argocd/tenant-id | head -n1)
 
   if [[ -z "$CLIENT_SECRET" ]]; then
-    echo "❌ Failed to read client secret from pass."
+    echo "❌ Failed to read Argo CD client secret from pass."
     return 1
   fi
 
   vault kv put "$VAULT_PATH" \
     client_id="$CLIENT_ID" \
+    tenant_id="$TENANT_ID" \
     client_secret="$CLIENT_SECRET"
 
-  echo "✅ Entra ID client secret stored in Vault"
+  echo "✅ Argo CD Entra ID client secret stored in Vault"
+}
+
+# ----------------------------------------------------------------------------
+# Keycloak credentials
+# ----------------------------------------------------------------------------
+create_keycloak_app_registration_azure() {
+  echo "🔐 Writing Entra ID App secret..."
+
+  VAULT_PATH="local/management/keycloak/azure/apps/keycloak"
+
+  CLIENT_SECRET=$(pass show private/azure/entra-id/apps/keycloak/client-secrets/keycloak/value | head -n1)
+  CLIENT_ID=$(pass show private/azure/entra-id/apps/keycloak/client-id | head -n1)
+  TENANT_ID=$(pass show private/azure/entra-id/apps/keycloak/tenant-id | head -n1)
+
+  if [[ -z "$CLIENT_SECRET" ]]; then
+    echo "❌ Failed to read Keycloak client secret from pass."
+    return 1
+  fi
+
+  vault kv put "$VAULT_PATH" \
+    client_id="$CLIENT_ID" \
+    tenant_id="$TENANT_ID" \
+    client_secret="$CLIENT_SECRET"
+
+  echo "✅ Keycloak Entra ID client secret stored in Vault"
 }
 
 
@@ -182,9 +209,9 @@ create_keycloak_administrator_secret() {
 
 
 # ----------------------------------------------------------------------------
-# Crossplane credential in Azure
+# Crossplane App registration credential in Azure
 # ----------------------------------------------------------------------------
-create_crossplane_azure_secret() {
+create_crossplane_app_registration_azure() {
   echo "🔐 Writing Crossplane Entra ID App secret..."
 
   VAULT_PATH="local/management/crossplane/azure/apps/crossplane"
@@ -194,7 +221,7 @@ create_crossplane_azure_secret() {
   TENANT_ID=$(pass show private/azure/entra-id/apps/crossplane/tenant-id | head -n1)
 
   if [[ -z "$CLIENT_SECRET" ]]; then
-    echo "❌ Failed to read client secret from pass."
+    echo "❌ Failed to read Crossplane client secret from pass."
     return 1
   fi
 
@@ -203,7 +230,7 @@ create_crossplane_azure_secret() {
     tenant_id="$TENANT_ID" \
     client_secret="$CLIENT_SECRET"
 
-  echo "✅ Entra ID client secret stored in Vault"
+  echo "✅ Crossplane Entra ID client secret stored in Vault"
 }
 
 
@@ -284,10 +311,11 @@ main() {
   vault_login
   create_github_app_secret_argocd
   register_clusters_argocd
-  create_keycloak_azure_secret_management_realm
+  create_argocd_app_registration_azure
+  create_keycloak_app_registration_azure
   create_keycloak_bootstrap_secret
   create_keycloak_administrator_secret
-  create_crossplane_azure_secret
+  create_crossplane_app_registration_azure
   create_github_app_secret_crossplane
   create_powerdns_secrets
 

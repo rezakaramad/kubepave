@@ -4,7 +4,7 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: github-app-fluxdojo
+  name: crossplane-github-app-fluxdojo
   namespace: crossplane
 spec:
   refreshInterval: 20m
@@ -12,7 +12,7 @@ spec:
     name: vault-local
     kind: ClusterSecretStore
   target:
-    name: github-app-fluxdojo
+    name: crossplane-github-app-fluxdojo
     creationPolicy: Owner
     template:
       engineVersion: v2
@@ -46,7 +46,7 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: github-app-rezakaramad
+  name: crossplane-github-identity-rezakaramad
   namespace: crossplane
 spec:
   refreshInterval: 20m
@@ -54,7 +54,7 @@ spec:
     name: vault-local
     kind: ClusterSecretStore
   target:
-    name: github-app-rezakaramad
+    name: crossplane-github-identity-rezakaramad
     creationPolicy: Owner
     template:
       engineVersion: v2

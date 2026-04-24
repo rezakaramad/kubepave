@@ -27,6 +27,11 @@ resource "azuread_service_principal" "argocd" {
   owners = [ data.azuread_client_config.current.object_id ]
 }
 
+resource "azuread_application_password" "argocd" {
+  application_id = azuread_application.argocd.id
+  display_name   = "argocd"
+}
+
 # Define app roles for Argo CD
 
 # Login flow:
@@ -126,10 +131,6 @@ resource "azuread_service_principal" "crossplane" {
 resource "azuread_application_password" "crossplane" {
   application_id = azuread_application.crossplane.id
   display_name   = "crossplane"
-
-  depends_on = [
-    azuread_application.crossplane
-  ]
 }
 
 output "crossplane_client_id" {
@@ -185,10 +186,6 @@ resource "azuread_service_principal" "keycloak" {
 resource "azuread_application_password" "keycloak" {
   application_id = azuread_application.keycloak.id
   display_name   = "keycloak"
-
-  depends_on = [
-    azuread_application.keycloak
-  ]
 }
 
 output "keycloak_client_id" {

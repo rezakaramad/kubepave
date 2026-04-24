@@ -1,0 +1,20 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: argocd-azure-identity
+  namespace: argocd
+spec:
+  refreshInterval: 20m
+  secretStoreRef:
+    name: vault-local
+    kind: ClusterSecretStore
+  target:
+    name: argocd-secret
+    creationPolicy: Merge
+  data:
+    - secretKey: oidc.azure.clientSecret
+      remoteRef:
+        key: local/management/argocd/azure/apps/argocd
+        property: client_secret
+
+---

@@ -1,7 +1,7 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: crossplane-admin
+  name: crossplane-keycloak-identity
   namespace: keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "20"
@@ -11,7 +11,7 @@ spec:
     name: vault-local
     kind: ClusterSecretStore
   target:
-    name: crossplane-admin
+    name: crossplane-keycloak-identity
     creationPolicy: Owner
     template:
       engineVersion: v2

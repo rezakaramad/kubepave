@@ -8,5 +8,5 @@ metadata:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   credentialsSecretRef:
-    name: crossplane-admin
+    name: crossplane-keycloak-identity
     key: credentials

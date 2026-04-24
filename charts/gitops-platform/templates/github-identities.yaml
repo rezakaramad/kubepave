@@ -1,7 +1,7 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: github-app-rezakaramad
+  name: argocd-github-identity-rezakaramad
   namespace: argocd
 spec:
   refreshInterval: 20m
@@ -9,7 +9,7 @@ spec:
     name: vault-local
     kind: ClusterSecretStore
   target:
-    name: github-app-rezakaramad
+    name: argocd-github-identity-rezakaramad
     creationPolicy: Owner
     template:
       type: Opaque
@@ -39,7 +39,7 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: github-app-fluxdojo
+  name: argocd-github-identity-fluxdojo
   namespace: argocd
 spec:
   refreshInterval: 20m
@@ -47,7 +47,7 @@ spec:
     name: vault-local
     kind: ClusterSecretStore
   target:
-    name: github-app-fluxdojo
+    name: github-identity-fluxdojo
     creationPolicy: Owner
     template:
       type: Opaque

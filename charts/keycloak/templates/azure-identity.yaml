@@ -1,7 +1,7 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: azure-oidc-management
+  name: keycloak-azure-identity
   namespace: keycloak
 spec:
   refreshInterval: 20m
@@ -9,16 +9,20 @@ spec:
     name: vault-local
     kind: ClusterSecretStore
   target:
-    name: azure-oidc-management
+    name: keycloak-azure-identity
     creationPolicy: Owner
   data:
     - secretKey: client_id
       remoteRef:
-        key: local/management/keycloak/azure/apps/rezakara-keycloak-management-idp
+        key: local/management/keycloak/azure/apps/keycloak
         property: client_id
     - secretKey: client_secret
       remoteRef:
-        key: local/management/keycloak/azure/apps/rezakara-keycloak-management-idp
+        key: local/management/keycloak/azure/apps/keycloak
         property: client_secret
+    - secretKey: tenant_id
+      remoteRef:
+        key: local/management/keycloak/azure/apps/keycloak
+        property: tenant_id
 
 ---
