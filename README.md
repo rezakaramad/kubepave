@@ -15,6 +15,85 @@
 
 ## 🚀 Getting started
 
+### Bootstrap Azure EntraID (OpenTofu)
+`/src/bootstrap/azure` bootstraps identity resources in Microsoft Entra ID using OpenTofu.
+It provisions:
+- Applications (Argo CD, Crossplane, Keycloak)
+- Service Principals (Enterprise Applications)
+- App Roles and RBAC assignments
+- Required API permissions
+
+#### Prerequisites
+
+Login to Azure:
+```
+az login
+```
+
+Verify the active tenant:
+```
+az account show
+```
+
+Install OpenTofu:
+```
+tofu version
+```
+Install Azure CLI:
+```
+az version
+```
+[Install Azure CLI on Ubuntu](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?view=azure-cli-latest&pivots=apt).
+
+Initialize & apply:
+```
+cd src/bootstrap/azure
+```
+```
+tofu init
+tofu plan
+tofu apply
+```
+Outputs (secrets):
+
+Sensitive values such as client secrets are exposed via outputs:
+```
+tofu output -raw crossplane_client_secret
+tofu output -raw keycloak_client_secret
+```
+
+State management (no cloud backend):
+
+State is stored locally and encrypted before committing to Git.
+
+Yes, this is a bit manual; that’s the price of avoiding a paid backend 🙂
+
+Note: `*.tfstate` and `*.tftstate.backup` are ignored. 
+
+Encrypt state:
+
+```
+gpg --encrypt --recipient "$(pass infra/tofu/gpg-recipient)" terraform.tfstate
+```
+
+Commit encrypted file:
+```
+git add terraform.tfstate.gpg git
+commit -m "Add encrypted state"
+```
+
+Decrypt before running OpenTofu:
+```
+gpg -d terraform.tfstate.gpg > terraform.tfstate
+```
+
+Re-encrypt after changes
+```
+gpg --encrypt --recipient "$(pass infra/tofu/gpg-recipient)" terraform.tfstate
+```
+
+### Bootstrap K8s
+
 Make sure [task](https://taskfile.dev/docs/installation) is installed on your local machine.
 
 Clone the repository:

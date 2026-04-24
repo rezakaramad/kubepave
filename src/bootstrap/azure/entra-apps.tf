@@ -9,6 +9,8 @@ data "azuread_client_config" "current" {}
 # ---------------------------------------------------------------
 resource "azuread_application" "argocd" {
   display_name = "Argo CD"
+  sign_in_audience = "AzureADMyOrg"
+  owners = [ data.azuread_client_config.current.object_id ]
 
   web {
     redirect_uris = [
@@ -25,13 +27,69 @@ resource "azuread_service_principal" "argocd" {
   owners = [ data.azuread_client_config.current.object_id ]
 }
 
-resource "azuread_application_password" "argocd" {
-  application_id = azuread_application.argocd.id
-  display_name   = "argocd"
+# Define app roles for Argo CD
 
-  depends_on = [
-    azuread_application.argocd
-  ]
+# Login flow:
+# User → member of platform-admins
+#         ↓
+# Group assigned to App Role "admin"
+#         ↓
+# Token contains:
+# "roles": ["admin"]
+#         ↓
+# Argo CD:
+# g, admin, role:admin
+#         ↓
+# ✅ Access granted
+
+# Your group gives you a role, the role goes into your login token, and Argo CD uses that to decide what you’re allowed to do.
+
+# Argo CD admin role: can do everything in Argo CD
+resource "random_uuid" "argocd_admin" {}
+
+resource "azuread_application_app_role" "argocd_admin" {
+  application_id = azuread_application.argocd.id
+  role_id        = random_uuid.argocd_admin.id
+
+  allowed_member_types = ["User"]
+  description          = "Argo CD Administers can perform all operations in Argo CD, including managing applications, repositories, and settings."
+  display_name         = "Argo CD Admin"
+  value                = "admin"
+}
+
+# Argo CD viewer role: can view everything in Argo CD, but cannot make any changes
+resource "random_uuid" "argocd_viewer" {}
+
+resource "azuread_application_app_role" "argocd_viewer" {
+  application_id = azuread_application.argocd.id
+  role_id        = random_uuid.argocd_viewer.id
+
+  allowed_member_types = ["User"]
+  description          = "Argo CD Viewers can view all resources in Argo CD, but cannot make any changes."
+  display_name         = "Argo CD Viewer"
+  value                = "viewer"
+}
+
+# EntraID groups
+data "azuread_group" "platform_admins" {
+  display_name = "platform-admins"
+}
+
+data "azuread_group" "platform_viewers" {
+  display_name = "platform-viewers"
+}
+
+# Role assignments
+resource "azuread_app_role_assignment" "platform_admin_group" {
+  app_role_id         = azuread_application_app_role.argocd_admin.role_id
+  principal_object_id = data.azuread_group.platform_admins.object_id
+  resource_object_id  = azuread_service_principal.argocd.object_id
+}
+
+resource "azuread_app_role_assignment" "platform_viewer_group" {
+  app_role_id         = azuread_application_app_role.argocd_viewer.role_id
+  principal_object_id = data.azuread_group.platform_viewers.object_id
+  resource_object_id  = azuread_service_principal.argocd.object_id
 }
 
 output "argocd_client_id" {
@@ -40,15 +98,6 @@ output "argocd_client_id" {
 
 output "argocd_tenant_id" {
   value = data.azuread_client_config.current.tenant_id
-}
-
-output "argocd_client_secret_id" {
-  value = azuread_application_password.argocd.key_id
-}
-
-output "argocd_client_secret" {
-  value     = azuread_application_password.argocd.value
-  sensitive = true
 }
 
 # ---------------------------------------------------------------
@@ -126,7 +175,6 @@ resource "azuread_application" "keycloak" {
     id_token {
       name = "groups"
     }
-
     access_token {
       name = "groups"
     }
