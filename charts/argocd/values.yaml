@@ -69,7 +69,7 @@ argocd:
       create: true
 
       # -- Run Argo CD server in insecure mode: Gateway ⇆ (HTTP) ⇆ Argo CD Server
-      server.insecure: "false"
+      server.insecure: "true"
 
       # -- Allow Argo CD to discover and reconcile Application resources in argocd and all argocd-* namespaces
       application.namespaces: argocd, gitops-*
