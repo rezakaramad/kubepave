@@ -16,7 +16,6 @@ spec:
     syncOptions:
     - ServerSideApply=true
     - ApplyOutOfSyncOnly=true
-    - Replace=true
     - RespectIgnoreDifferences=true
   ignoreDifferences:
     - group: external-secrets.io

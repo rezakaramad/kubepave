@@ -50,3 +50,8 @@ tasks:
     desc: "Tear down Azure Entra ID"
     cmds:
       - ./src/bootstrap/azure/tofu-destroy.sh src/bootstrap/azure
+
+  azure:verify:
+    desc: "Verify Azure Entra ID setup"
+    cmds:
+      - ./src/bootstrap/azure/verify-entraid.sh "Argo CD"
