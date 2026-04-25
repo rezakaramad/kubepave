@@ -37,7 +37,11 @@ resource "azuread_service_principal" "argocd" {
 
 resource "azuread_application_password" "argocd" {
   application_id = azuread_application.argocd.id
-  display_name   = "argocd"
+  display_name   = "Argo CD"
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Define app roles for Argo CD
@@ -103,7 +107,7 @@ output "argocd_client_secret_id" {
   value = azuread_application_password.argocd.key_id
 }
 
-output "argocd_client_secret" {
+output "argocd_client_secret_value" {
   value     = azuread_application_password.argocd.value
   sensitive = true
 }
@@ -142,7 +146,11 @@ resource "azuread_service_principal" "crossplane" {
 
 resource "azuread_application_password" "crossplane" {
   application_id = azuread_application.crossplane.id
-  display_name   = "crossplane"
+  display_name   = "Crossplane"
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Crossplane outputs
@@ -154,7 +162,7 @@ output "crossplane_client_secret_id" {
   value = azuread_application_password.crossplane.key_id
 }
 
-output "crossplane_client_secret" {
+output "crossplane_client_secret_value" {
   value     = azuread_application_password.crossplane.value
   sensitive = true
 }
@@ -194,7 +202,11 @@ resource "azuread_service_principal" "keycloak" {
 
 resource "azuread_application_password" "keycloak" {
   application_id = azuread_application.keycloak.id
-  display_name   = "keycloak"
+  display_name   = "Keycloak"
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Keycloak outputs
@@ -206,7 +218,7 @@ output "keycloak_client_secret_id" {
   value = azuread_application_password.keycloak.key_id
 }
 
-output "keycloak_client_secret" {
+output "keycloak_client_secret_value" {
   value     = azuread_application_password.keycloak.value
   sensitive = true
 }

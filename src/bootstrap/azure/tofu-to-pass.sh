@@ -15,56 +15,55 @@ OUTPUTS=$(tofu -chdir="$TF_DIR" output -json)
 # Helper
 # ----------------------------------------
 store() {
-  local app=$1
+  local path=$1
   local tf_key=$2
-  local pass_path=$3
 
   new_value=$(echo "$OUTPUTS" | jq -r ".${tf_key}.value // empty")
 
-  # Check if the value is empty or null
   if [[ -z "$new_value" || "$new_value" == "null" ]]; then
-    echo "⚠️  Skipping ${app}/${tf_key} (empty)"
+    echo "⚠️  Skipping ${tf_key} (empty)"
     return
   fi
 
-  full_path="${BASE}/${app}/${pass_path}"
+  full_path="${BASE}/${path}"
 
-  # Try to read existing value
   if pass show "$full_path" >/dev/null 2>&1; then
     current_value=$(pass show "$full_path")
 
     if [[ "$current_value" == "$new_value" ]]; then
-      echo "✔ No change for ${app}/${tf_key}"
+      echo "✔ No change for ${path}"
       return
     fi
   fi
 
-  echo "→ Updating ${app}/${tf_key}"
+  echo "→ Updating ${path}"
   echo "$new_value" | pass insert -m -f "$full_path"
 }
+
+# ----------------------------------------
+# Global (shared)
+# ----------------------------------------
+store "tenant-id" "tenant_id"
 
 # -------------------------------
 # Argo CD
 # -------------------------------
-store argocd argocd_client_id "client-id"
-store argocd argocd_client_secret "client-secrets/argocd/value"
-store argocd argocd_client_secret_id "client-secrets/argocd/secret-id"
-store argocd tenant_id "tenant-id"
+store "argocd/client-id" "argocd_client_id"
+store "argocd/client-secrets/argocd/value" "argocd_client_secret_value"
+store "argocd/client-secrets/argocd/id" "argocd_client_secret_id"
 
 # -------------------------------
 # Crossplane
 # -------------------------------
-store crossplane crossplane_client_id "client-id"
-store crossplane crossplane_client_secret "client-secrets/crossplane/value"
-store crossplane crossplane_client_secret_id "client-secrets/crossplane/secret-id"
-store crossplane tenant_id "tenant-id"
+store "crossplane/client-id" "crossplane_client_id"
+store "crossplane/client-secrets/crossplane/value" "crossplane_client_secret_value"
+store "crossplane/client-secrets/crossplane/id" "crossplane_client_secret_id"
 
 # -------------------------------
 # Keycloak
 # -------------------------------
-store keycloak keycloak_client_id "client-id"
-store keycloak keycloak_client_secret "client-secrets/keycloak/value"
-store keycloak keycloak_client_secret_id "client-secrets/keycloak/secret-id"
-store keycloak tenant_id "tenant-id"
+store "keycloak/client-id" "keycloak_client_id"
+store "keycloak/client-secrets/keycloak/value" "keycloak_client_secret_value"
+store "keycloak/client-secrets/keycloak/id" "keycloak_client_secret_id"
 
 echo "✅ Secrets stored in pass"
