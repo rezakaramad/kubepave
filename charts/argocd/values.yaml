@@ -101,7 +101,7 @@ argocd:
       oidc.config: |
         name: Azure
         issuer: https://login.microsoftonline.com/c6ba6fd6-0fdd-4458-ad98-0c292dd79188/v2.0
-        clientID: 677032b1-6b1e-4d3c-8c60-95b710a1d43f
+        clientID: 6ebc7a2a-0d2c-4677-aebc-2b37371aca73
         clientSecret: $oidc.azure.clientSecret
         enablePKCEAuthentication: true
         requestedIDTokenClaims:
