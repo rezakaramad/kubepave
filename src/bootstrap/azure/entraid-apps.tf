@@ -4,6 +4,10 @@
 # Returns the current Terraform identiy (user or service principal) information
 data "azuread_client_config" "current" {}
 
+data "azuread_user" "reza" {
+  user_principal_name = "r.karamad_gmail.com#EXT#@rkaramadgmail.onmicrosoft.com"
+}
+
 # ---------------------------------------------------------------
 # Argo CD
 # ---------------------------------------------------------------
@@ -86,15 +90,18 @@ resource "azuread_application_app_role" "argocd_viewer" {
 }
 
 # Role assignments
-resource "azuread_app_role_assignment" "platform_admin_group" {
+# Free tier of Azure AD doesn't support group-based app role assignments,
+# so we have to assign the app roles directly to the user. 
+# In a production environment, you would typically assign the app roles to groups, and then add users to those groups.
+resource "azuread_app_role_assignment" "argocd_platform_admin" {
   app_role_id         = azuread_application_app_role.argocd_admin.role_id
-  principal_object_id = azuread_group.platform_admins.object_id
+  principal_object_id = data.azuread_user.reza.object_id
   resource_object_id  = azuread_service_principal.argocd.object_id
 }
 
-resource "azuread_app_role_assignment" "platform_viewer_group" {
+resource "azuread_app_role_assignment" "argocd_platform_viewer" {
   app_role_id         = azuread_application_app_role.argocd_viewer.role_id
-  principal_object_id = azuread_group.platform_viewers.object_id
+  principal_object_id = data.azuread_user.reza.object_id
   resource_object_id  = azuread_service_principal.argocd.object_id
 }
 
