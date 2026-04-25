@@ -37,7 +37,6 @@ spec:
             - rule: >
                 oldSelf == null || (
                   self.spec.dnsName == oldSelf.spec.dnsName &&
-                  self.spec.environmentPrefix == oldSelf.spec.environmentPrefix &&
                   self.spec.displayName == oldSelf.spec.displayName &&
                   self.spec.owner == oldSelf.spec.owner &&
                   self.spec.argocd == oldSelf.spec.argocd
@@ -47,7 +46,7 @@ spec:
           properties:
             spec:
               type: object
-              required: ["dnsName", "environmentPrefix", "owner", "argocd"]
+              required: ["dnsName", "owner", "argocd"]
 
               properties:
                 dnsName:
@@ -55,13 +54,6 @@ spec:
                   minLength: 1
                   maxLength: 63
                   pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-
-                environmentPrefix:
-                  type: string
-                  description: Environment prefix used in DNS and gateway hostnames (e.g. dev, wl, prod).
-                  minLength: 1
-                  maxLength: 16
-                  pattern: "^[a-z0-9-]+$"
 
                 displayName:
                   type: string

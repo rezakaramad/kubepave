@@ -18,11 +18,7 @@ spec:
   pipeline:
     - step: provision
       functionRef:
-        name: function-tenant
-
-    - step: ready
-      functionRef:
-        name: function-auto-ready
+        name: function-tenant-renderer
 
 {{- end }}
 {{- end }}
