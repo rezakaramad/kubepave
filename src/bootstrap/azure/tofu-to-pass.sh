@@ -5,7 +5,7 @@ set -euo pipefail
 # Input
 # ----------------------------------------
 TF_DIR="${1:-.}"
-BASE="private/azure/entra-id/apps"
+BASE="private/azure/entraid/apps"
 
 echo "→ Reading Terraform outputs from: $TF_DIR"
 

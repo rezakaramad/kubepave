@@ -122,9 +122,9 @@ create_argocd_app_registration_azure() {
 
   VAULT_PATH="local/management/argocd/azure/apps/argocd"
 
-  CLIENT_SECRET=$(pass show private/azure/entra-id/apps/argocd/client-secrets/argocd/value | head -n1)
-  CLIENT_ID=$(pass show private/azure/entra-id/apps/argocd/client-id | head -n1)
-  TENANT_ID=$(pass show private/azure/entra-id/apps/argocd/tenant-id | head -n1)
+  CLIENT_SECRET=$(pass show private/azure/entraid/apps/argocd/client-secrets/argocd/value | head -n1)
+  CLIENT_ID=$(pass show private/azure/entraid/apps/argocd/client-id | head -n1)
+  TENANT_ID=$(pass show private/azure/entraid/apps/argocd/tenant-id | head -n1)
 
   if [[ -z "$CLIENT_SECRET" ]]; then
     echo "❌ Failed to read Argo CD client secret from pass."
@@ -147,9 +147,9 @@ create_keycloak_app_registration_azure() {
 
   VAULT_PATH="local/management/keycloak/azure/apps/keycloak"
 
-  CLIENT_SECRET=$(pass show private/azure/entra-id/apps/keycloak/client-secrets/keycloak/value | head -n1)
-  CLIENT_ID=$(pass show private/azure/entra-id/apps/keycloak/client-id | head -n1)
-  TENANT_ID=$(pass show private/azure/entra-id/apps/keycloak/tenant-id | head -n1)
+  CLIENT_SECRET=$(pass show private/azure/entraid/apps/keycloak/client-secrets/keycloak/value | head -n1)
+  CLIENT_ID=$(pass show private/azure/entraid/apps/keycloak/client-id | head -n1)
+  TENANT_ID=$(pass show private/azure/entraid/apps/keycloak/tenant-id | head -n1)
 
   if [[ -z "$CLIENT_SECRET" ]]; then
     echo "❌ Failed to read Keycloak client secret from pass."
@@ -216,9 +216,9 @@ create_crossplane_app_registration_azure() {
 
   VAULT_PATH="local/management/crossplane/azure/apps/crossplane"
 
-  CLIENT_SECRET=$(pass show private/azure/entra-id/apps/crossplane/client-secrets/crossplane/value | head -n1)
-  CLIENT_ID=$(pass show private/azure/entra-id/apps/crossplane/client-id | head -n1)
-  TENANT_ID=$(pass show private/azure/entra-id/apps/crossplane/tenant-id | head -n1)
+  CLIENT_SECRET=$(pass show private/azure/entraid/apps/crossplane/client-secrets/crossplane/value | head -n1)
+  CLIENT_ID=$(pass show private/azure/entraid/apps/crossplane/client-id | head -n1)
+  TENANT_ID=$(pass show private/azure/entraid/apps/crossplane/tenant-id | head -n1)
 
   if [[ -z "$CLIENT_SECRET" ]]; then
     echo "❌ Failed to read Crossplane client secret from pass."
