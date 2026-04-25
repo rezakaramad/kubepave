@@ -97,13 +97,13 @@ argocd:
       application.resourceTrackingMethod: annotation
 
       # -- OIDC SSO configuration for Azure AD
-      # Use THIS Entra app for login: https://entra.microsoft.com/applications/3bb8c767-9c1f-4ce2-823e-39e8fa6b907c
+      # Use THIS Entra app for login: https://entra.microsoft.com/applications/...
       oidc.config: |
         name: Azure
         issuer: https://login.microsoftonline.com/c6ba6fd6-0fdd-4458-ad98-0c292dd79188/v2.0
         clientID: 79684358-83ba-4fc4-bbab-d45b6f11acdf
         clientSecret: $oidc.azure.clientSecret
-        enablePKCEAuthentication: true
+        enablePKCEAuthentication: false
         requestedIDTokenClaims:
           roles:
             essential: true
