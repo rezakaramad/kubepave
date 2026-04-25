@@ -103,7 +103,7 @@ argocd:
         issuer: https://login.microsoftonline.com/c6ba6fd6-0fdd-4458-ad98-0c292dd79188/v2.0
         clientID: 79684358-83ba-4fc4-bbab-d45b6f11acdf
         clientSecret: $oidc.azure.clientSecret
-        enablePKCEAuthentication: false
+        enablePKCEAuthentication: true
         requestedIDTokenClaims:
           roles:
             essential: true
@@ -111,8 +111,6 @@ argocd:
           - openid
           - profile
           - email
-
-      scopes: '[roles, email]'
 
       resource.customizations.health.k8s.keycloak.org_KeycloakRealmImport: |
         hs = {}
@@ -144,5 +142,6 @@ argocd:
       # p, <subject>, <resource>, <action>, <object>, <effect>
       # g, EntraID Group ID, role: ArgoCD Role
       # 'policy.csv' lives in argocd-rbac-cm
+      scopes: '[roles, email]'
       policy.csv: |
         g, admin, role:admin
