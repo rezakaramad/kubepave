@@ -155,7 +155,7 @@ func (f *Function) RunFunction(
 			Repository:         f.exportRepoURL,
 			Branch:             f.exportRepoBranch,
 			BasePath:           f.exportRepoBasePath,
-			FileName:           "request.yaml",
+			FileName:           "tenant.yaml",
 			CommitAuthor:       "crossplane",
 			CommitEmail:        "platform@rezakara.demo",
 		},
