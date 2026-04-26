@@ -18,7 +18,7 @@ spec:
   pipeline:
     - step: render
       functionRef:
-        name: function-tenantrequest
+        name: function-tenantrequest-renderer
 
 ---
 {{- end }}
