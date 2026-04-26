@@ -37,8 +37,8 @@ func Validate(ctx context.Context, xr *resource.Composite, d Deps) *Error {
 	dnsName, _ := xr.Resource.GetString("spec.dnsName")
 
 	// 2. Multi-cluster DNS validation
-	for _, c := range d.Clusters {
-		fqdn := pdns.BuildFQDN(dnsName, c.Prefix, d.BaseDomain)
+	for _, cluster := range d.Clusters {
+		fqdn := pdns.BuildFQDN(dnsName, cluster.Prefix, d.BaseDomain)
 
 		res, err := d.PDNS.CheckDNSAvailable(ctx, fqdn)
 		if err != nil {

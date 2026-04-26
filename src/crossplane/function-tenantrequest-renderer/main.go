@@ -39,7 +39,7 @@ func (c *CLI) Run() error {
 		return err
 	}
 
-	workloadClusters := parseClusters(getEnv("TENANT_CLUSTERS", ""))
+	workloadClusters := parseClusters(getEnv("WORKLOAD_CLUSTERS", ""))
 
 	// ------------------------------------------------------------------
 	// Build Kubernetes client
@@ -85,12 +85,11 @@ func (c *CLI) Run() error {
 	// Function setup
 	// ------------------------------------------------------------------
 	fn := &Function{
-		log:              log,
-		workloadClusters: workloadClusters,
-		kube:             kubeClient,
-		pdns:             pdnsClient,
-		dnsBaseDomain:    getEnv("DNS_BASE_DOMAIN", "rezakara.demo"),
-
+		log:                 log,
+		workloadClusters:    workloadClusters,
+		kube:                kubeClient,
+		pdns:                pdnsClient,
+		dnsBaseDomain:       getEnv("DNS_BASE_DOMAIN", "rezakara.demo"),
 		exportRepoURL:       getEnv("GIT_REPOSITORY", "kubepave"),
 		exportRepoBranch:    getEnv("GIT_BRANCH", "main"),
 		exportRepoBasePath:  getEnv("GIT_BASE_PATH", "tenants"),
@@ -131,9 +130,6 @@ func getEnv(key, fallback string) string {
 }
 
 func main() {
-	// Parse command-line arguments and run the function.
-	// CLI{} → create a new empty CLI struct.
-	// &CLI{} → pointer to empty struct
 	ctx := kong.Parse(&CLI{}, kong.Description("A Crossplane Composition Function."))
 	ctx.FatalIfErrorf(ctx.Run())
 }

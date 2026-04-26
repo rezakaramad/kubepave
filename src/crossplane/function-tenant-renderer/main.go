@@ -29,17 +29,26 @@ func (c *CLI) Run() error {
 		return err
 	}
 
-	workloadClusters := parseClusters(getEnv("TENANT_CLUSTERS", ""))
+	workloadClusters := parseClusters(getEnv("WORKLOAD_CLUSTERS", ""))
 
-	return function.Serve(&Function{
-		log:              log,
-		workloadClusters: workloadClusters,
-	},
+	// ------------------------------------------------------------------
+	// Function setup
+	// ------------------------------------------------------------------
+	fn := &Function{
+		log:                 log,
+		workloadClusters:    workloadClusters,
+		exportRepoURL:       getEnv("GIT_REPOSITORY", "kubepave"),
+		exportRepoBranch:    getEnv("GIT_BRANCH", "main"),
+		exportRepoBasePath:  getEnv("GIT_BASE_PATH", "tenants"),
+		crossplaneNamespace: getEnv("CROSSPLANE_NAMESPACE", "crossplane"),
+	}
+
+	// Run a server, and whenever a Crossplane request comes in, hand it to this fn object
+	return function.Serve(fn,
 		function.Listen(c.Network, c.Address),
 		function.MTLSCertificates(c.TLSCertsDir),
 		function.Insecure(c.Insecure),
-		function.MaxRecvMessageSize(c.MaxRecvMessageSize*1024*1024),
-	)
+		function.MaxRecvMessageSize(c.MaxRecvMessageSize*1024*1024))
 }
 
 func parseClusters(s string) []model.Cluster {

@@ -4,11 +4,11 @@
 apiVersion: pkg.crossplane.io/v1
 kind: Function
 metadata:
-  name: function-tenantrequest
+  name: function-tenantrequest-renderer
 spec:
   package: {{ required "tenantrequest.providerPackage is required" .Values.tenantBootstrap.functions.tenantrequest.providerPackage }}
   runtimeConfigRef:
-    name: function-tenantrequest
+    name: function-tenantrequest-renderer
 
 ---
 {{- end }}
@@ -16,7 +16,7 @@ spec:
 apiVersion: pkg.crossplane.io/v1beta1
 kind: DeploymentRuntimeConfig
 metadata:
-  name: function-tenantrequest
+  name: function-tenantrequest-renderer
 spec:
   deploymentTemplate:
     spec:
@@ -43,6 +43,8 @@ spec:
                   value: "tenants"
                 - name: CROSSPLANE_NAMESPACE
                   value: "crossplane"
+                - name: WORKLOAD_CLUSTERS
+                  value: "minikube-workload:wl"
 
 ---
 {{- end }}
