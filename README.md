@@ -18,60 +18,54 @@
 ### Bootstrap Azure EntraID (OpenTofu)
 `/src/bootstrap/azure` bootstraps identity resources in Microsoft Entra ID using OpenTofu.
 It provisions:
-- Applications (Argo CD, Crossplane, Keycloak)
+- App registrations (Argo CD, Crossplane, Keycloak)
 - Service Principals (Enterprise Applications)
 - App Roles and RBAC assignments
 - Required API permissions
 
 #### Prerequisites
 
-Login to Azure:
+**Login** to Azure:
 ```bash
 az login
 ```
 
-Verify the active tenant:
+**Verify** the active tenant:
 ```bash
 az account show
 ```
 
-Install OpenTofu:
+Install **OpenTofu**:
 ```bash
 tofu version
 ```
-Install Azure CLI:
+Install **Azure CLI**:
 ```bash
 az version
 ```
-[Install Azure CLI on Ubuntu](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?view=azure-cli-latest&pivots=apt).
+[Install Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?view=azure-cli-latest&pivots=apt).
 
 Make sure **gpg** is installed (it is usually included by default on Ubuntu):
 ```bash
 gpg --version
 ```
-If not installed:
-```bash
-sudo apt update && sudo apt install -y gnupg
-```
+[Install GnuPG](https://www.gnupg.org/download/).
 
-Initialize & apply:
+**Initialize & apply**:
 ```bash
 task azure:up
 ```
-Destoy:
+**Destoy**:
 ```bash
 task azure:down
 ```
 
-State management (no cloud backend):
+#### State management (no cloud backend):
 
-State is stored locally and encrypted before committing to Git.
+- State is stored locally and encrypted before committing to Git.
+- Yes, this is a bit manual; that’s the price of avoiding a paid backend 🙂
 
-Yes, this is a bit manual; that’s the price of avoiding a paid backend 🙂
-
-Note: `*.tfstate` and `*.tftstate.backup` are ignored. 
-
-When you run `task azure:up`, encryption and decryption of the Terraform state file are handled automatically.
+- When you run `task azure:up`, encryption and decryption of the Terraform state file are handled automatically.
 
 If you need to manage it manually:
 
@@ -91,28 +85,28 @@ Commit encrypted file:
 git add terraform.tfstate.gpg
 git commit -m "Add encrypted state"
 ```
+**Note:** `*.tfstate` and `*.tftstate.backup` are ignored. 
 
-### Bootstrap K8s
+### Bootstrap
 
-Make sure [task](https://taskfile.dev/docs/installation) is installed on your local machine.
+Make sure Task is installed on your local machine.
 
-Clone the repository:
+[Install Task](https://taskfile.dev/docs/installation).
+```
+task --version
+```
+
+**Clone** the repository:
 ```bash
 git clone git@github.com:rezakaramad/kubepave.git && cd kubepave
 ```
-Check dependencies:
+Check **dependencies**:
 
 ```bash
 task check
 ```
 
-Start clusters only:
-
-```bash
-task minikube:start
-```
-
-Bootstrap everything:
+**Bootstrap** everything:
 
 ```bash
 task minikube:up
@@ -139,6 +133,16 @@ printf %s "$ARGOCD_ADMIN_PASSWORD" | xclip -selection clipboard
 task minikube:down
 ```
 ---
+
+#### Argo CD SSO
+After the platform boots up, you must restart the Argo CD server to enable SSO.
+During bootstrap, OIDC is configured and the `argocd-secret` is updated with the OIDC client secret. However, the `argocd-server` does not automatically reload this secret, which causes SSO login to fail (e.g. `invalid_client errors`).
+
+To ensure Argo CD picks up the updated client secret, restart the server:
+```
+kubectl rollout restart deployment argocd-server -n argocd
+```
+> ⚠️ This is a one-time requirement after bootstrap or whenever the OIDC client secret changes.
 
 ## Why Task
 
