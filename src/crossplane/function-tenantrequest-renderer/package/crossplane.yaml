@@ -1,7 +1,7 @@
 apiVersion: meta.pkg.crossplane.io/v1beta1
 kind: Function
 metadata:
-  name: function-tenant-request-gitops
+  name: function-tenantrequest-renderer
 spec:
   capabilities:
     - composition
