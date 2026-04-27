@@ -1,9 +1,16 @@
 package model
 
 func ApplyDefaults(t *TenantSpec) {
+
+	if len(t.Roles) == 0 {
+		t.Roles = []RoleSpec{
+			{Name: "admin"},
+			{Name: "viewer"},
+		}
+	}
+
 	for i, r := range t.Roles {
 
-		// Default policies
 		if len(r.Policies) == 0 {
 			t.Roles[i].Policies = defaultPolicies(r.Name)
 		}

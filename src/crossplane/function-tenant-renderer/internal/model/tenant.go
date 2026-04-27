@@ -197,33 +197,6 @@ func FromObservedXR(oxr *resource.Composite) (TenantSpec, error) {
 		out.Annotations = v
 	}
 
-	rolesRaw, found, err := unstructured.NestedSlice(u.Object, "spec", "rbac", "roles")
-	if err != nil {
-		return out, fmt.Errorf("cannot read spec.rbac.roles: %w", err)
-	}
-
-	if found {
-		roles := make([]RoleSpec, 0, len(rolesRaw))
-
-		for _, r := range rolesRaw {
-			m, ok := r.(map[string]any)
-			if !ok {
-				continue
-			}
-
-			name, _, _ := unstructured.NestedString(m, "name")
-
-			role := RoleSpec{
-				Name: strings.TrimSpace(name),
-			}
-
-			// (optional) parse entraId + policies later
-			roles = append(roles, role)
-		}
-
-		out.Roles = roles
-	}
-
 	return out, nil
 }
 
