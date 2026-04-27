@@ -4,7 +4,11 @@ tenant:
   argocd:
     aadGroupId: ""
 
+azure:
+  freeTier: true
+
 argocd:
+  entraAppId: ""
   clusters:
     - clusterName: minikube-workload
       environmentPrefix: wl
@@ -23,3 +27,19 @@ argocd:
           - resource: logs
             actions:
               - get
+        entraIDAppRoles:
+          - name: admin
+            description: Administrator role permits any action on any resource within the project.
+            # An AppRole can be assigned to a user or group in Azure AD. The "assign" section defines how the AppRole should be assigned.
+            assign:
+              # The "principalObjectIdSelector" is used to select the user or group to which the AppRole will be assigned. 
+              # In this case, it is disabled, and a specific principalObjectId can be provided if needed.
+              principalObjectIdSelector:
+                enabled: false
+                matchLabels:
+                  prefix: {{ .Values.environmentPrefix }}
+                  role: admin
+                  tenant: {{ .Values.tenant.name }}
+              # If "principalObjectIdSelector" is disabled, you can directly specify the "principalObjectId" of the user or group
+              # to which the AppRole should be assigned.
+              principalObjectId: ""

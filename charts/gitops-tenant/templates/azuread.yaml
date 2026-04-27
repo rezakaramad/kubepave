@@ -1,0 +1,77 @@
+{{- range $cluster := $.Values.argocd.clusters }}
+{{- range .tenantAppProject.entraIDAppRoles }}
+
+{{- $selectorEnabled := and .assign .assign.principalObjectIdSelector.enabled }}
+{{- $principalObjectId := and .assign .assign.principalObjectId }}
+
+{{- if and (not $.Values.azure.freeTier) $selectorEnabled }}
+
+apiVersion: groups.azuread.m.upbound.io/v1beta1
+kind: Group
+metadata:
+  labels:
+    prefix: {{ $cluster.environmentPrefix }}
+    role: {{ .name }}
+    tenant: {{ $.Values.tenant.name }}
+  name: {{ $.Values.tenant.name }}-{{ .name }}-{{ $cluster.environmentPrefix }}
+  namespace: crossplane
+spec:
+  forProvider:
+    displayName: {{ $.Values.tenant.name | title }}-{{ .name | title }}-{{ $cluster.environmentPrefix | title }}
+    securityEnabled: true
+  providerConfigRef:
+    name: azuread
+
+---
+{{- end }}
+
+apiVersion: applications.azuread.m.upbound.io/v1beta1
+kind: AppRole
+metadata:
+  labels:
+    prefix: {{ $cluster.environmentPrefix }}
+    role: {{ .name }}
+    tenant: {{ $.Values.tenant.name }}
+  name: {{ $.Values.tenant.name }}-{{ .name }}-{{ $cluster.environmentPrefix }}
+  namespace: crossplane
+spec:
+  forProvider:
+    allowedMemberTypes:
+      - User
+      - Group
+    applicationId: {{ $.Values.argocd.entraAppId }}
+    description: "{{ .name }} access for {{ $.Values.tenant.name }} in {{ $cluster.environmentPrefix }} environment"
+    displayName: "{{ $.Values.tenant.name | title }} {{ .name | title }} {{ $cluster.environmentPrefix | title }}"
+    value: {{ $.Values.tenant.name }}-{{ .name }}-{{ $cluster.environmentPrefix }}
+  providerConfigRef:
+    name: azuread
+
+---
+apiVersion: app.azuread.m.upbound.io/v1beta1
+kind: RoleAssignment
+metadata:
+  name: {{ $.Values.tenant.name }}-{{ .name }}-{{ $cluster.environmentPrefix }}
+  namespace: crossplane
+spec:
+  forProvider:
+    appRoleIdSelector:
+      matchLabels:
+        prefix: {{ $cluster.environmentPrefix }}
+        role: {{ .name }}
+        tenant: {{ $.Values.tenant.name }}
+
+    {{- if and (not $.Values.azure.freeTier) $selectorEnabled }}
+    principalObjectIdSelector:
+      matchLabels:
+        prefix: {{ $cluster.environmentPrefix }}
+        role: {{ .name }}
+        tenant: {{ $.Values.tenant.name }}
+    {{- else if $principalObjectId }}
+    principalObjectId: {{ $principalObjectId }}
+    {{- end }}
+
+  providerConfigRef:
+    name: azuread
+---
+{{- end }}
+{{- end }}
