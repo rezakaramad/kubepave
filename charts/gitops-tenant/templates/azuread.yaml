@@ -1,9 +1,9 @@
-{{- range $cluster := $.Values.argocd.clusters }}
-{{- range $role := $cluster.tenantAppProject.entraIDAppRoles }}
+{{- range $cluster := $.Values.workloadClusters }}
+{{- range $role := $.Values.tenant.rbac.roles }}
 
-{{- $assign := $role.assignments | default dict }}
-{{- $selectorEnabled := and $assign.principalObjectIdSelector $assign.principalObjectIdSelector.enabled }}
-{{- $principals := $assign.principalObjectIds | default list }}
+{{- $assignment := $role.entraId.assignment | default dict }}
+{{- $selectorEnabled := and $assignment.principalObjectIdSelector $assignment.principalObjectIdSelector.enabled }}
+{{- $principals := $assignment.principalObjectIds | default list }}
 
 # --------------------------------------------------
 # Group (Enterprise only)
@@ -33,6 +33,10 @@ spec:
 # --------------------------------------------------
 # AppRole
 # --------------------------------------------------
+{{- if not $role.entraId.appRoleUUID }}
+{{- fail (printf "Missing appRoleUUID for role '%s'" $role.name) }}
+{{- end }}
+
 apiVersion: applications.azuread.m.upbound.io/v1beta1
 kind: AppRole
 metadata:
@@ -44,10 +48,11 @@ metadata:
   namespace: crossplane
 spec:
   forProvider:
+    roleId: {{ $role.entraId.appRoleUUID | quote }}
     allowedMemberTypes:
       - User
       - Group
-    applicationId: {{ $.Values.argocd.entraAppId }}
+    applicationId: {{ $.Values.tenant.rbac.entraAppId | quote }}
     description: "{{ $role.name }} access for {{ $.Values.tenant.name }} in {{ $cluster.environmentPrefix }} environment"
     displayName: "{{ $.Values.tenant.name | title }} {{ $role.name | title }} {{ $cluster.environmentPrefix | title }}"
     value: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $cluster.environmentPrefix }}
@@ -59,6 +64,9 @@ spec:
 # --------------------------------------------------
 # RoleAssignment
 # --------------------------------------------------
+# We use selector-based assignment for groups in enterprise tier, and direct principalObjectId assignment for users in free tier.
+# In enterprise tier, the RoleAssignment will automatically assign the AppRole to the group that matches the specified labels.
+
 {{- if and (not $.Values.azure.freeTier) $selectorEnabled }}
 
 apiVersion: app.azuread.m.upbound.io/v1beta1
@@ -68,21 +76,24 @@ metadata:
   namespace: crossplane
 spec:
   forProvider:
-    appRoleIdRef:
-      name: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $cluster.environmentPrefix }}
-
+    appRoleId: {{ $role.entraId.appRoleUUID | quote }}
     principalObjectIdSelector:
       matchLabels:
         prefix: {{ $cluster.environmentPrefix }}
         role: {{ $role.name }}
         tenant: {{ $.Values.tenant.name }}
-
   providerConfigRef:
     name: azuread
     kind: ProviderConfig
 
 ---
+# In enterprise tier we'll use the selector to assign roles to groups, so we don't need to create individual RoleAssignments for users.
+# In free tier, since we can't assign roles to groups, we need to create RoleAssignments for individual users.
 {{- else }}
+
+{{- if not $principals }}
+{{- fail (printf "No principalObjectIds provided for role '%s'" $role.name) }}
+{{- end }}
 
 {{- range $i, $p := $principals }}
 
@@ -93,11 +104,8 @@ metadata:
   namespace: crossplane
 spec:
   forProvider:
-    appRoleIdRef:
-      name: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $cluster.environmentPrefix }}
-
+    appRoleId: {{ $role.entraId.appRoleUUID | quote }}
     principalObjectId: {{ $p | quote }}
-
   providerConfigRef:
     name: azuread
     kind: ProviderConfig

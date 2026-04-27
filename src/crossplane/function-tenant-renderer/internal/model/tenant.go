@@ -18,6 +18,8 @@ type TenantSpec struct {
 
 	SyncRepos []string
 
+	Roles []RoleSpec
+
 	AutomatedSync bool
 	Prune         bool
 	SelfHeal      bool
@@ -25,6 +27,27 @@ type TenantSpec struct {
 	CostCenter  string
 	Labels      map[string]string
 	Annotations map[string]string
+}
+
+type RoleSpec struct {
+	Name     string
+	EntraId  EntraIdSpec
+	Policies []PolicySpec
+}
+
+type EntraIdSpec struct {
+	AppRoleUUID string
+	Assignment  AssignmentSpec
+}
+
+type AssignmentSpec struct {
+	PrincipalObjectIds []string
+	SelectorEnabled    bool
+}
+
+type PolicySpec struct {
+	Resource string
+	Actions  []string
 }
 
 // Context

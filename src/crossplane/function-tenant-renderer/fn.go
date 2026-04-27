@@ -113,6 +113,7 @@ func (f *Function) RunFunction(
 	// GitOps app (management cluster)
 	gitopsApp, err := render.BuildGitopsApplication(
 		tenant,
+		f.workloadClusters,
 		f.gitopsRepoURL,
 		f.gitopsRepoBranch,
 		f.gitopsRepoBasePath,

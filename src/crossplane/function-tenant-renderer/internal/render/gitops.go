@@ -10,6 +10,7 @@ import (
 
 func BuildGitopsApplication(
 	t model.TenantSpec,
+	clusters []model.Cluster,
 	repo string,
 	branch string,
 	basePath string,
@@ -24,10 +25,32 @@ func BuildGitopsApplication(
 	app.SetNamespace("argocd")
 	_ = app.SetValue("metadata.namespace", "argocd")
 
-	app.SetLabels(map[string]string{
-		"app.kubernetes.io/managed-by":  "crossplane",
-		"platform.rezakara.demo/tenant": t.Name,
-	})
+	app.SetLabels(model.CommonLabels(t))
+
+	roles := []map[string]any{}
+
+	for _, role := range t.Roles {
+
+		roleMap := map[string]any{
+			"name":     role.Name,
+			"policies": role.Policies,
+		}
+
+		envUUIDs := map[string]string{}
+
+		for _, cluster := range clusters {
+			uuid := GenerateAppRoleUUID(t.Name, role.Name, cluster.Prefix)
+
+			envUUIDs[cluster.Prefix] = uuid
+		}
+
+		roleMap["entraId"] = map[string]any{
+			"appRoleUUIDs": envUUIDs,
+			"assignment":   role.EntraId.Assignment,
+		}
+
+		roles = append(roles, roleMap)
+	}
 
 	values := map[string]any{
 		"tenant": map[string]any{
@@ -39,6 +62,9 @@ func BuildGitopsApplication(
 			},
 			"argocd": map[string]any{
 				"syncRepos": t.SyncRepos,
+			},
+			"rbac": map[string]any{
+				"roles": roles,
 			},
 		},
 	}

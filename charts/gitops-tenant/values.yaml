@@ -1,18 +1,30 @@
 tenant:
   name: ""
   dnsName: ""
-  argocd:
-    aadGroupId: ""
 
-azure:
-  freeTier: true
+  rbac:
+    entraAppId: "6ebc7a2a-0d2c-4677-aebc-2b37371aca73"
 
-argocd:
-  entraAppId: "6ebc7a2a-0d2c-4677-aebc-2b37371aca73"
-  clusters:
-    - clusterName: minikube-workload
-      environmentPrefix: wl
-      tenantAppProject:
+    # Define roles and their corresponding permissions. 
+    # Each role can have multiple policies that specify the resources and actions allowed for that role.
+    # Assignments define how the AppRole is assigned to users or groups in Azure AD.
+    #   In free tier, we're limited to users only, so we can disable the selector and directly specify principalObjectIds.
+    #   In enterprise tier, you can enable the selector to dynamically assign the role based on user or group attributes.
+    #   if enabled, it automatically assigns the role to the group that matches the tenant name, role name, and cluster environment prefix.
+    #   E.g. for tenant "acme", role "admin", and cluster environment prefix "prod",
+    #     it would look for a group with the name "acme-admin-prod" and assign the role to that group.
+    # If the selector is disabled, you directly specify the principal object IDs (users or groups) that should be assigned to the role.
+    # In enterprise tier, users will no longer be needed for role assignments.
+
+    roles:
+      - name: admin
+        entraId:
+          appRoleUUID: "0000000-0000-0000-0000-000000000001"
+          assignment:
+            principalObjectIdSelector:
+              enabled: false
+            principalObjectIds:
+              - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
         policies:
           - resource: applications
             actions:
@@ -27,15 +39,31 @@ argocd:
           - resource: logs
             actions:
               - get
-        entraIDAppRoles:
-          - name: admin
-            description: Administrator role permits any action on any resource within the project.
-            # An AppRole can be assigned to a user or group in Azure AD. The "roleAssignment" section defines how the AppRole should be assigned.
-            roleAssignments:
-              # The "principalObjectIdSelector" is used to select the user or group to which the AppRole will be assigned. 
-              # In this case, it is disabled, and a specific principalObjectId can be provided if needed.
-              principalObjectIdSelector:
-                enabled: false
-              # If "principalObjectIdSelector" is disabled, you can directly specify the "principalObjectId" of the user or group
-              # to which the AppRole should be assigned.
-              principalObjectIds: ["ee16a472-e5bd-4f24-9cfe-cb22429b11c4"]
+
+      - name: viewer
+        entraId:
+          appRoleUUID: "0000000-0000-0000-0000-000000000002"
+          assignment:
+            principalObjectIdSelector:
+              enabled: false
+            principalObjectIds:
+              - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
+        policies:
+          - resource: applications
+            actions:
+              - get
+          - resource: logs
+            actions:
+              - get
+
+
+# --------------------------------------------------------------
+azure:
+  freeTier: true
+
+# --------------------------------------------------------------
+# Workload clusters where tenant resources will be deployed. 
+# The environmentPrefix is used to differentiate resources across different environments (e.g., dev, staging, prod).
+workloadClusters:
+  - name: minikube-workload
+    environmentPrefix: wl
