@@ -21,6 +21,7 @@ spec:
     securityEnabled: true
   providerConfigRef:
     name: azuread
+    kind: ProviderConfig
 
 ---
 {{- end }}
@@ -45,6 +46,7 @@ spec:
     value: {{ $.Values.tenant.name }}-{{ .name }}-{{ $cluster.environmentPrefix }}
   providerConfigRef:
     name: azuread
+    kind: ProviderConfig
 
 ---
 apiVersion: app.azuread.m.upbound.io/v1beta1
@@ -72,6 +74,7 @@ spec:
 
   providerConfigRef:
     name: azuread
+    kind: ProviderConfig
 ---
 {{- end }}
 {{- end }}
