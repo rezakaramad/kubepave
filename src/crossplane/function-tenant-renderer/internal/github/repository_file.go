@@ -71,6 +71,7 @@ func BuildRepositoryFile(t model.TenantSpec, content string, cfg Config) *compos
 		},
 		"providerConfigRef": map[string]any{
 			"name": cfg.ProviderConfigName,
+			"kind": "ClusterProviderConfig",
 		},
 	}
 

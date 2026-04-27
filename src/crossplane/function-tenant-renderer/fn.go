@@ -164,7 +164,7 @@ func (f *Function) RunFunction(
 		content,
 		github.Config{
 			Namespace:          f.crossplaneNamespace,
-			ProviderConfigName: "github",
+			ProviderConfigName: "github-rezakaramad",
 			Repository:         f.exportRepoURL,
 			Branch:             f.exportRepoBranch,
 			BasePath:           f.exportRepoBasePath,
