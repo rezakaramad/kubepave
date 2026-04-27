@@ -141,7 +141,7 @@ func (f *Function) RunFunction(
 	// Convert to composed resource
 	tenant := resource.NewDesiredComposed()
 	tenant.Resource.SetUnstructuredContent(tenantObj)
-	tenant.Ready = resource.ReadyUnspecified
+	tenant.Ready = resource.ReadyTrue
 
 	// Register resource
 	desired[resource.Name("tenant")] = tenant
