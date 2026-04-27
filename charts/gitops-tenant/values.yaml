@@ -30,12 +30,12 @@ argocd:
         entraIDAppRoles:
           - name: admin
             description: Administrator role permits any action on any resource within the project.
-            # An AppRole can be assigned to a user or group in Azure AD. The "assign" section defines how the AppRole should be assigned.
-            assign:
+            # An AppRole can be assigned to a user or group in Azure AD. The "roleAssignment" section defines how the AppRole should be assigned.
+            roleAssignments:
               # The "principalObjectIdSelector" is used to select the user or group to which the AppRole will be assigned. 
               # In this case, it is disabled, and a specific principalObjectId can be provided if needed.
               principalObjectIdSelector:
                 enabled: false
               # If "principalObjectIdSelector" is disabled, you can directly specify the "principalObjectId" of the user or group
               # to which the AppRole should be assigned.
-              principalObjectId: ""
+              principalObjectIds: []
