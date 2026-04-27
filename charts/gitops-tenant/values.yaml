@@ -38,4 +38,4 @@ argocd:
                 enabled: false
               # If "principalObjectIdSelector" is disabled, you can directly specify the "principalObjectId" of the user or group
               # to which the AppRole should be assigned.
-              principalObjectIds: []
+              principalObjectIds: ["ee16a472-e5bd-4f24-9cfe-cb22429b11c4"]
