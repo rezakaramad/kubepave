@@ -92,6 +92,8 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
+	model.ApplyDefaults(&tenant)
+
 	// ---------------------------------------------------------------------
 	// 4. Render resources
 	// ---------------------------------------------------------------------
