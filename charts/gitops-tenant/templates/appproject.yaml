@@ -90,16 +90,19 @@ spec:
   sourceRepos:
     - {{ include "tenant.repoURL" $.Values.tenant.name | quote }}
   roles:
-  - name: default
-    description: Default roles for {{ $.Values.tenant.name }}
-    policies:
-{{- range $policy := $cluster.tenantAppProject.policies }}
-{{- range $action := $policy.actions }}
-      - p, proj:{{ $.Values.tenant.name }}-{{ $cluster.environmentPrefix }}:default, {{ $policy.resource }}, {{ $action }}, {{ $.Values.tenant.name }}-{{ $cluster.environmentPrefix }}/*, allow
-{{- end }}
-{{- end }}
-    groups:
-      - {{ $.Values.tenant.argocd.aadGroupId }}
+  {{- range $role := $cluster.tenantAppProject.entraIDAppRoles }}
+    - name: {{ $role.name }}
+      description: {{ $role.description | quote }}
+      policies:
+  {{- range $policy := $cluster.tenantAppProject.policies }}
+  {{- range $action := $policy.actions }}
+        - p, proj:{{ $.Values.tenant.name }}-{{ $cluster.environmentPrefix }}:{{ $role.name }}, {{ $policy.resource }}, {{ $action }}, {{ $.Values.tenant.name }}-{{ $cluster.environmentPrefix }}/*, allow
+  {{- end }}
+  {{- end }}
+      groups:
+        - {{ printf "%s-%s-%s" $.Values.tenant.name $role.name $cluster.environmentPrefix | lower }}
+  {{- else }}
+    []
+  {{- end }}
 
 ---
-{{- end }}
