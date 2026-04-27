@@ -27,7 +27,7 @@ type Config struct {
 func BuildRepositoryFile(t model.TenantSpec, content string, cfg Config) *composed.Unstructured {
 	// Build a deterministic file path for the tenant by combining the base path and tenant name,
 	// ensuring no duplicate slashes regardless of how BasePath is configured.
-	path := fmt.Sprintf("%s/%s/resources.yaml",
+	path := fmt.Sprintf("%s/%s/bundle.yaml",
 		strings.TrimSuffix(cfg.BasePath, "/"),
 		t.Name,
 	)
@@ -41,7 +41,7 @@ func BuildRepositoryFile(t model.TenantSpec, content string, cfg Config) *compos
 	u := &unstructured.Unstructured{}
 	u.SetAPIVersion("repo.github.m.upbound.io/v1alpha1")
 	u.SetKind("RepositoryFile")
-	u.SetName(fmt.Sprintf("%s-resources", t.Name))
+	u.SetName(fmt.Sprintf("%s-bundle", t.Name))
 
 	// Determine the target namespace for the RepositoryFile, falling back to a default
 	// control-plane namespace if none is provided in the configuration.
@@ -53,8 +53,8 @@ func BuildRepositoryFile(t model.TenantSpec, content string, cfg Config) *compos
 
 	// Add labels to the resource for easier identification and management, including the tenant name
 	u.SetLabels(map[string]string{
-		"tenant":     t.Name,
-		"managed-by": "crossplane",
+		"app.kubernetes.io/managed-by":  "crossplane",
+		"platform.rezakara.demo/tenant": t.Name,
 	})
 
 	// Populate the spec of the RepositoryFile with the necessary information to create or update

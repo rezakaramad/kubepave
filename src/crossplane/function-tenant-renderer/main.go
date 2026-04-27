@@ -2,6 +2,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"strings"
 
@@ -35,12 +36,19 @@ func (c *CLI) Run() error {
 	// Function setup
 	// ------------------------------------------------------------------
 	fn := &Function{
-		log:                 log,
-		workloadClusters:    workloadClusters,
-		exportRepoURL:       getEnv("GIT_REPOSITORY", "kubepave"),
-		exportRepoBranch:    getEnv("GIT_BRANCH", "main"),
-		exportRepoBasePath:  getEnv("GIT_BASE_PATH", "tenants"),
-		crossplaneNamespace: getEnv("CROSSPLANE_NAMESPACE", "crossplane"),
+		log:              log,
+		workloadClusters: workloadClusters,
+
+		exportRepoURL:        getEnv("EXPORT_REPO_URL", "kubepave-tenants"),
+		exportRepoBranch:     getEnv("EXPORT_REPO_BRANCH", "main"),
+		exportRepoBasePath:   getEnv("EXPORT_REPO_BASE_PATH", "tenants"),
+		baselineRepoURL:      getEnv("BASELINE_REPO_URL", "kubepave"),
+		baselineRepoBranch:   getEnv("BASELINE_REPO_BRANCH", "main"),
+		baselineRepoBasePath: getEnv("BASELINE_REPO_BASE_PATH", "charts/baseline-tenant"),
+		gitopsRepoURL:        getEnv("GITOPS_REPO_URL", "kubepave"),
+		gitopsRepoBranch:     getEnv("GITOPS_REPO_BRANCH", "main"),
+		gitopsRepoBasePath:   getEnv("GITOPS_REPO_BASE_PATH", "charts/gitops-tenant"),
+		crossplaneNamespace:  getEnv("CROSSPLANE_NAMESPACE", "crossplane"),
 	}
 
 	// Run a server, and whenever a Crossplane request comes in, hand it to this fn object
@@ -57,7 +65,8 @@ func parseClusters(s string) []model.Cluster {
 	for _, item := range strings.Split(s, ",") {
 		parts := strings.Split(item, ":")
 		if len(parts) != 2 {
-			continue // or log warning
+			log.Printf("invalid cluster entry: %s", item)
+			continue
 		}
 
 		out = append(out, model.Cluster{

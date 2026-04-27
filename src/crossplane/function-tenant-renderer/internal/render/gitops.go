@@ -21,6 +21,7 @@ func BuildGitopsApplication(
 	app.SetKind("Application")
 	app.SetName(name)
 	app.SetNamespace("argocd")
+	_ = app.SetValue("metadata.namespace", "argocd")
 
 	app.SetLabels(map[string]string{
 		"app.kubernetes.io/managed-by":  "crossplane",

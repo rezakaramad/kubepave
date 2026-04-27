@@ -1,4 +1,4 @@
-package pdns
+package main
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 )
 
 // Client defines the interface used by validation layer.
-type Client interface {
+type PDNSClient interface {
 	CheckDNSAvailable(ctx context.Context, fqdn string) (DNSAvailabilityResult, error)
 }
 
@@ -33,7 +33,7 @@ type client struct {
 }
 
 // New creates a new PowerDNS client.
-func New(baseURL, apiKey string, httpClient *http.Client) Client {
+func New(baseURL, apiKey string, httpClient *http.Client) PDNSClient {
 	if httpClient == nil {
 		httpClient = &http.Client{
 			Timeout: 3 * time.Second,

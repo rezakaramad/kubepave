@@ -84,42 +84,59 @@ func FromObservedXR(oxr *resource.Composite) (TenantSpec, error) {
 	var out TenantSpec
 	var err error
 
-	u := &oxr.Resource.Unstructured
+	u := &unstructured.Unstructured{
+		Object: oxr.Resource.Object,
+	}
 
 	out.Name = u.GetName()
 	if out.Name == "" {
 		return out, fmt.Errorf("metadata.name is required")
 	}
 
-	out.DNSName, err = getRequiredString(u, "spec", "dnsName")
+	dns, err := getRequiredString(u, "spec", "dnsName")
 	if err != nil {
 		return out, err
 	}
+	out.DNSName = strings.ToLower(strings.TrimSpace(dns))
 
-	if v, err := getOptionalString(u, "spec", "displayName"); err != nil {
-		return out, err
-	} else {
-		out.DisplayName = v
+	display, _ := getOptionalString(u, "spec", "displayName")
+	display = strings.TrimSpace(display)
+	if display == "" {
+		display = out.Name
 	}
-	if out.DisplayName == "" {
-		out.DisplayName = out.Name
-	}
+	out.DisplayName = display
 
-	out.OwnerTeam, err = getRequiredString(u, "spec", "owner", "team")
+	team, err := getRequiredString(u, "spec", "owner", "team")
 	if err != nil {
 		return out, err
 	}
+	out.OwnerTeam = strings.TrimSpace(team)
 
 	if v, err := getOptionalString(u, "spec", "owner", "email"); err != nil {
 		return out, err
 	} else {
-		out.OwnerEmail = v
+		out.OwnerEmail = strings.TrimSpace(v)
 	}
 
-	out.SyncRepos, err = getRequiredStringSlice(u, "spec", "argocd", "syncRepos")
+	repos, err := getRequiredStringSlice(u, "spec", "argocd", "syncRepos")
 	if err != nil {
 		return out, err
 	}
+
+	clean := make([]string, 0, len(repos))
+	for _, r := range repos {
+		r = strings.TrimSpace(r)
+		if r == "" {
+			continue
+		}
+		clean = append(clean, r)
+	}
+
+	if len(clean) == 0 {
+		return out, fmt.Errorf("spec.argocd.syncRepos must contain at least one valid repo")
+	}
+
+	out.SyncRepos = clean
 
 	if v, err := getOptionalBoolDefault(u, true, "spec", "argocd", "syncPolicy", "automatedSync"); err != nil {
 		return out, err

@@ -29,12 +29,10 @@ func SetXRRendered(
 		return fmt.Errorf("cannot set status.rendered.resources: %w", err)
 	}
 
-	if err := observedXR.Resource.SetValue("status.rendered.message", fmt.Sprintf("Tenant %q manifests rendered successfully", t.Name)); err != nil {
+	if err := observedXR.Resource.SetValue("status.rendered.message",
+		fmt.Sprintf("Tenant %q manifests rendered successfully", t.Name),
+	); err != nil {
 		return fmt.Errorf("cannot set status.rendered.message: %w", err)
-	}
-
-	if err := response.SetDesiredCompositeResource(rsp, observedXR); err != nil {
-		return fmt.Errorf("cannot set desired composite resource: %w", err)
 	}
 
 	response.Normal(rsp, fmt.Sprintf("Rendered tenant %q manifests successfully", t.Name))

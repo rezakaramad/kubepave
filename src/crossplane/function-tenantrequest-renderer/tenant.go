@@ -1,6 +1,6 @@
-package render
+package main
 
-import "github.com/crossplane/function-tenantrequest-renderer/internal/model"
+import "github.com/crossplane/function-tenantrequest-renderer/model"
 
 // BuildTenantObject builds the Tenant resource as a generic map
 func BuildTenantObject(t model.TenantRequest) map[string]any {
@@ -11,14 +11,14 @@ func BuildTenantObject(t model.TenantRequest) map[string]any {
 			"name": t.Name,
 		},
 		"spec": map[string]any{
-			"dnsName":     t.DNSName,
+			"dnsName":     t.DNS.Name,
 			"displayName": t.DisplayName,
 			"owner": map[string]any{
-				"team":  t.OwnerTeam,
-				"email": t.OwnerEmail,
+				"team":  t.Owner.Team,
+				"email": t.Owner.Email,
 			},
 			"argocd": map[string]any{
-				"syncRepos": t.ArgoCDSyncRepos,
+				"syncRepos": t.ArgoCD.SyncRepos,
 			},
 		},
 	}

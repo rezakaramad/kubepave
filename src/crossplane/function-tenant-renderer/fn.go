@@ -11,6 +11,7 @@ import (
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/crossplane/function-sdk-go/response"
+
 	"github.com/crossplane/function-tenant-renderer/internal/github"
 	"github.com/crossplane/function-tenant-renderer/internal/model"
 	"github.com/crossplane/function-tenant-renderer/internal/render"
@@ -21,29 +22,28 @@ type Function struct {
 	fnv1.UnimplementedFunctionRunnerServiceServer
 	log logging.Logger
 
-	// Git configuration where we will export the rendered tenant manifests.
+	// Git export (final bundle destination)
 	exportRepoURL      string
 	exportRepoBranch   string
 	exportRepoBasePath string
 
-	// Crossplane control plane namespace
+	// Crossplane namespace
 	crossplaneNamespace string
 
-	// Tenant clusters so we know what cluster names to use in the rendered ArgoCD Applications
-	// Let's say we have to deploy baseline-<tenant> apps to the tenant clusters, we need to know the cluster names to set in the Application destinations.
+	// Workload clusters (fan-out targets)
 	workloadClusters []model.Cluster
 
-	// Git configuration where we will get the baseline-tenant helm chart to render with tenant spec values.
+	// Baseline Application source (ArgoCD)
 	baselineRepoURL      string
 	baselineRepoBranch   string
 	baselineRepoBasePath string
 
-	// Git configuration where we will get the gitops-tenant helm chart to render with tenant spec values.
+	// GitOps Application source (ArgoCD)
 	gitopsRepoURL      string
 	gitopsRepoBranch   string
 	gitopsRepoBasePath string
 
-	// ArgoCD Azure AD Application ID (external resource)
+	// External dependency
 	argocdAppID string
 }
 
@@ -61,7 +61,9 @@ func (f *Function) RunFunction(
 
 	rsp := response.To(req, response.DefaultTTL)
 
-	// 1. Get observed XR
+	// ---------------------------------------------------------------------
+	// 1. Load XR
+	// ---------------------------------------------------------------------
 	observedXR, err := request.GetObservedCompositeResource(req)
 	if err != nil {
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot get observed composite resource"))
@@ -70,7 +72,9 @@ func (f *Function) RunFunction(
 
 	setPhase(observedXR, "Provisioning")
 
-	// 2. Get desired state so far
+	// ---------------------------------------------------------------------
+	// 2. Desired state
+	// ---------------------------------------------------------------------
 	desired, err := request.GetDesiredComposedResources(req)
 	if err != nil {
 		setPhase(observedXR, "Failed")
@@ -78,7 +82,9 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
+	// ---------------------------------------------------------------------
 	// 3. Parse Tenant
+	// ---------------------------------------------------------------------
 	tenant, err := model.FromObservedXR(observedXR)
 	if err != nil {
 		setPhase(observedXR, "Failed")
@@ -86,8 +92,11 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
+	// ---------------------------------------------------------------------
 	// 4. Render resources
-	// baseline application
+	// ---------------------------------------------------------------------
+
+	// Baseline apps (one per cluster)
 	baselineApps, err := render.BuildBaselineApplications(
 		tenant,
 		f.workloadClusters,
@@ -101,7 +110,7 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// App RBAC (AppRole + Group + RoleAssignment)
+	// RBAC (external systems)
 	appRBACResources, err := render.BuildAppRBAC(
 		tenant,
 		f.workloadClusters,
@@ -115,7 +124,7 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// GitOps Application (management cluster)
+	// GitOps app (management cluster)
 	gitopsApp, err := render.BuildGitopsApplication(
 		tenant,
 		f.gitopsRepoURL,
@@ -128,14 +137,18 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// 5. Combine all resources
+	// ---------------------------------------------------------------------
+	// 5. Combine resources (deterministic order)
+	// ---------------------------------------------------------------------
 	resources := []*composed.Unstructured{
 		gitopsApp,
 	}
 	resources = append(resources, appRBACResources...)
 	resources = append(resources, baselineApps...)
 
-	// 6. Bundle into YAML
+	// ---------------------------------------------------------------------
+	// 6. Bundle YAML
+	// ---------------------------------------------------------------------
 	content, err := render.BundleYAML(resources...)
 	if err != nil {
 		setPhase(observedXR, "Failed")
@@ -143,7 +156,9 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// 7. Create Git RepositoryFile
+	// ---------------------------------------------------------------------
+	// 7. Git export (RepositoryFile)
+	// ---------------------------------------------------------------------
 	repoFile := github.BuildRepositoryFile(
 		tenant,
 		content,
@@ -158,7 +173,7 @@ func (f *Function) RunFunction(
 		},
 	)
 
-	// 8. Add to desired state
+	// Add to desired state
 	desired["tenant-rendered-manifests"] = &resource.DesiredComposed{
 		Resource: repoFile,
 	}
@@ -169,7 +184,9 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// 9. Mark XR ready
+	// ---------------------------------------------------------------------
+	// 8. Update XR status
+	// ---------------------------------------------------------------------
 	if err := status.SetXRRendered(rsp, observedXR, tenant, status.RenderSummary{
 		Resources: len(resources),
 	}); err != nil {
@@ -178,14 +195,21 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// 10. Done
+	// ✅ Critical: persist XR updates
+	_ = response.SetDesiredCompositeResource(rsp, observedXR)
+
+	// ---------------------------------------------------------------------
+	// 9. Done
+	// ---------------------------------------------------------------------
 	response.Normal(rsp, fmt.Sprintf("Rendered tenant %q manifests to Git", tenant.Name))
 
 	return rsp, nil
 }
 
-// setPhase is a helper function to set the status.phase of the XR.
-// We use it to update the phase in case of errors or to set it to Ready when everything is successful.
+// ---------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------
+
 func setPhase(xr *resource.Composite, phase string) {
 	_ = xr.Resource.SetValue("status.phase", phase)
 }

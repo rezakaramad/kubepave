@@ -12,13 +12,7 @@ import (
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/response"
 
-	"github.com/crossplane/function-tenantrequest-renderer/internal/approval"
-	"github.com/crossplane/function-tenantrequest-renderer/internal/github"
-	"github.com/crossplane/function-tenantrequest-renderer/internal/model"
-	"github.com/crossplane/function-tenantrequest-renderer/internal/pdns"
-	"github.com/crossplane/function-tenantrequest-renderer/internal/render"
-	"github.com/crossplane/function-tenantrequest-renderer/internal/status"
-	"github.com/crossplane/function-tenantrequest-renderer/internal/validation"
+	"github.com/crossplane/function-tenantrequest-renderer/model"
 
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -27,16 +21,12 @@ type Function struct {
 	fnv1.UnimplementedFunctionRunnerServiceServer
 	log logging.Logger
 
-	exportRepoURL      string
-	exportRepoBranch   string
-	exportRepoBasePath string
-
 	crossplaneNamespace string
 
 	workloadClusters []model.Cluster
 
 	kube ctrlclient.Client
-	pdns pdns.Client
+	pdns PDNSClient
 
 	dnsBaseDomain string
 }
@@ -70,7 +60,7 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	tenantRequest, err := model.FromObservedXR(xr)
 	if err != nil {
-		return fail(rsp, xr, status.PhaseFailed, err, "cannot parse TenantRequest")
+		return fail(rsp, xr, PhaseFailed, err, "cannot parse TenantRequest")
 	}
 
 	log = log.WithValues("tenant", tenantRequest.Name)
@@ -78,26 +68,35 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	// Validation
 	// ---------------------------------------------------------------------
-	status.SetPhase(xr, status.PhaseValidating)
+	SetPhase(xr, PhaseValidating)
 
-	if verr := validation.Validate(ctx, xr, validation.Deps{
-		Kube:       f.kube,
-		PDNS:       f.pdns,
-		BaseDomain: f.dnsBaseDomain,
+	if verr := Validate(ctx, tenantRequest, Deps{
+		Kube:             f.kube,
+		PDNSClient:       f.pdns,
+		BaseDomain:       f.dnsBaseDomain,
+		WorkloadClusters: f.workloadClusters,
 	}); verr != nil {
 
 		if verr.Retryable {
-			status.SetPhase(xr, status.PhaseValidating)
+			SetPhase(xr, PhaseValidating)
 		} else {
-			status.SetPhase(xr, status.PhaseFailed)
+			SetPhase(xr, PhaseFailed)
 		}
 
 		response.ConditionFalse(rsp, "Valid", verr.Reason).
 			WithMessage(verr.Message).
 			TargetCompositeAndClaim()
 
-		response.ConditionFalse(rsp, "Ready", "ValidationFailed").
-			WithMessage("TenantRequest is not valid").
+		readyReason := "ValidationFailed"
+		readyMessage := "TenantRequest is not valid"
+
+		if verr.Retryable {
+			readyReason = "ValidationInProgress"
+			readyMessage = "TenantRequest validation is still in progress"
+		}
+
+		response.ConditionFalse(rsp, "Ready", readyReason).
+			WithMessage(readyMessage).
 			TargetCompositeAndClaim()
 
 		log.Info("Validation failed", "reason", verr.Reason)
@@ -111,8 +110,8 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	// Approval
 	// ---------------------------------------------------------------------
-	if !approval.IsApproved(xr) {
-		status.SetPhase(xr, status.PhasePendingApproval)
+	if !IsApproved(xr) {
+		SetPhase(xr, PhasePendingApproval)
 
 		response.ConditionFalse(rsp, "Approved", "WaitingForApproval").
 			TargetCompositeAndClaim()
@@ -133,55 +132,37 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	desired, err := request.GetDesiredComposedResources(req)
 	if err != nil {
-		return fail(rsp, xr, status.PhaseFailed, err, "cannot get desired composed resources")
+		return fail(rsp, xr, PhaseFailed, err, "cannot get desired composed resources")
 	}
 
 	// Build tenant object
-	tenantObj := render.BuildTenantObject(tenantRequest)
+	tenantObj := BuildTenantObject(tenantRequest)
 
-	// Bundle YAML
-	content, err := render.BundleYAML(tenantObj)
-	if err != nil {
-		return fail(rsp, xr, status.PhaseFailed, err, "cannot bundle YAML")
-	}
+	// Convert to composed resource
+	tenant := resource.NewDesiredComposed()
+	tenant.Resource.SetUnstructuredContent(tenantObj)
+	tenant.Ready = resource.ReadyUnspecified
 
-	// Build RepositoryFile
-	repoFile, err := github.BuildRepositoryFile(
-		tenantRequest.Name,
-		content,
-		github.Config{
-			Namespace:          f.crossplaneNamespace,
-			ProviderConfigName: "github-rezakaramad",
-			Repository:         f.exportRepoURL,
-			Branch:             f.exportRepoBranch,
-			BasePath:           f.exportRepoBasePath,
-			FileName:           "tenant.yaml",
-			CommitAuthor:       "crossplane",
-			CommitEmail:        "platform@rezakara.demo",
-		},
-	)
-	if err != nil {
-		return fail(rsp, xr, status.PhaseFailed, err, "cannot build RepositoryFile")
-	}
-
-	desired[resource.Name("tenant-file")] = &resource.DesiredComposed{
-		Resource: repoFile,
-	}
+	// Register resource
+	desired[resource.Name("tenant")] = tenant
 
 	// ---------------------------------------------------------------------
 	// Final status
 	// ---------------------------------------------------------------------
-	status.SetPhase(xr, status.PhaseReady)
+	SetPhase(xr, PhaseReady)
 
-	response.ConditionTrue(rsp, "Ready", "GitWritten").
-		WithMessage("Tenant configuration written to Git").
+	response.ConditionTrue(rsp, "Ready", "Submitted").
+		WithMessage("Tenant resource submitted to Crossplane").
 		TargetCompositeAndClaim()
 
-	response.ConditionTrue(rsp, "Synced", "GitWritten").
-		WithMessage("Tenant config available in Git").
+	response.ConditionTrue(rsp, "Synced", "TenantCreated").
+		WithMessage("Tenant resource is managed by Crossplane").
 		TargetCompositeAndClaim()
 
-	log.Info("Reconciliation finished", "duration", time.Since(start))
+	log.Info("Reconciliation finished",
+		"tenant", tenantRequest.Name,
+		"duration", time.Since(start),
+	)
 
 	return finalize(rsp, xr, desired, tenantRequest.Name)
 }
@@ -196,7 +177,7 @@ func fatal(rsp *fnv1.RunFunctionResponse, err error, msg string) (*fnv1.RunFunct
 }
 
 func fail(rsp *fnv1.RunFunctionResponse, xr *resource.Composite, phase string, err error, msg string) (*fnv1.RunFunctionResponse, error) {
-	status.SetPhase(xr, phase)
+	SetPhase(xr, phase)
 	response.Fatal(rsp, xperrors.Wrap(err, msg))
 	return done(rsp, xr)
 }
@@ -219,7 +200,7 @@ func finalize(
 	_ = response.SetDesiredCompositeResource(rsp, xr)
 	_ = response.SetDesiredComposedResources(rsp, desired)
 
-	response.Normal(rsp, fmt.Sprintf("Rendered TenantRequest %q to Git", name))
+	response.Normal(rsp, fmt.Sprintf("Tenant %q created", name))
 
 	return rsp, nil
 }

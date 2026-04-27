@@ -20,6 +20,7 @@ func BuildBaselineApplications(
 		return nil, nil
 	}
 
+	// Ensure deterministic ordering (important for stable Git diffs)
 	sorted := append([]model.Cluster(nil), destinationClusters...)
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].Prefix < sorted[j].Prefix
@@ -28,7 +29,7 @@ func BuildBaselineApplications(
 	var apps []*composed.Unstructured
 
 	for _, c := range sorted {
-		name := fmt.Sprintf("%s-baseline-%s", t.Name, c.Prefix)
+		name := fmt.Sprintf("baseline-%s-%s", t.Name, c.Prefix)
 
 		app := composed.New()
 		app.SetAPIVersion("argoproj.io/v1alpha1")
@@ -36,13 +37,16 @@ func BuildBaselineApplications(
 		app.SetName(name)
 		app.SetNamespace("argocd")
 
+		// Extra safety for unstructured handling
+		_ = app.SetValue("metadata.namespace", "argocd")
+
 		app.SetLabels(map[string]string{
 			"app.kubernetes.io/managed-by":  "crossplane",
 			"platform.rezakara.demo/tenant": t.Name,
 			"platform.rezakara.demo/prefix": c.Prefix,
 		})
 
-		err := app.SetValue("spec", map[string]any{
+		spec := map[string]any{
 			"project": "default",
 			"source": map[string]any{
 				"repoURL":        repo,
@@ -53,14 +57,19 @@ func BuildBaselineApplications(
 				"name":      c.Name,
 				"namespace": t.Name,
 			},
-			"syncPolicy": map[string]any{
+		}
+
+		if t.AutomatedSync {
+			spec["syncPolicy"] = map[string]any{
 				"automated": map[string]any{
 					"prune":    t.Prune,
 					"selfHeal": t.SelfHeal,
 				},
-			},
-		})
-		if err != nil {
+			}
+		}
+
+		// Apply spec to resource (critical step)
+		if err := app.SetValue("spec", spec); err != nil {
 			return nil, fmt.Errorf("cannot build baseline app %s: %w", name, err)
 		}
 

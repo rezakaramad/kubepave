@@ -45,6 +45,13 @@ func BundleYAML(resources ...*composed.Unstructured) (string, error) {
 		first = false
 
 		buf.Write(b)
+		if !bytes.HasSuffix(b, []byte("\n")) {
+			buf.WriteString("\n")
+		}
+	}
+
+	if buf.Len() == 0 {
+		return "", fmt.Errorf("no resources to bundle")
 	}
 
 	return buf.String(), nil

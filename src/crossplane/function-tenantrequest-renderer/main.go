@@ -9,8 +9,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/crossplane/function-sdk-go"
-	"github.com/crossplane/function-tenantrequest-renderer/internal/model"
-	"github.com/crossplane/function-tenantrequest-renderer/internal/pdns"
+	"github.com/crossplane/function-tenantrequest-renderer/model"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -75,7 +74,7 @@ func (c *CLI) Run() error {
 	// Create a PowerDNS client using settings from environment variables.
 	// PDNS_API_URL tells it where the PowerDNS API is, and PDNS_API_KEY is used for authentication.
 	// If those env vars are missing, fall back to the default URL and an empty API key.
-	pdnsClient := pdns.New(
+	pdnsClient := New(
 		getEnv("PDNS_API_URL", "http://host.minikube.internal:5380/api/v1"),
 		getEnv("PDNS_API_KEY", ""),
 		httpClient,
@@ -90,9 +89,6 @@ func (c *CLI) Run() error {
 		kube:                kubeClient,
 		pdns:                pdnsClient,
 		dnsBaseDomain:       getEnv("DNS_BASE_DOMAIN", "rezakara.demo"),
-		exportRepoURL:       getEnv("GIT_REPOSITORY", "kubepave"),
-		exportRepoBranch:    getEnv("GIT_BRANCH", "main"),
-		exportRepoBasePath:  getEnv("GIT_BASE_PATH", "tenants"),
 		crossplaneNamespace: getEnv("CROSSPLANE_NAMESPACE", "crossplane"),
 	}
 
