@@ -35,6 +35,12 @@ func SetXRRendered(
 		return fmt.Errorf("cannot set status.rendered.message: %w", err)
 	}
 
+	observedXR.Resource.SetManagedFields(nil)
+
+	if err := response.SetDesiredCompositeResource(rsp, observedXR); err != nil {
+		return fmt.Errorf("cannot set desired composite resource: %w", err)
+	}
+
 	response.Normal(rsp, fmt.Sprintf("Rendered tenant %q manifests successfully", t.Name))
 	return nil
 }

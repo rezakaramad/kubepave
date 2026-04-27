@@ -195,9 +195,6 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// ✅ Critical: persist XR updates
-	_ = response.SetDesiredCompositeResource(rsp, observedXR)
-
 	// ---------------------------------------------------------------------
 	// 9. Done
 	// ---------------------------------------------------------------------
