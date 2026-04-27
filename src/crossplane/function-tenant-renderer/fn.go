@@ -110,20 +110,6 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// RBAC (external systems)
-	appRBACResources, err := render.BuildAppRBAC(
-		tenant,
-		f.workloadClusters,
-		f.crossplaneNamespace,
-		"azuread",
-		f.argocdAppID,
-	)
-	if err != nil {
-		setPhase(observedXR, "Failed")
-		response.Fatal(rsp, xperrors.Wrap(err, "cannot build app rbac resources"))
-		return rsp, nil
-	}
-
 	// GitOps app (management cluster)
 	gitopsApp, err := render.BuildGitopsApplication(
 		tenant,
@@ -143,7 +129,6 @@ func (f *Function) RunFunction(
 	resources := []*composed.Unstructured{
 		gitopsApp,
 	}
-	resources = append(resources, appRBACResources...)
 	resources = append(resources, baselineApps...)
 
 	// ---------------------------------------------------------------------
