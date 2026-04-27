@@ -9,6 +9,7 @@ import "github.com/crossplane/function-sdk-go/resource"
 const (
 	PhaseValidating      = "Validating"
 	PhasePendingApproval = "PendingApproval"
+	PhaseProvisioning    = "Provisioning"
 	PhaseReady           = "Ready"
 	PhaseFailed          = "Failed"
 )

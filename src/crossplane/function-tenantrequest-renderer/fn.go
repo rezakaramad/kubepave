@@ -10,6 +10,7 @@ import (
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
 	"github.com/crossplane/function-sdk-go/resource"
+	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/crossplane/function-sdk-go/response"
 
 	"github.com/crossplane/function-tenantrequest-renderer/model"
@@ -22,8 +23,7 @@ type Function struct {
 	log logging.Logger
 
 	crossplaneNamespace string
-
-	workloadClusters []model.Cluster
+	workloadClusters    []model.Cluster
 
 	kube ctrlclient.Client
 	pdns PDNSClient
@@ -48,7 +48,7 @@ func (f *Function) RunFunction(
 	rsp := response.To(req, response.DefaultTTL)
 
 	// ---------------------------------------------------------------------
-	// Load XR
+	// 1. Load XR
 	// ---------------------------------------------------------------------
 	xr, err := request.GetObservedCompositeResource(req)
 	if err != nil {
@@ -56,7 +56,7 @@ func (f *Function) RunFunction(
 	}
 
 	// ---------------------------------------------------------------------
-	// Parse model
+	// 2. Parse model
 	// ---------------------------------------------------------------------
 	tenantRequest, err := model.FromObservedXR(xr)
 	if err != nil {
@@ -66,7 +66,7 @@ func (f *Function) RunFunction(
 	log = log.WithValues("tenant", tenantRequest.Name)
 
 	// ---------------------------------------------------------------------
-	// Validation
+	// 3. Validation
 	// ---------------------------------------------------------------------
 	SetPhase(xr, PhaseValidating)
 
@@ -87,16 +87,8 @@ func (f *Function) RunFunction(
 			WithMessage(verr.Message).
 			TargetCompositeAndClaim()
 
-		readyReason := "ValidationFailed"
-		readyMessage := "TenantRequest is not valid"
-
-		if verr.Retryable {
-			readyReason = "ValidationInProgress"
-			readyMessage = "TenantRequest validation is still in progress"
-		}
-
-		response.ConditionFalse(rsp, "Ready", readyReason).
-			WithMessage(readyMessage).
+		response.ConditionFalse(rsp, "Ready", "ValidationFailed").
+			WithMessage("TenantRequest is not valid").
 			TargetCompositeAndClaim()
 
 		log.Info("Validation failed", "reason", verr.Reason)
@@ -108,7 +100,7 @@ func (f *Function) RunFunction(
 		TargetCompositeAndClaim()
 
 	// ---------------------------------------------------------------------
-	// Approval
+	// 4. Approval
 	// ---------------------------------------------------------------------
 	if !IsApproved(xr) {
 		SetPhase(xr, PhasePendingApproval)
@@ -128,26 +120,41 @@ func (f *Function) RunFunction(
 		TargetCompositeAndClaim()
 
 	// ---------------------------------------------------------------------
-	// Desired resources
+	// 5. Desired resources
 	// ---------------------------------------------------------------------
 	desired, err := request.GetDesiredComposedResources(req)
 	if err != nil {
 		return fail(rsp, xr, PhaseFailed, err, "cannot get desired composed resources")
 	}
 
-	// Build tenant object
-	tenantObj := BuildTenantObject(tenantRequest)
+	// ✅ CORRECT: use composed.New()
+	tenant := composed.New()
 
-	// Convert to composed resource
-	tenant := resource.NewDesiredComposed()
-	tenant.Resource.SetUnstructuredContent(tenantObj)
-	tenant.Ready = resource.ReadyTrue
+	tenant.SetAPIVersion("idp.rezakara.demo/v1alpha1")
+	tenant.SetKind("Tenant")
+	tenant.SetName(tenantRequest.Name)
 
-	// Register resource
-	desired[resource.Name("tenant")] = tenant
+	if err := tenant.SetValue("spec", map[string]any{
+		"dnsName":     tenantRequest.DNS.Name,
+		"displayName": tenantRequest.DisplayName,
+		"owner": map[string]any{
+			"team":  tenantRequest.Owner.Team,
+			"email": tenantRequest.Owner.Email,
+		},
+		"argocd": map[string]any{
+			"syncRepos": tenantRequest.ArgoCD.SyncRepos,
+		},
+	}); err != nil {
+		return fail(rsp, xr, PhaseFailed, err, "cannot build tenant spec")
+	}
+
+	desired[resource.Name("tenant")] = &resource.DesiredComposed{
+		Resource: tenant,
+		Ready:    resource.ReadyTrue,
+	}
 
 	// ---------------------------------------------------------------------
-	// Final status
+	// 6. Status
 	// ---------------------------------------------------------------------
 	SetPhase(xr, PhaseReady)
 
@@ -197,8 +204,15 @@ func finalize(
 
 	xr.Resource.SetManagedFields(nil)
 
-	_ = response.SetDesiredCompositeResource(rsp, xr)
-	_ = response.SetDesiredComposedResources(rsp, desired)
+	if err := response.SetDesiredCompositeResource(rsp, xr); err != nil {
+		response.Fatal(rsp, xperrors.Wrap(err, "cannot set desired composite resource"))
+		return rsp, nil
+	}
+
+	if err := response.SetDesiredComposedResources(rsp, desired); err != nil {
+		response.Fatal(rsp, xperrors.Wrap(err, "cannot set desired composed resources"))
+		return rsp, nil
+	}
 
 	response.Normal(rsp, fmt.Sprintf("Tenant %q created", name))
 
