@@ -6,6 +6,7 @@ import (
 
 	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/crossplane/function-tenant-renderer/internal/model"
+	"sigs.k8s.io/yaml"
 )
 
 func BuildBaselineApplications(
@@ -46,12 +47,32 @@ func BuildBaselineApplications(
 			"platform.rezakara.demo/prefix": c.Prefix,
 		})
 
+		values := map[string]any{
+			"tenant": map[string]any{
+				"name":    t.Name,
+				"dnsName": t.DNSName,
+				"owner": map[string]any{
+					"team":  t.OwnerTeam,
+					"email": t.OwnerEmail,
+				},
+			},
+			"environmentPrefix": c.Prefix,
+		}
+
+		valuesYaml, err := yaml.Marshal(values)
+		if err != nil {
+			return nil, fmt.Errorf("cannot marshal gitops values: %w", err)
+		}
+
 		spec := map[string]any{
 			"project": "default",
 			"source": map[string]any{
 				"repoURL":        repo,
 				"targetRevision": branch,
 				"path":           basePath,
+				"helm": map[string]any{
+					"values": string(valuesYaml),
+				},
 			},
 			"destination": map[string]any{
 				"name":      c.Name,
