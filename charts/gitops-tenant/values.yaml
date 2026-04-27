@@ -36,10 +36,6 @@ argocd:
               # In this case, it is disabled, and a specific principalObjectId can be provided if needed.
               principalObjectIdSelector:
                 enabled: false
-                matchLabels:
-                  prefix: {{ .Values.environmentPrefix }}
-                  role: admin
-                  tenant: {{ .Values.tenant.name }}
               # If "principalObjectIdSelector" is disabled, you can directly specify the "principalObjectId" of the user or group
               # to which the AppRole should be assigned.
               principalObjectId: ""
