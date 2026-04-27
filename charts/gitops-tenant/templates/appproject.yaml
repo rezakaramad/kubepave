@@ -100,9 +100,7 @@ spec:
   {{- end }}
   {{- end }}
       groups:
-        - {{ printf "%s-%s-%s" $.Values.tenant.name $role.name $cluster.environmentPrefix | lower }}
-  {{- else }}
-    []
+        - {{ printf "%s-%s-%s" $.Values.tenant.name $role.name $cluster.environmentPrefix | lower | quote }}
   {{- end }}
-
+{{ end }}
 ---
