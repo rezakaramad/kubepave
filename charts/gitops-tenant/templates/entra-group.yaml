@@ -1,7 +1,8 @@
-{{- range $cluster := $.Values.workloadClusters }}
 {{- range $role := $.Values.tenant.rbac.roles }}
+{{- range $instance := $role.instances }}
 
-{{- $assignment := $role.entraId.assignment | default dict }}
+{{- $entra := $instance.entraID }}
+{{- $assignment := $entra.assignment | default dict }}
 {{- $selectorEnabled := and $assignment.principalObjectIdSelector $assignment.principalObjectIdSelector.enabled }}
 {{- $principals := $assignment.principalObjectIds | default list }}
 
@@ -14,14 +15,14 @@ apiVersion: groups.azuread.m.upbound.io/v1beta1
 kind: Group
 metadata:
   labels:
-    prefix: {{ $cluster.environmentPrefix }}
+    prefix: {{ $instance.environmentPrefix }}
     role: {{ $role.name }}
     tenant: {{ $.Values.tenant.name }}
-  name: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $cluster.environmentPrefix }}
+  name: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $instance.environmentPrefix }}
   namespace: crossplane
 spec:
   forProvider:
-    displayName: {{ $.Values.tenant.name | title }}-{{ $role.name | title }}-{{ $cluster.environmentPrefix | title }}
+    displayName: {{ $.Values.tenant.name | title }}-{{ $role.name | title }}-{{ $instance.environmentPrefix | title }}
     securityEnabled: true
   providerConfigRef:
     name: azuread
@@ -33,29 +34,29 @@ spec:
 # --------------------------------------------------
 # AppRole
 # --------------------------------------------------
-{{- if not $role.entraId.appRoleUUID }}
-{{- fail (printf "Missing appRoleUUID for role '%s'" $role.name) }}
+{{- if not $entra.appRoleUUID }}
+{{- fail (printf "Missing appRoleUUID for role '%s' in env '%s'" $role.name $instance.environmentPrefix) }}
 {{- end }}
 
 apiVersion: applications.azuread.m.upbound.io/v1beta1
 kind: AppRole
 metadata:
   labels:
-    prefix: {{ $cluster.environmentPrefix }}
+    prefix: {{ $instance.environmentPrefix }}
     role: {{ $role.name }}
     tenant: {{ $.Values.tenant.name }}
-  name: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $cluster.environmentPrefix }}
+  name: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $instance.environmentPrefix }}
   namespace: crossplane
 spec:
   forProvider:
-    roleId: {{ $role.entraId.appRoleUUID | quote }}
+    roleId: {{ $entra.appRoleUUID | quote }}
     allowedMemberTypes:
       - User
       - Group
     applicationId: {{ $.Values.tenant.rbac.entraAppId | quote }}
-    description: "{{ $role.name }} access for {{ $.Values.tenant.name }} in {{ $cluster.environmentPrefix }} environment"
-    displayName: "{{ $.Values.tenant.name | title }} {{ $role.name | title }} {{ $cluster.environmentPrefix | title }}"
-    value: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $cluster.environmentPrefix }}
+    description: "{{ $role.name }} access for {{ $.Values.tenant.name }} in {{ $instance.environmentPrefix }} environment"
+    displayName: "{{ $.Values.tenant.name | title }} {{ $role.name | title }} {{ $instance.environmentPrefix | title }}"
+    value: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $instance.environmentPrefix }}
   providerConfigRef:
     name: azuread
     kind: ProviderConfig
@@ -72,14 +73,14 @@ spec:
 apiVersion: app.azuread.m.upbound.io/v1beta1
 kind: RoleAssignment
 metadata:
-  name: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $cluster.environmentPrefix }}
+  name: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $instance.environmentPrefix }}
   namespace: crossplane
 spec:
   forProvider:
-    appRoleId: {{ $role.entraId.appRoleUUID | quote }}
+    appRoleId: {{ $entra.appRoleUUID | quote }}
     principalObjectIdSelector:
       matchLabels:
-        prefix: {{ $cluster.environmentPrefix }}
+        prefix: {{ $instance.environmentPrefix }}
         role: {{ $role.name }}
         tenant: {{ $.Values.tenant.name }}
   providerConfigRef:
@@ -92,7 +93,7 @@ spec:
 {{- else }}
 
 {{- if not $principals }}
-{{- fail (printf "No principalObjectIds provided for role '%s'" $role.name) }}
+{{- fail (printf "No principalObjectIds provided for role '%s' in env '%s'" $role.name $instance.environmentPrefix) }}
 {{- end }}
 
 {{- range $i, $p := $principals }}
@@ -100,11 +101,11 @@ spec:
 apiVersion: app.azuread.m.upbound.io/v1beta1
 kind: RoleAssignment
 metadata:
-  name: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $cluster.environmentPrefix }}-{{ $i }}
+  name: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $instance.environmentPrefix }}-{{ $i }}
   namespace: crossplane
 spec:
   forProvider:
-    appRoleId: {{ $role.entraId.appRoleUUID | quote }}
+    appRoleId: {{ $entra.appRoleUUID | quote }}
     principalObjectId: {{ $p | quote }}
   providerConfigRef:
     name: azuread

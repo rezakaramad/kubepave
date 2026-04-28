@@ -76,15 +76,7 @@ spec:
 
                 argocd:
                   type: object
-                  required: ["syncRepos"]
                   properties:
-                    syncRepos:
-                      type: array
-                      minItems: 1
-                      items:
-                        type: string
-                        pattern: "^(https://|ssh://|git@).+"
-
                     syncPolicy:
                       type: object
                       properties:

@@ -1,19 +1,27 @@
 package model
 
-func ApplyDefaults(t *TenantSpec) {
+func ResolveRBAC(t *TenantSpec, input *PlatformConfig) {
 
-	if len(t.Roles) == 0 {
-		t.Roles = []RoleSpec{
-			{Name: "admin"},
-			{Name: "viewer"},
-		}
+	// 1. Input config takes highest priority
+	if input != nil && len(input.RBAC.Roles) > 0 {
+		t.Roles = fromInputRoles(input.RBAC.Roles)
+		return
 	}
 
-	for i, r := range t.Roles {
+	// 2. Otherwise fallback to defaults
+	t.Roles = defaultRoles()
+}
 
-		if len(r.Policies) == 0 {
-			t.Roles[i].Policies = defaultPolicies(r.Name)
-		}
+func defaultRoles() []RoleSpec {
+	return []RoleSpec{
+		{
+			Name:     "admin",
+			Policies: defaultPolicies("admin"),
+		},
+		{
+			Name:     "viewer",
+			Policies: defaultPolicies("viewer"),
+		},
 	}
 }
 
@@ -53,8 +61,28 @@ func defaultPolicies(role string) []PolicySpec {
 	return nil
 }
 
-func CommonLabels(t TenantSpec) map[string]string {
+func fromInputRoles(in []RoleInput) []RoleSpec {
+	var out []RoleSpec
 
+	for _, r := range in {
+		role := RoleSpec{
+			Name: r.Name,
+		}
+
+		for _, p := range r.Policies {
+			role.Policies = append(role.Policies, PolicySpec{
+				Resource: p.Resource,
+				Actions:  p.Actions,
+			})
+		}
+
+		out = append(out, role)
+	}
+
+	return out
+}
+
+func CommonLabels(t TenantSpec) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/managed-by":  "crossplane",
 		"platform.rezakara.demo/tenant": t.Name,

@@ -26,15 +26,6 @@ spec:
           containers:
             - name: package-runtime
               env:
-                - name: PDNS_API_URL
-                  value: "http://host.minikube.internal:5380/api/v1"
-                - name: PDNS_API_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: powerdns-api-key
-                      key: key
-                - name: DNS_BASE_DOMAIN
-                  value: "rezakara.demo"
                 - name: EXPORT_REPO_URL
                   value: "kubepave-tenants"
                 - name: EXPORT_REPO_BRANCH
@@ -43,8 +34,6 @@ spec:
                   value: "tenants"
                 - name: CROSSPLANE_NAMESPACE
                   value: "crossplane"
-                - name: WORKLOAD_CLUSTERS
-                  value: "minikube-workload:wl"
                 - name: BASELINE_REPO_URL
                   value: "https://github.com/rezakaramad/kubepave.git"
                 - name: BASELINE_REPO_BRANCH
@@ -57,8 +46,6 @@ spec:
                   value: "main"
                 - name: GITOPS_REPO_BASE_PATH
                   value: "charts/gitops-tenant"
-                - name: ARGOCD_APP_ID
-                  value: "6ebc7a2a-0d2c-4677-aebc-2b37371aca73"
 
 ---
 {{- end }}

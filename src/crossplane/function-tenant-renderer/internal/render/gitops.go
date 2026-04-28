@@ -30,26 +30,31 @@ func BuildGitopsApplication(
 	roles := []map[string]any{}
 
 	for _, role := range t.Roles {
-
-		roleMap := map[string]any{
-			"name":     role.Name,
-			"policies": role.Policies,
-		}
-
-		envUUIDs := map[string]string{}
+		instances := []map[string]any{}
 
 		for _, cluster := range clusters {
 			uuid := GenerateAppRoleUUID(t.Name, role.Name, cluster.Prefix)
 
-			envUUIDs[cluster.Prefix] = uuid
+			instances = append(instances, map[string]any{
+				"cluster":           cluster.Name,
+				"environmentPrefix": cluster.Prefix,
+				"entraID": map[string]any{
+					"appRoleUUID": uuid,
+					"assignment": map[string]any{
+						"principalObjectIdSelector": map[string]any{
+							"enabled": role.EntraId.Assignment.SelectorEnabled,
+						},
+						"principalObjectIds": role.EntraId.Assignment.PrincipalObjectIds,
+					},
+				},
+			})
 		}
 
-		roleMap["entraId"] = map[string]any{
-			"appRoleUUIDs": envUUIDs,
-			"assignment":   role.EntraId.Assignment,
-		}
-
-		roles = append(roles, roleMap)
+		roles = append(roles, map[string]any{
+			"name":      role.Name,
+			"instances": instances,
+			"policies":  role.Policies,
+		})
 	}
 
 	values := map[string]any{

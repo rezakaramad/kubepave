@@ -30,9 +30,6 @@ type Function struct {
 	// Crossplane namespace
 	crossplaneNamespace string
 
-	// Workload clusters (fan-out targets)
-	workloadClusters []model.Cluster
-
 	// Baseline Application source (ArgoCD)
 	baselineRepoURL      string
 	baselineRepoBranch   string
@@ -62,7 +59,7 @@ func (f *Function) RunFunction(
 	rsp := response.To(req, response.DefaultTTL)
 
 	// ---------------------------------------------------------------------
-	// 1. Load XR
+	// Load XR
 	// ---------------------------------------------------------------------
 	observedXR, err := request.GetObservedCompositeResource(req)
 	if err != nil {
@@ -83,7 +80,7 @@ func (f *Function) RunFunction(
 	}
 
 	// ---------------------------------------------------------------------
-	// 3. Parse Tenant
+	// Parse Tenant
 	// ---------------------------------------------------------------------
 	tenant, err := model.FromObservedXR(observedXR)
 	if err != nil {
@@ -92,16 +89,37 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	model.ApplyDefaults(&tenant)
+	// ---------------------------------------------------------------------
+	// Parse input config
+	// ---------------------------------------------------------------------
+	var input model.PlatformConfig
+	if err := request.GetInput(req, &input); err != nil {
+		setPhase(observedXR, "Failed")
+		response.Fatal(rsp, xperrors.Wrap(err, "cannot parse function input"))
+		return rsp, nil
+	}
+
+	// Validate input
+	if err := input.Validate(); err != nil {
+		setPhase(observedXR, "Failed")
+		response.Fatal(rsp, xperrors.Wrap(err, "invalid input"))
+		return rsp, nil
+	}
+
+	// Manage RBAC and cluster resolution (defaults vs input)
+	model.ResolveRBAC(&tenant, &input)
+	clusters := input.ToClusters()
+	log.Info("Resolved clusters", "clusters", clusters)
+	log.Info("Resolved roles", "roles", tenant.Roles)
 
 	// ---------------------------------------------------------------------
-	// 4. Render resources
+	// Render ArgoCD apps
 	// ---------------------------------------------------------------------
 
 	// Baseline apps (one per cluster)
 	baselineApps, err := render.BuildBaselineApplications(
 		tenant,
-		f.workloadClusters,
+		clusters,
 		f.baselineRepoURL,
 		f.baselineRepoBranch,
 		f.baselineRepoBasePath,
@@ -115,7 +133,7 @@ func (f *Function) RunFunction(
 	// GitOps app (management cluster)
 	gitopsApp, err := render.BuildGitopsApplication(
 		tenant,
-		f.workloadClusters,
+		clusters,
 		f.gitopsRepoURL,
 		f.gitopsRepoBranch,
 		f.gitopsRepoBasePath,
@@ -127,7 +145,7 @@ func (f *Function) RunFunction(
 	}
 
 	// ---------------------------------------------------------------------
-	// 5. Combine resources (deterministic order)
+	// Combine resources (deterministic order)
 	// ---------------------------------------------------------------------
 	resources := []*composed.Unstructured{
 		gitopsApp,
@@ -135,8 +153,9 @@ func (f *Function) RunFunction(
 	resources = append(resources, baselineApps...)
 
 	// ---------------------------------------------------------------------
-	// 6. Bundle YAML
+	// Bundle to YAML
 	// ---------------------------------------------------------------------
+	// Serializes all rendered resources into a single multi-document YAML string.
 	content, err := render.BundleYAML(resources...)
 	if err != nil {
 		setPhase(observedXR, "Failed")
@@ -145,7 +164,7 @@ func (f *Function) RunFunction(
 	}
 
 	// ---------------------------------------------------------------------
-	// 7. Git export (RepositoryFile)
+	// Git export (RepositoryFile)
 	// ---------------------------------------------------------------------
 	repoFile := github.BuildRepositoryFile(
 		tenant,
@@ -161,11 +180,15 @@ func (f *Function) RunFunction(
 		},
 	)
 
-	// Add to desired state
+	// Set the rendered RepositoryFile as the desired composed resource.
+	// This will instruct Crossplane to create/update the specified file in Git
+	// with the rendered content, and then ArgoCD will pick up the changes and deploy
+	// to the clusters.
 	desired["tenant-rendered-manifests"] = &resource.DesiredComposed{
 		Resource: repoFile,
 	}
 
+	// Update desired composed resources in the response
 	if err := response.SetDesiredComposedResources(rsp, desired); err != nil {
 		setPhase(observedXR, "Failed")
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot set desired composed resources"))
@@ -184,7 +207,7 @@ func (f *Function) RunFunction(
 	}
 
 	// ---------------------------------------------------------------------
-	// 9. Done
+	// Done
 	// ---------------------------------------------------------------------
 	response.Normal(rsp, fmt.Sprintf("Rendered tenant %q manifests to Git", tenant.Name))
 
@@ -194,7 +217,6 @@ func (f *Function) RunFunction(
 // ---------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------
-
 func setPhase(xr *resource.Composite, phase string) {
 	_ = xr.Resource.SetValue("status.phase", phase)
 }

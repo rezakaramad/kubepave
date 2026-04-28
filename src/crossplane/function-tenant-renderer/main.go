@@ -2,14 +2,11 @@
 package main
 
 import (
-	"log"
 	"os"
-	"strings"
 
 	"github.com/alecthomas/kong"
 
 	"github.com/crossplane/function-sdk-go"
-	"github.com/crossplane/function-tenant-renderer/internal/model"
 )
 
 // CLI of this Function.
@@ -30,14 +27,11 @@ func (c *CLI) Run() error {
 		return err
 	}
 
-	workloadClusters := parseClusters(getEnv("WORKLOAD_CLUSTERS", ""))
-
 	// ------------------------------------------------------------------
 	// Function setup
 	// ------------------------------------------------------------------
 	fn := &Function{
-		log:              log,
-		workloadClusters: workloadClusters,
+		log: log,
 
 		exportRepoURL:        getEnv("EXPORT_REPO_URL", "kubepave-tenants"),
 		exportRepoBranch:     getEnv("EXPORT_REPO_BRANCH", "main"),
@@ -57,25 +51,6 @@ func (c *CLI) Run() error {
 		function.MTLSCertificates(c.TLSCertsDir),
 		function.Insecure(c.Insecure),
 		function.MaxRecvMessageSize(c.MaxRecvMessageSize*1024*1024))
-}
-
-func parseClusters(s string) []model.Cluster {
-	var out []model.Cluster
-
-	for _, item := range strings.Split(s, ",") {
-		parts := strings.Split(item, ":")
-		if len(parts) != 2 {
-			log.Printf("invalid cluster entry: %s", item)
-			continue
-		}
-
-		out = append(out, model.Cluster{
-			Name:   strings.TrimSpace(parts[0]),
-			Prefix: strings.TrimSpace(parts[1]),
-		})
-	}
-
-	return out
 }
 
 func getEnv(key, fallback string) string {

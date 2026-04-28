@@ -141,25 +141,7 @@ func FromObservedXR(oxr *resource.Composite) (TenantSpec, error) {
 		out.OwnerEmail = strings.TrimSpace(v)
 	}
 
-	repos, err := getRequiredStringSlice(u, "spec", "argocd", "syncRepos")
-	if err != nil {
-		return out, err
-	}
-
-	clean := make([]string, 0, len(repos))
-	for _, r := range repos {
-		r = strings.TrimSpace(r)
-		if r == "" {
-			continue
-		}
-		clean = append(clean, r)
-	}
-
-	if len(clean) == 0 {
-		return out, fmt.Errorf("spec.argocd.syncRepos must contain at least one valid repo")
-	}
-
-	out.SyncRepos = clean
+	out.SyncRepos = []string{fmt.Sprintf("https://github.com/fluxdojo/platform-deploy-%s", out.Name)}
 
 	if v, err := getOptionalBoolDefault(u, true, "spec", "argocd", "syncPolicy", "automatedSync"); err != nil {
 		return out, err
@@ -261,31 +243,19 @@ func getOptionalBoolDefault(u *unstructured.Unstructured, def bool, fields ...st
 	return v, nil
 }
 
-// getOptionalStringMap returns a string map if present, or an empty map if missing or invalid.
-func getOptionalStringMap(u *unstructured.Unstructured, fields ...string) (map[string]string, error) {
-	v, found, err := unstructured.NestedStringMap(u.Object, fields...)
-	if err != nil {
-		return nil, fmt.Errorf("invalid field %s: %w", fieldPath(fields...), err)
-	}
-	if !found || v == nil {
-		return map[string]string{}, nil
-	}
-	return v, nil
-}
-
-// getRequiredStringSlice extracts a required string slice from the given path or returns an error if missing or invalid.
-func getRequiredStringSlice(u *unstructured.Unstructured, fields ...string) ([]string, error) {
-	raw, found, err := unstructured.NestedStringSlice(u.Object, fields...)
-	if err != nil {
-		return nil, fmt.Errorf("invalid field %s: %w", fieldPath(fields...), err)
-	}
-	if !found || len(raw) == 0 {
-		return nil, fmt.Errorf("required field missing: %s", fieldPath(fields...))
-	}
-	return raw, nil
-}
-
 // fieldPath joins nested field names into a dot-separated path for readable errors.
 func fieldPath(fields ...string) string {
 	return strings.Join(fields, ".")
+}
+
+// getOptionalStringMap returns a map[string]string if present, or nil if missing.
+func getOptionalStringMap(u *unstructured.Unstructured, fields ...string) (map[string]string, error) {
+	raw, found, err := unstructured.NestedStringMap(u.Object, fields...)
+	if err != nil {
+		return nil, fmt.Errorf("invalid field %s: %w", fieldPath(fields...), err)
+	}
+	if !found {
+		return nil, nil
+	}
+	return raw, nil
 }

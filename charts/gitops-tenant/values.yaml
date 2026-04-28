@@ -15,16 +15,23 @@ tenant:
     #     it would look for a group with the name "acme-admin-prod" and assign the role to that group.
     # If the selector is disabled, you directly specify the principal object IDs (users or groups) that should be assigned to the role.
     # In enterprise tier, users will no longer be needed for role assignments.
+    # 
+    # We create one AppRole per role (admin, viewer) per environment (dev, staging, prod) to allow for granular access control.
+    # This means that if you have 2 roles and 3 environments, you'll end up with 6 AppRoles in total 
+    # (e.g., foo-admin-dev, foo-admin-staging, foo-admin-prod, foo-viewer-dev, foo-viewer-staging, foo-viewer-prod).
 
     roles:
       - name: admin
-        entraId:
-          appRoleUUID: "0000000-0000-0000-0000-000000000001"
-          assignment:
-            principalObjectIdSelector:
-              enabled: false
-            principalObjectIds:
-              - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
+        instances:
+          - cluster: minikube-workload
+            environmentPrefix: wl
+            entraID:
+              appRoleUUID: "0000000-0000-0000-0000-000000000001"
+              assignment:
+                principalObjectIdSelector:
+                  enabled: false
+                principalObjectIds:
+                  - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
         policies:
           - resource: applications
             actions:
@@ -41,13 +48,16 @@ tenant:
               - get
 
       - name: viewer
-        entraId:
-          appRoleUUID: "0000000-0000-0000-0000-000000000002"
-          assignment:
-            principalObjectIdSelector:
-              enabled: false
-            principalObjectIds:
-              - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
+        instances:
+          - cluster: minikube-workload
+            environmentPrefix: wl
+            entraID:
+              appRoleUUID: "0000000-0000-0000-0000-000000000002"
+              assignment:
+                principalObjectIdSelector:
+                  enabled: false
+                principalObjectIds:
+                  - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
         policies:
           - resource: applications
             actions:
@@ -56,14 +66,6 @@ tenant:
             actions:
               - get
 
-
 # --------------------------------------------------------------
 azure:
   freeTier: true
-
-# --------------------------------------------------------------
-# Workload clusters where tenant resources will be deployed. 
-# The environmentPrefix is used to differentiate resources across different environments (e.g., dev, staging, prod).
-workloadClusters:
-  - name: minikube-workload
-    environmentPrefix: wl

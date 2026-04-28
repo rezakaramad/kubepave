@@ -20,5 +20,38 @@ spec:
       functionRef:
         name: function-tenant-renderer
 
+      input:
+        apiVersion: tenant.rezakara.demo/v1alpha1
+        kind: PlatformConfig
+        clusters:
+          - name: minikube-workload
+            environmentPrefix: wl
+        rbac:
+          roles:
+            - name: admin
+              policies:
+                - resource: applications
+                  actions:
+                    - get
+                    - update
+                    - delete
+                    - sync
+                    - action/apps/Deployment/pause
+                    - action/apps/Deployment/resume
+                    - action/apps/Deployment/restart
+                    - action/batch/CronJob/create-job
+                - resource: logs
+                  actions:
+                    - get
+
+            - name: viewer
+              policies:
+                - resource: applications
+                  actions:
+                    - get
+                - resource: logs
+                  actions:
+                    - get
+
 {{- end }}
 {{- end }}
