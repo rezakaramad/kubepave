@@ -14,10 +14,6 @@ spec:
     kind: Tenant
     plural: tenants
 
-  claimNames:
-    kind: TenantClaim
-    plural: tenantclaims
-
   defaultCompositionRef:
     name: tenant-default
 
