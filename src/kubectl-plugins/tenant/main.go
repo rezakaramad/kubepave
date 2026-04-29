@@ -12,7 +12,7 @@ import (
 func main() {
 	rootCmd := &cobra.Command{
 		Use:   "kubectl-tenant",
-		Short: "kubectl plugin for managing tenant requests",
+		Short: "kubectl plugin for managing tenants",
 	}
 
 	rootCmd.AddCommand(newApproveCmd())
@@ -25,8 +25,8 @@ func main() {
 
 func newApproveCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "approve <tenantrequest>",
-		Short: "Approve a tenant request",
+		Use:   "approve <tenant>",
+		Short: "Approve a tenant",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			approve(args[0])

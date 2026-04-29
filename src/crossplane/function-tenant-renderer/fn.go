@@ -66,7 +66,6 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-
 	// ---------------------------------------------------------------------
 	// 2. Desired state
 	// ---------------------------------------------------------------------
@@ -90,6 +89,15 @@ func (f *Function) RunFunction(
 	if xd.Spec.DisplayName == "" {
 		xd.Spec.DisplayName = xd.GetName()
 	}
+
+	// ---------------------------------------------------------------------
+	// Approval gate — do not render resources until approved
+	// ---------------------------------------------------------------------
+	if !xd.Spec.Approved {
+		log.Info("Tenant not yet approved, skipping render", "tenant", xd.GetName())
+		return rsp, nil
+	}
+
 	tenant := TenantSpec{
 		Tenant:    xd,
 		SyncRepos: []string{fmt.Sprintf("https://github.com/fluxdojo/platform-deploy-%s", xd.GetName())},
