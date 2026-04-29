@@ -2,7 +2,7 @@ module github.com/crossplane/function-tenant-renderer
 
 go 1.24.9
 
-replace github.com/rezakaramad/kubepave/xr-types/tenant v0.0.0-00010101000000-000000000000 => ../xr-types/tenant
+replace github.com/rezakaramad/kubepave/src/crossplane/xr-types/tenant v0.0.0-00010101000000-000000000000 => ../xr-types/tenant
 
 require (
 	github.com/alecthomas/kong v1.13.0
@@ -10,7 +10,7 @@ require (
 	github.com/crossplane/function-sdk-go v0.5.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/rezakaramad/kubepave/xr-types/tenant v0.0.0-00010101000000-000000000000
+	github.com/rezakaramad/kubepave/src/crossplane/xr-types/tenant v0.0.0-00010101000000-000000000000
 	google.golang.org/protobuf v1.36.11
 	k8s.io/apimachinery v0.34.3
 	sigs.k8s.io/controller-tools v0.19.0

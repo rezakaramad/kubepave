@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/crossplane/function-sdk-go/resource"
-	xtenant "github.com/rezakaramad/kubepave/xr-types/tenant"
+	xtenant "github.com/rezakaramad/kubepave/src/crossplane/xr-types/tenant"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

@@ -1,4 +1,4 @@
-module github.com/rezakaramad/kubepave/xr-types/tenant
+module github.com/rezakaramad/kubepave/src/crossplane/xr-types/tenant
 
 go 1.24.9
 

@@ -12,7 +12,7 @@ import (
 	"github.com/crossplane/function-sdk-go/response"
 	"github.com/crossplane/function-tenant-validator/model"
 
-	xtenant "github.com/rezakaramad/kubepave/xr-types/tenant"
+	xtenant "github.com/rezakaramad/kubepave/src/crossplane/xr-types/tenant"
 
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )

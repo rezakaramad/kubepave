@@ -13,7 +13,7 @@ import (
 	"github.com/crossplane/function-sdk-go/response"
 
 	inputv1beta1 "github.com/crossplane/function-tenant-renderer/input/v1beta1"
-	xtenant "github.com/rezakaramad/kubepave/xr-types/tenant"
+	xtenant "github.com/rezakaramad/kubepave/src/crossplane/xr-types/tenant"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

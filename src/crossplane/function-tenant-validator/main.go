@@ -9,7 +9,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/crossplane/function-sdk-go"
-	xtenant "github.com/rezakaramad/kubepave/xr-types/tenant"
+	xtenant "github.com/rezakaramad/kubepave/src/crossplane/xr-types/tenant"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"

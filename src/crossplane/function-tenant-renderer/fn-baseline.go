@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/crossplane/function-sdk-go/resource/composed"
-	xtenant "github.com/rezakaramad/kubepave/xr-types/tenant"
+	xtenant "github.com/rezakaramad/kubepave/src/crossplane/xr-types/tenant"
 	"sigs.k8s.io/yaml"
 )
 
