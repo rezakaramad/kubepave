@@ -99,6 +99,10 @@ spec:
                         selfHeal:
                           type: boolean
 
+                approved:
+                  type: boolean
+                  default: false
+
                 options:
                   type: object
                   properties:
