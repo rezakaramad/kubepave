@@ -7,6 +7,7 @@ spec:
   description: Project for tenant Argo CD resources.
   sourceRepos:
     - https://github.com/rezakaramad/kubepave-tenants
+    - https://github.com/rezakaramad/kubepave-tenant-requests
   destinations:
   - name:  in-cluster
     namespace: '*'
