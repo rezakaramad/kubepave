@@ -66,14 +66,12 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	setPhase(observedXR, "Provisioning")
 
 	// ---------------------------------------------------------------------
 	// 2. Desired state
 	// ---------------------------------------------------------------------
 	desired, err := request.GetDesiredComposedResources(req)
 	if err != nil {
-		setPhase(observedXR, "Failed")
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot get desired composed resources"))
 		return rsp, nil
 	}
@@ -85,7 +83,6 @@ func (f *Function) RunFunction(
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
 		observedXR.Resource.UnstructuredContent(), &xd,
 	); err != nil {
-		setPhase(observedXR, "Failed")
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot convert XR to Tenant"))
 		return rsp, nil
 	}
@@ -105,7 +102,6 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	var input inputv1beta1.Input
 	if err := request.GetInput(req, &input); err != nil {
-		setPhase(observedXR, "Failed")
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot parse function input"))
 		return rsp, nil
 	}
@@ -132,7 +128,6 @@ func (f *Function) RunFunction(
 		f.baselineRepoBasePath,
 	)
 	if err != nil {
-		setPhase(observedXR, "Failed")
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot build baseline applications"))
 		return rsp, nil
 	}
@@ -146,7 +141,6 @@ func (f *Function) RunFunction(
 		f.gitopsRepoBasePath,
 	)
 	if err != nil {
-		setPhase(observedXR, "Failed")
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot build gitops application"))
 		return rsp, nil
 	}
@@ -165,7 +159,6 @@ func (f *Function) RunFunction(
 	// Serializes all rendered resources into a single multi-document YAML string.
 	content, err := bundleYAML(resources...)
 	if err != nil {
-		setPhase(observedXR, "Failed")
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot bundle resources"))
 		return rsp, nil
 	}
@@ -197,31 +190,13 @@ func (f *Function) RunFunction(
 
 	// Update desired composed resources in the response
 	if err := response.SetDesiredComposedResources(rsp, desired); err != nil {
-		setPhase(observedXR, "Failed")
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot set desired composed resources"))
 		return rsp, nil
 	}
 
-	// ---------------------------------------------------------------------
-	// 8. Update XR status
-	// ---------------------------------------------------------------------
-	if err := setXRRendered(rsp, observedXR, tenant, len(resources)); err != nil {
-		setPhase(observedXR, "Failed")
-		response.Fatal(rsp, xperrors.Wrap(err, "cannot set xr status"))
-		return rsp, nil
-	}
-
-	// ---------------------------------------------------------------------
-	// Done
-	// ---------------------------------------------------------------------
-	response.Normal(rsp, fmt.Sprintf("Rendered tenant %q manifests to Git", tenant.GetName()))
+	response.ConditionTrue(rsp, "Rendered", "Available").
+		WithMessage(fmt.Sprintf("Rendered %d resources for tenant %q", len(resources), tenant.GetName())).
+		TargetCompositeAndClaim()
 
 	return rsp, nil
-}
-
-// ---------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------
-func setPhase(xr *resource.Composite, phase string) {
-	_ = xr.Resource.SetValue("status.phase", phase)
 }
