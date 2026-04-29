@@ -79,6 +79,9 @@ jobs:
             -t $RUNTIME_IMAGE \
             $FUNCTION_PATH
 
+      - name: Push runtime image
+        run: docker push $RUNTIME_IMAGE
+
       - name: Build Crossplane package
         run: |
           crossplane xpkg build \
