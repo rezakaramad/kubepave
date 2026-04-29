@@ -4,12 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "src/crossplane/function-*/*.go"
-      - "src/crossplane/function-*/*.yml"
-      - "src/crossplane/function-*/*.yaml"
-      - "src/crossplane/function-*/*.mod"
-      - "src/crossplane/function-*/*.sum"
-      - "src/crossplane/function-*/*.sh"
+      - "src/crossplane/function-*/**"
   workflow_dispatch:
 
 env:
@@ -33,7 +28,7 @@ jobs:
 
       - id: set-matrix
         run: |
-          DIRS=$(find "$CROSSPLANE_FUNCTIONS_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | jq -R -s -c 'split("\n")[:-1]')
+          DIRS=$(find "$CROSSPLANE_FUNCTIONS_DIR" -mindepth 1 -maxdepth 1 -type d -name "function-*" -exec basename {} \; | jq -R -s -c 'split("\n")[:-1]')
           echo "matrix={\"function\":$DIRS}" >> $GITHUB_OUTPUT
 
   build:
