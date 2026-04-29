@@ -92,7 +92,7 @@ spec:
 # In free tier, since we can't assign roles to groups, we need to create RoleAssignments for individual users.
 {{- else }}
 
-{{- if not $principals }}
+{{- if and (not $.Values.azure.freeTier) (not $principals) }}
 {{- fail (printf "No principalObjectIds provided for role '%s' in env '%s'" $role.name $instance.environmentPrefix) }}
 {{- end }}
 

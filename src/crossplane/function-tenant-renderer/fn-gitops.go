@@ -58,6 +58,9 @@ func buildGitopsApplication(
 	}
 
 	values := map[string]any{
+		"azure": map[string]any{
+			"freeTier": true,
+		},
 		"tenant": map[string]any{
 			"name":    t.GetName(),
 			"dnsName": t.Spec.DNSName,
