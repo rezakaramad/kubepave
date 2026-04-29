@@ -84,11 +84,11 @@ func (f *Function) RunFunction(
 
 		response.ConditionFalse(rsp, "Valid", verr.Reason).
 			WithMessage(verr.Message).
-			TargetCompositeAndClaim()
+			TargetComposite()
 
 		response.ConditionFalse(rsp, "Ready", "ValidationFailed").
 			WithMessage("TenantRequest is not valid").
-			TargetCompositeAndClaim()
+			TargetComposite()
 
 		log.Info("Validation failed", "reason", verr.Reason)
 
@@ -96,7 +96,7 @@ func (f *Function) RunFunction(
 	}
 
 	response.ConditionTrue(rsp, "Valid", "ValidationPassed").
-		TargetCompositeAndClaim()
+		TargetComposite()
 
 	// ---------------------------------------------------------------------
 	// 4. Approval
@@ -105,10 +105,10 @@ func (f *Function) RunFunction(
 		SetPhase(xr, PhasePendingApproval)
 
 		response.ConditionFalse(rsp, "Approved", "WaitingForApproval").
-			TargetCompositeAndClaim()
+			TargetComposite()
 
 		response.ConditionFalse(rsp, "Ready", "WaitingForApproval").
-			TargetCompositeAndClaim()
+			TargetComposite()
 
 		log.Info("Waiting for approval")
 
@@ -116,7 +116,7 @@ func (f *Function) RunFunction(
 	}
 
 	response.ConditionTrue(rsp, "Approved", "Approved").
-		TargetCompositeAndClaim()
+		TargetComposite()
 
 	// ---------------------------------------------------------------------
 	// 5. Status — approved, hand off to next pipeline step
@@ -125,7 +125,7 @@ func (f *Function) RunFunction(
 
 	response.ConditionTrue(rsp, "Ready", "Provisioning").
 		WithMessage("Tenant approved, provisioning in progress").
-		TargetCompositeAndClaim()
+		TargetComposite()
 
 	log.Info("Reconciliation finished",
 		"tenant", tenantRequest.GetName(),

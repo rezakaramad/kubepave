@@ -196,7 +196,7 @@ func (f *Function) RunFunction(
 
 	response.ConditionTrue(rsp, "Rendered", "Available").
 		WithMessage(fmt.Sprintf("Rendered %d resources for tenant %q", len(resources), tenant.GetName())).
-		TargetCompositeAndClaim()
+		TargetComposite()
 
 	return rsp, nil
 }
