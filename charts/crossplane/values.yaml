@@ -31,10 +31,10 @@ tenantBootstrap:
 
     # crossplane tenant function
     tenant:
-      providerPackage: ghcr.io/rezakaramad/function-tenant-renderer:aead48b283a8d8f8cbc722a3b766ce6bbd5afa86
+      providerPackage: ghcr.io/rezakaramad/function-tenant-renderer:2037180562018df9c0445222b02dff906a97de03
 
     # crossplane tenant-validator function
     tenantrequest:
-      providerPackage: ghcr.io/rezakaramad/function-tenant-validator:aead48b283a8d8f8cbc722a3b766ce6bbd5afa86
+      providerPackage: ghcr.io/rezakaramad/function-tenant-validator:2037180562018df9c0445222b02dff906a97de03
 
 ---
