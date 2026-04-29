@@ -1,5 +1,4 @@
-{{- if .Capabilities.APIVersions.Has "apiextensions.crossplane.io/v1/Composition" }}
-{{- if .Values.tenantBootstrap.enabled }}
+{{- if false }}{{/* TenantRequest Composition disabled — replaced by TenantClaim pipeline. Source kept for reference. */}}
 
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
@@ -18,8 +17,7 @@ spec:
   pipeline:
     - step: render
       functionRef:
-        name: function-tenantrequest-renderer
+        name: function-tenant-validator
 
 ---
-{{- end }}
 {{- end }}

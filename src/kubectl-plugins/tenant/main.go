@@ -1,12 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -45,7 +43,7 @@ func newApproveCmd() *cobra.Command {
 		out, err := exec.Command(
 			"kubectl",
 			"get",
-			"tenantrequests.idp.rezakara.demo",
+			"tenants.idp.rezakara.demo",
 			"-o",
 			"jsonpath={.items[*].metadata.name}",
 		).Output()
@@ -94,16 +92,14 @@ func newCompletionCmd(root *cobra.Command) *cobra.Command {
 }
 
 func approve(name string) {
-	timestamp := time.Now().UTC().Format(time.RFC3339)
-
-	// 1. Get full resource JSON
+	// 1. Check idempotency — read current spec.approved
 	out, err := exec.Command(
 		"kubectl",
 		"get",
-		"tenantrequests.idp.rezakara.demo",
+		"tenants.idp.rezakara.demo",
 		name,
 		"-o",
-		"json",
+		"jsonpath={.spec.approved}",
 	).Output()
 
 	if err != nil {
@@ -111,72 +107,20 @@ func approve(name string) {
 		os.Exit(1)
 	}
 
-	// 2. Parse JSON
-	var obj map[string]interface{}
-	if err := json.Unmarshal(out, &obj); err != nil {
-		fmt.Println("failed to parse JSON:", err)
-		os.Exit(1)
+	if strings.TrimSpace(string(out)) == "true" {
+		fmt.Println("Tenant already approved")
+		return
 	}
 
-	// 3. Extract conditions
-	status, _ := obj["status"].(map[string]interface{})
-	conditions, _ := status["conditions"].([]interface{})
-
-	found := false
-
-	// 4. Update or insert Approved condition
-	for i, c := range conditions {
-		cond := c.(map[string]interface{})
-		if cond["type"] == "Approved" {
-			found = true
-
-			// Already approved → idempotent exit
-			if cond["status"] == "True" {
-				fmt.Println("Tenant already approved")
-				return
-			}
-
-			// Update existing condition
-			conditions[i] = map[string]interface{}{
-				"type":               "Approved",
-				"status":             "True",
-				"reason":             "PlatformApproved",
-				"message":            "Tenant approved by platform team",
-				"lastTransitionTime": timestamp,
-			}
-		}
-	}
-
-	// 5. If not found → append
-	if !found {
-		conditions = append(conditions, map[string]interface{}{
-			"type":               "Approved",
-			"status":             "True",
-			"reason":             "PlatformApproved",
-			"message":            "Tenant approved by platform team",
-			"lastTransitionTime": timestamp,
-		})
-	}
-
-	// 6. Build patch
-	patchObj := map[string]interface{}{
-		"status": map[string]interface{}{
-			"conditions": conditions,
-		},
-	}
-
-	patchBytes, _ := json.Marshal(patchObj)
-
-	// 7. Apply patch
+	// 2. Patch spec.approved = true
 	cmd := exec.Command(
 		"kubectl",
 		"patch",
-		"tenantrequests.idp.rezakara.demo",
+		"tenants.idp.rezakara.demo",
 		name,
-		"--subresource=status",
 		"--type=merge",
 		"-p",
-		string(patchBytes),
+		`{"spec":{"approved":true}}`,
 	)
 
 	cmd.Stdout = os.Stdout

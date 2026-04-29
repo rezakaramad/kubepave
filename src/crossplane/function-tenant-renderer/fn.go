@@ -12,10 +12,9 @@ import (
 	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/crossplane/function-sdk-go/response"
 
-	"github.com/crossplane/function-tenant-renderer/internal/github"
-	"github.com/crossplane/function-tenant-renderer/internal/model"
-	"github.com/crossplane/function-tenant-renderer/internal/render"
-	"github.com/crossplane/function-tenant-renderer/internal/status"
+	inputv1beta1 "github.com/crossplane/function-tenant-renderer/input/v1beta1"
+	xtenant "github.com/rezakaramad/kubepave/xr-types/tenant"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type Function struct {
@@ -82,33 +81,41 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	// Parse Tenant
 	// ---------------------------------------------------------------------
-	tenant, err := model.FromObservedXR(observedXR)
-	if err != nil {
+	var xd xtenant.Tenant
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
+		observedXR.Resource.UnstructuredContent(), &xd,
+	); err != nil {
 		setPhase(observedXR, "Failed")
-		response.Fatal(rsp, xperrors.Wrap(err, "cannot parse tenant spec"))
+		response.Fatal(rsp, xperrors.Wrap(err, "cannot convert XR to Tenant"))
 		return rsp, nil
 	}
+
+	if xd.Spec.DisplayName == "" {
+		xd.Spec.DisplayName = xd.GetName()
+	}
+	tenant := TenantSpec{
+		Tenant:    xd,
+		SyncRepos: []string{fmt.Sprintf("https://github.com/fluxdojo/platform-deploy-%s", xd.GetName())},
+	}
+
+	log = log.WithValues("tenant", tenant.GetName())
 
 	// ---------------------------------------------------------------------
 	// Parse input config
 	// ---------------------------------------------------------------------
-	var input model.PlatformConfig
+	var input inputv1beta1.Input
 	if err := request.GetInput(req, &input); err != nil {
 		setPhase(observedXR, "Failed")
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot parse function input"))
 		return rsp, nil
 	}
 
-	// Validate input
-	if err := input.Validate(); err != nil {
-		setPhase(observedXR, "Failed")
-		response.Fatal(rsp, xperrors.Wrap(err, "invalid input"))
-		return rsp, nil
+	// Manage RBAC and cluster resolution
+	tenant.Roles = input.RBAC.Roles
+	clusters := make([]xtenant.Cluster, 0, len(input.Clusters))
+	for _, c := range input.Clusters {
+		clusters = append(clusters, xtenant.Cluster{Name: c.Name, Prefix: c.EnvironmentPrefix})
 	}
-
-	// Manage RBAC and cluster resolution (defaults vs input)
-	model.ResolveRBAC(&tenant, &input)
-	clusters := input.ToClusters()
 	log.Info("Resolved clusters", "clusters", clusters)
 	log.Info("Resolved roles", "roles", tenant.Roles)
 
@@ -117,7 +124,7 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 
 	// Baseline apps (one per cluster)
-	baselineApps, err := render.BuildBaselineApplications(
+	baselineApps, err := buildBaselineApplications(
 		tenant,
 		clusters,
 		f.baselineRepoURL,
@@ -131,7 +138,7 @@ func (f *Function) RunFunction(
 	}
 
 	// GitOps app (management cluster)
-	gitopsApp, err := render.BuildGitopsApplication(
+	gitopsApp, err := buildGitopsApplication(
 		tenant,
 		clusters,
 		f.gitopsRepoURL,
@@ -156,7 +163,7 @@ func (f *Function) RunFunction(
 	// Bundle to YAML
 	// ---------------------------------------------------------------------
 	// Serializes all rendered resources into a single multi-document YAML string.
-	content, err := render.BundleYAML(resources...)
+	content, err := bundleYAML(resources...)
 	if err != nil {
 		setPhase(observedXR, "Failed")
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot bundle resources"))
@@ -166,10 +173,10 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	// Git export (RepositoryFile)
 	// ---------------------------------------------------------------------
-	repoFile := github.BuildRepositoryFile(
+	repoFile := buildRepositoryFile(
 		tenant,
 		content,
-		github.Config{
+		RepositoryFileConfig{
 			Namespace:          f.crossplaneNamespace,
 			ProviderConfigName: "github-rezakaramad",
 			Repository:         f.exportRepoURL,
@@ -198,9 +205,7 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	// 8. Update XR status
 	// ---------------------------------------------------------------------
-	if err := status.SetXRRendered(rsp, observedXR, tenant, status.RenderSummary{
-		Resources: len(resources),
-	}); err != nil {
+	if err := setXRRendered(rsp, observedXR, tenant, len(resources)); err != nil {
 		setPhase(observedXR, "Failed")
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot set xr status"))
 		return rsp, nil
@@ -209,7 +214,7 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	// Done
 	// ---------------------------------------------------------------------
-	response.Normal(rsp, fmt.Sprintf("Rendered tenant %q manifests to Git", tenant.Name))
+	response.Normal(rsp, fmt.Sprintf("Rendered tenant %q manifests to Git", tenant.GetName()))
 
 	return rsp, nil
 }

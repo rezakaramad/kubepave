@@ -16,13 +16,21 @@ spec:
   mode: Pipeline
 
   pipeline:
+    # Step 1: Validate DNS, check approval gate.
+    # Halts here with PendingApproval until spec.approved=true.
+    - step: validate-and-approve
+      functionRef:
+        name: function-tenant-validator
+
+    # Step 2: Render ArgoCD Applications + RepositoryFile to Git.
+    # Only runs if Step 1 passes (i.e. approved).
     - step: provision
       functionRef:
         name: function-tenant-renderer
 
       input:
-        apiVersion: tenant.rezakara.demo/v1alpha1
-        kind: PlatformConfig
+        apiVersion: template.fn.crossplane.io/v1beta1
+        kind: Input
         clusters:
           - name: minikube-workload
             environmentPrefix: wl

@@ -1,22 +1,22 @@
-package render
+package main
 
 import (
 	"fmt"
 
 	"github.com/crossplane/function-sdk-go/resource/composed"
-	"github.com/crossplane/function-tenant-renderer/internal/model"
+	xtenant "github.com/rezakaramad/kubepave/xr-types/tenant"
 	"sigs.k8s.io/yaml"
 )
 
-func BuildGitopsApplication(
-	t model.TenantSpec,
-	clusters []model.Cluster,
+func buildGitopsApplication(
+	t TenantSpec,
+	clusters []xtenant.Cluster,
 	repo string,
 	branch string,
 	basePath string,
 ) (*composed.Unstructured, error) {
 
-	name := fmt.Sprintf("gitops-%s", t.Name)
+	name := fmt.Sprintf("gitops-%s", t.GetName())
 
 	app := composed.New()
 	app.SetAPIVersion("argoproj.io/v1alpha1")
@@ -25,7 +25,7 @@ func BuildGitopsApplication(
 	app.SetNamespace("argocd")
 	_ = app.SetValue("metadata.namespace", "argocd")
 
-	app.SetLabels(model.CommonLabels(t))
+	app.SetLabels(commonLabels(t))
 
 	roles := []map[string]any{}
 
@@ -33,7 +33,7 @@ func BuildGitopsApplication(
 		instances := []map[string]any{}
 
 		for _, cluster := range clusters {
-			uuid := GenerateAppRoleUUID(t.Name, role.Name, cluster.Prefix)
+			uuid := generateAppRoleUUID(t.GetName(), role.Name, cluster.Prefix)
 
 			instances = append(instances, map[string]any{
 				"cluster":           cluster.Name,
@@ -42,9 +42,9 @@ func BuildGitopsApplication(
 					"appRoleUUID": uuid,
 					"assignment": map[string]any{
 						"principalObjectIdSelector": map[string]any{
-							"enabled": role.EntraId.Assignment.SelectorEnabled,
+							"enabled": false,
 						},
-						"principalObjectIds": role.EntraId.Assignment.PrincipalObjectIds,
+						"principalObjectIds": []string(nil),
 					},
 				},
 			})
@@ -59,11 +59,11 @@ func BuildGitopsApplication(
 
 	values := map[string]any{
 		"tenant": map[string]any{
-			"name":    t.Name,
-			"dnsName": t.DNSName,
+			"name":    t.GetName(),
+			"dnsName": t.Spec.DNSName,
 			"owner": map[string]any{
-				"team":  t.OwnerTeam,
-				"email": t.OwnerEmail,
+				"team":  t.Spec.Owner.Team,
+				"email": t.Spec.Owner.Email,
 			},
 			"argocd": map[string]any{
 				"syncRepos": t.SyncRepos,
@@ -81,7 +81,6 @@ func BuildGitopsApplication(
 
 	spec := map[string]any{
 		"project": "default",
-
 		"source": map[string]any{
 			"repoURL":        repo,
 			"targetRevision": branch,
@@ -90,18 +89,17 @@ func BuildGitopsApplication(
 				"values": string(valuesYaml),
 			},
 		},
-
 		"destination": map[string]any{
 			"name":      "in-cluster",
-			"namespace": fmt.Sprintf("gitops-%s", t.Name),
+			"namespace": fmt.Sprintf("gitops-%s", t.GetName()),
 		},
 	}
 
-	if t.AutomatedSync {
+	if t.Spec.ArgoCD.SyncPolicy.AutomatedSync {
 		spec["syncPolicy"] = map[string]any{
 			"automated": map[string]any{
-				"prune":    t.Prune,
-				"selfHeal": t.SelfHeal,
+				"prune":    t.Spec.ArgoCD.SyncPolicy.Prune,
+				"selfHeal": t.Spec.ArgoCD.SyncPolicy.SelfHeal,
 			},
 		}
 	}

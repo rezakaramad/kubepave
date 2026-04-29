@@ -9,7 +9,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/crossplane/function-sdk-go"
-	"github.com/crossplane/function-tenantrequest-renderer/model"
+	xtenant "github.com/rezakaramad/kubepave/xr-types/tenant"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -100,8 +100,8 @@ func (c *CLI) Run() error {
 		function.MaxRecvMessageSize(c.MaxRecvMessageSize*1024*1024))
 }
 
-func parseClusters(s string) []model.Cluster {
-	var out []model.Cluster
+func parseClusters(s string) []xtenant.Cluster {
+	var out []xtenant.Cluster
 
 	for _, item := range strings.Split(s, ",") {
 		parts := strings.Split(item, ":")
@@ -109,7 +109,7 @@ func parseClusters(s string) []model.Cluster {
 			continue // or log warning
 		}
 
-		out = append(out, model.Cluster{
+		out = append(out, xtenant.Cluster{
 			Name:   strings.TrimSpace(parts[0]),
 			Prefix: strings.TrimSpace(parts[1]),
 		})

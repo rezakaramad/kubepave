@@ -1,5 +1,4 @@
-{{- if .Capabilities.APIVersions.Has "apiextensions.crossplane.io/v2/CompositeResourceDefinition" }}
-{{- if .Values.tenantBootstrap.enabled }}
+{{- if false }}{{/* TenantRequest XRD disabled — replaced by TenantClaim. Source kept for reference. */}}
 
 apiVersion: apiextensions.crossplane.io/v2
 kind: CompositeResourceDefinition
@@ -69,6 +68,11 @@ spec:
                     email:
                       type: string
 
+                approved:
+                  type: boolean
+                  description: Set to true to approve this TenantRequest and trigger provisioning.
+                  default: false
+
                 argocd:
                   type: object
                   required: ["syncRepos"]
@@ -112,12 +116,11 @@ spec:
           type: string
           jsonPath: .spec.owner.team
         - name: Approved
-          type: string
-          jsonPath: .status.conditions[?(@.type=="Approved")].status
+          type: boolean
+          jsonPath: .spec.approved
         - name: Phase
           type: string
           jsonPath: .status.phase
 
 ---
-{{- end }}
 {{- end }}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/crossplane/function-tenantrequest-renderer/model"
+	xtenant "github.com/rezakaramad/kubepave/xr-types/tenant"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -21,13 +21,13 @@ type Deps struct {
 	Kube             ctrlclient.Client
 	PDNSClient       PDNSClient
 	BaseDomain       string
-	WorkloadClusters []model.Cluster
+	WorkloadClusters []xtenant.Cluster
 }
 
-// Validate performs full validation of a TenantRequest.
-func Validate(ctx context.Context, t model.TenantRequest, d Deps) *Error {
+// Validate performs full validation of a Tenant.
+func Validate(ctx context.Context, t xtenant.Tenant, d Deps) *Error {
 
-	dnsName := t.DNS.Name
+	dnsName := t.Spec.DNSName
 
 	// ---------------------------------------------------------------------
 	// Multi-cluster DNS validation

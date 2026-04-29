@@ -1,6 +1,32 @@
 {{- if .Capabilities.APIVersions.Has "apiextensions.crossplane.io/v1/Composition" }}
 {{- if .Values.tenantBootstrap.enabled }}
 
+# Developers: submit TenantClaims in devex namespace (no patch/update)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tenantclaim-submitter
+  namespace: devex
+rules:
+- apiGroups: ["idp.rezakara.demo"]
+  resources: ["tenantclaims"]
+  verbs: ["create", "get", "list", "watch"]
+
+---
+
+# Platform engineers: approve Tenants (cluster-scoped XR)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tenant-approver
+rules:
+- apiGroups: ["idp.rezakara.demo"]
+  resources: ["tenants"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+
+---
+
+# Crossplane internal: manage ArgoCD apps
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -10,7 +36,7 @@ rules:
   resources: ["applications"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: ["idp.rezakara.demo"]
-  resources: ["tenants", "tenantrequests"]
+  resources: ["tenants"]
   verbs: ["get", "list"]
 
 ---

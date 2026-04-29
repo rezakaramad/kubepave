@@ -14,6 +14,10 @@ spec:
     kind: Tenant
     plural: tenants
 
+  claimNames:
+    kind: TenantClaim
+    plural: tenantclaims
+
   defaultCompositionRef:
     name: tenant-default
 
@@ -39,6 +43,18 @@ spec:
 
             - rule: "!self.metadata.name.matches('(^|-)(dev|test|stage|prod)(-|$)')"
               message: "Tenant name must not include reserved environment segments (dev, test, stage, prod)"
+
+            # Core identity fields are immutable after creation
+            - rule: >-
+                oldSelf == null || (
+                  self.spec.dnsName == oldSelf.spec.dnsName &&
+                  self.spec.owner == oldSelf.spec.owner
+                )
+              message: "spec.dnsName and spec.owner are immutable after creation"
+
+            # approved can only go from false → true, never back
+            - rule: "oldSelf == null || !oldSelf.spec.approved || self.spec.approved"
+              message: "spec.approved cannot be set back to false once approved"
 
           properties:
 
@@ -112,6 +128,8 @@ spec:
                   type: string
                   description: Current lifecycle phase of the tenant.
                   enum:
+                    - Validating
+                    - PendingApproval
                     - Provisioning
                     - Ready
                     - Failed
@@ -153,6 +171,10 @@ spec:
         - name: Resources
           type: integer
           jsonPath: .status.rendered.resources
+
+        - name: Approved
+          type: boolean
+          jsonPath: .spec.approved
 
         - name: Phase
           type: string

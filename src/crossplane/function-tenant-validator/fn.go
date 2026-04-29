@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	xperrors "github.com/crossplane/crossplane-runtime/v2/pkg/errors"
@@ -10,10 +9,10 @@ import (
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
 	"github.com/crossplane/function-sdk-go/resource"
-	"github.com/crossplane/function-sdk-go/resource/composed"
 	"github.com/crossplane/function-sdk-go/response"
+	"github.com/crossplane/function-tenant-validator/model"
 
-	"github.com/crossplane/function-tenantrequest-renderer/model"
+	xtenant "github.com/rezakaramad/kubepave/xr-types/tenant"
 
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -23,7 +22,7 @@ type Function struct {
 	log logging.Logger
 
 	crossplaneNamespace string
-	workloadClusters    []model.Cluster
+	workloadClusters    []xtenant.Cluster
 
 	kube ctrlclient.Client
 	pdns PDNSClient
@@ -43,7 +42,7 @@ func (f *Function) RunFunction(
 	start := time.Now()
 
 	log := f.log.WithValues("tag", req.GetMeta().GetTag())
-	log.Info("Running function-tenantrequest-renderer")
+	log.Info("Running function-tenant-validator")
 
 	rsp := response.To(req, response.DefaultTTL)
 
@@ -63,7 +62,7 @@ func (f *Function) RunFunction(
 		return fail(rsp, xr, PhaseFailed, err, "cannot parse TenantRequest")
 	}
 
-	log = log.WithValues("tenant", tenantRequest.Name)
+	log = log.WithValues("tenant", tenantRequest.GetName())
 
 	// ---------------------------------------------------------------------
 	// 3. Validation
@@ -102,7 +101,7 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	// 4. Approval
 	// ---------------------------------------------------------------------
-	if !IsApproved(xr) {
+	if !IsApproved(tenantRequest) {
 		SetPhase(xr, PhasePendingApproval)
 
 		response.ConditionFalse(rsp, "Approved", "WaitingForApproval").
@@ -120,58 +119,20 @@ func (f *Function) RunFunction(
 		TargetCompositeAndClaim()
 
 	// ---------------------------------------------------------------------
-	// 5. Desired resources
+	// 5. Status — approved, hand off to next pipeline step
 	// ---------------------------------------------------------------------
-	desired, err := request.GetDesiredComposedResources(req)
-	if err != nil {
-		return fail(rsp, xr, PhaseFailed, err, "cannot get desired composed resources")
-	}
+	SetPhase(xr, PhaseProvisioning)
 
-	// ✅ CORRECT: use composed.New()
-	tenant := composed.New()
-
-	tenant.SetAPIVersion("idp.rezakara.demo/v1alpha1")
-	tenant.SetKind("Tenant")
-	tenant.SetName(tenantRequest.Name)
-
-	if err := tenant.SetValue("spec", map[string]any{
-		"dnsName":     tenantRequest.DNS.Name,
-		"displayName": tenantRequest.DisplayName,
-		"owner": map[string]any{
-			"team":  tenantRequest.Owner.Team,
-			"email": tenantRequest.Owner.Email,
-		},
-		"argocd": map[string]any{
-			"syncRepos": tenantRequest.ArgoCD.SyncRepos,
-		},
-	}); err != nil {
-		return fail(rsp, xr, PhaseFailed, err, "cannot build tenant spec")
-	}
-
-	desired[resource.Name("tenant")] = &resource.DesiredComposed{
-		Resource: tenant,
-		Ready:    resource.ReadyTrue,
-	}
-
-	// ---------------------------------------------------------------------
-	// 6. Status
-	// ---------------------------------------------------------------------
-	SetPhase(xr, PhaseReady)
-
-	response.ConditionTrue(rsp, "Ready", "Submitted").
-		WithMessage("Tenant resource submitted to Crossplane").
-		TargetCompositeAndClaim()
-
-	response.ConditionTrue(rsp, "Synced", "TenantCreated").
-		WithMessage("Tenant resource is managed by Crossplane").
+	response.ConditionTrue(rsp, "Ready", "Provisioning").
+		WithMessage("Tenant approved, provisioning in progress").
 		TargetCompositeAndClaim()
 
 	log.Info("Reconciliation finished",
-		"tenant", tenantRequest.Name,
+		"tenant", tenantRequest.GetName(),
 		"duration", time.Since(start),
 	)
 
-	return finalize(rsp, xr, desired, tenantRequest.Name)
+	return done(rsp, xr)
 }
 
 // ---------------------------------------------------------------------
@@ -192,29 +153,5 @@ func fail(rsp *fnv1.RunFunctionResponse, xr *resource.Composite, phase string, e
 func done(rsp *fnv1.RunFunctionResponse, xr *resource.Composite) (*fnv1.RunFunctionResponse, error) {
 	xr.Resource.SetManagedFields(nil)
 	_ = response.SetDesiredCompositeResource(rsp, xr)
-	return rsp, nil
-}
-
-func finalize(
-	rsp *fnv1.RunFunctionResponse,
-	xr *resource.Composite,
-	desired map[resource.Name]*resource.DesiredComposed,
-	name string,
-) (*fnv1.RunFunctionResponse, error) {
-
-	xr.Resource.SetManagedFields(nil)
-
-	if err := response.SetDesiredCompositeResource(rsp, xr); err != nil {
-		response.Fatal(rsp, xperrors.Wrap(err, "cannot set desired composite resource"))
-		return rsp, nil
-	}
-
-	if err := response.SetDesiredComposedResources(rsp, desired); err != nil {
-		response.Fatal(rsp, xperrors.Wrap(err, "cannot set desired composed resources"))
-		return rsp, nil
-	}
-
-	response.Normal(rsp, fmt.Sprintf("Tenant %q created", name))
-
 	return rsp, nil
 }
