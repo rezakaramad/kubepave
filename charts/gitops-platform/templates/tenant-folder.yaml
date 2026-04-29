@@ -1,4 +1,21 @@
 apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: tenant-system
+  namespace: argocd
+spec:
+  description: Project for tenant Argo CD resources.
+  sourceRepos:
+    - https://github.com/rezakaramad/kubepave-tenants
+  destinations:
+  - name:  in-cluster
+    namespace: '*'
+  clusterResourceWhitelist:
+    - group: idp.rezakara.demo
+      kind: Tenant
+
+---
+apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: platform-tenant-folder
@@ -22,19 +39,25 @@ spec:
 
 ---
 apiVersion: argoproj.io/v1alpha1
-kind: AppProject
+kind: Application
 metadata:
-  name: tenant-system
+  name: platform-tenant-request-folder
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
-  description: Project for tenant Argo CD resources.
-  sourceRepos:
-    - https://github.com/rezakaramad/kubepave-tenants
-  destinations:
-  - name:  in-cluster
-    namespace: '*'
-  clusterResourceWhitelist:
-    - group: idp.rezakara.demo
-      kind: Tenant
+  project: tenant-system
+  source:
+    repoURL: https://github.com/rezakaramad/kubepave-tenant-requests
+    targetRevision: HEAD
+    path: requests/
+    directory:
+      recurse: true
+  destination:
+    name:  in-cluster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
 
 ---
