@@ -44,7 +44,7 @@ func buildGitopsApplication(
 						"principalObjectIdSelector": map[string]any{
 							"enabled": false,
 						},
-						"principalObjectIds": []string(nil),
+						"principalObjectIds": []string{},
 					},
 				},
 			})
