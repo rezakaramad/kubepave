@@ -109,8 +109,9 @@ spec:
     resourceObjectId: {{ $.Values.tenant.rbac.entraArgoCDServicePrincipalObjectId | quote }}
     principalObjectIdSelector:
       matchLabels:
-        prefix: {{ $instance.environmentPrefix }}
-        role: {{ $role.name }}
+        environment-scope: "all"
+        role: "developer"
+        tier: "free"
         tenant: {{ $.Values.tenant.name }}
     # principalObjectId: {{ $p | quote }}
   providerConfigRef:
