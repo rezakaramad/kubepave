@@ -4,6 +4,7 @@ tenant:
 
   rbac:
     entraArgoCDAppObjectId: "113c7f42-c868-43cf-a1d2-121cd0b07763"
+  entraArgoCDServicePrincipalObjectId: "94ed43de-b44a-4174-a093-e3f78cd38b1e"
 
     # Define roles and their corresponding permissions. 
     # Each role can have multiple policies that specify the resources and actions allowed for that role.
