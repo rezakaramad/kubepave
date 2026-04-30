@@ -96,7 +96,7 @@ spec:
 {{- fail (printf "No principalObjectIds provided for role '%s' in env '%s'" $role.name $instance.environmentPrefix) }}
 {{- end }}
 
-{{- range $i, $p := $principals }}
+# {{- range $i, $p := $principals }}
 
 apiVersion: app.azuread.m.upbound.io/v1beta1
 kind: RoleAssignment
@@ -107,15 +107,62 @@ spec:
   forProvider:
     appRoleId: {{ $entra.appRoleUUID | quote }}
     resourceObjectId: {{ $.Values.tenant.rbac.entraArgoCDServicePrincipalObjectId | quote }}
-    principalObjectId: {{ $p | quote }}
+    principalObjectIdSelector:
+      matchLabels:
+        prefix: {{ $instance.environmentPrefix }}
+        role: {{ $role.name }}
+        tenant: {{ $.Values.tenant.name }}
+    # principalObjectId: {{ $p | quote }}
   providerConfigRef:
     name: azuread
     kind: ProviderConfig
 
 ---
-{{- end }}
+# {{- end }}
 
 {{- end }}
 
 {{- end }}
+{{- end }}
+
+{{- if $.Values.azure.freeTier }}
+
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: "{{ $.Values.tenant.name }}-initial-password"
+spec:
+  length: 32
+
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: "{{ $.Values.tenant.name }}-initial-password"
+spec:
+  target:
+    name: "{{ $.Values.tenant.name }}-initial-password"
+  dataFrom:
+    - generatorRef:
+        name: "{{ $.Values.tenant.name }}-initial-password"
+
+apiVersion: users.azuread.m.upbound.io/v1beta1
+kind: User
+metadata:
+  labels:
+    tenant: {{ $.Values.tenant.name }}
+    environment-scope: "all"
+    role: "developer"
+    tier: "free"
+  name: "{{ $.Values.tenant.name }}"
+  namespace: crossplane
+spec:
+  forProvider:
+    displayName: "{{ $.Values.tenant.name | title }}"
+    passwordSecretRef:
+      key: credentials
+      name: "{{ $.Values.tenant.name }}-initial-password"
+  providerConfigRef:
+    name: azuread
+    kind: ProviderConfig
+
 {{- end }}

@@ -27,12 +27,12 @@ tenant:
           - cluster: minikube-workload
             environmentPrefix: wl
             entraID:
-              appRoleUUID: "0000000-0000-0000-0000-000000000001"
+              appRoleUUID: "00000000-0000-0000-0000-000000000001"
               assignment:
                 principalObjectIdSelector:
                   enabled: false
-                principalObjectIds:
-                  - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
+                # principalObjectIds:
+                #   - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
         policies:
           - resource: applications
             actions:
@@ -53,12 +53,12 @@ tenant:
           - cluster: minikube-workload
             environmentPrefix: wl
             entraID:
-              appRoleUUID: "0000000-0000-0000-0000-000000000002"
+              appRoleUUID: "00000000-0000-0000-0000-000000000002"
               assignment:
                 principalObjectIdSelector:
                   enabled: false
-                principalObjectIds:
-                  - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
+                # principalObjectIds:
+                #   - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
         policies:
           - resource: applications
             actions:
@@ -68,5 +68,9 @@ tenant:
               - get
 
 # --------------------------------------------------------------
+# Azure AD and Entra ID configuration
 azure:
+  # This flag indicates whether the tenant is using the free tier of Azure AD or the enterprise tier.
+  # In free tier, we have limitations such as no group-based role assignments, so we need to directly assign roles to users.
+  # In enterprise tier, we can leverage groups and dynamic assignments.
   freeTier: true
