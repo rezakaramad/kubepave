@@ -158,6 +158,7 @@ metadata:
   namespace: crossplane
 spec:
   forProvider:
+    userPrincipalName: "{{ $.Values.tenant.name }}"
     displayName: "{{ $.Values.tenant.name | title }}"
     passwordSecretRef:
       key: credentials
