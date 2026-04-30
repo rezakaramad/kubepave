@@ -37,6 +37,8 @@ spec:
         rbac:
           roles:
             - name: admin
+              principalObjectIds:
+                - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
               policies:
                 - resource: applications
                   actions:
@@ -53,6 +55,8 @@ spec:
                     - get
 
             - name: viewer
+              principalObjectIds:
+                - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
               policies:
                 - resource: applications
                   actions:

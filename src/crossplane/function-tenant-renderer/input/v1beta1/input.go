@@ -61,6 +61,11 @@ type RoleInput struct {
 	// Policies defines the ArgoCD RBAC policies attached to this role.
 	// +optional
 	Policies []PolicyInput `json:"policies,omitempty"`
+
+	// PrincipalObjectIds is the list of Azure AD object IDs (users or groups)
+	// to assign to this role. Used in free tier where group selectors are unavailable.
+	// +optional
+	PrincipalObjectIds []string `json:"principalObjectIds,omitempty"`
 }
 
 // PolicyInput defines a single ArgoCD RBAC policy entry.
