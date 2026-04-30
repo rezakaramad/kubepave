@@ -145,8 +145,10 @@ spec:
   target:
     name: "{{ $.Values.tenant.name }}-initial-password"
   dataFrom:
-    - generatorRef:
-        name: "{{ $.Values.tenant.name }}-initial-password"
+    - sourceRef:
+      - generatorRef:
+          kind: Password
+          name: "{{ $.Values.tenant.name }}-initial-password"
 
 apiVersion: users.azuread.m.upbound.io/v1beta1
 kind: User
@@ -163,7 +165,7 @@ spec:
     userPrincipalName: "{{ $.Values.tenant.name }}"
     displayName: "{{ $.Values.tenant.name | title }}"
     passwordSecretRef:
-      key: credentials
+      key: password
       name: "{{ $.Values.tenant.name }}-initial-password"
   providerConfigRef:
     name: azuread
