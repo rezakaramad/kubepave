@@ -132,6 +132,7 @@ apiVersion: generators.external-secrets.io/v1alpha1
 kind: Password
 metadata:
   name: "{{ $.Values.tenant.name }}-initial-password"
+  namespace: crossplane
 spec:
   length: 32
 
@@ -139,6 +140,7 @@ apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: "{{ $.Values.tenant.name }}-initial-password"
+  namespace: crossplane
 spec:
   target:
     name: "{{ $.Values.tenant.name }}-initial-password"
