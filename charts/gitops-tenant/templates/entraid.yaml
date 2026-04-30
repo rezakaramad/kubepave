@@ -107,12 +107,9 @@ spec:
   forProvider:
     appRoleId: {{ $entra.appRoleUUID | quote }}
     resourceObjectId: {{ $.Values.tenant.rbac.entraArgoCDServicePrincipalObjectId | quote }}
-    principalObjectIdSelector:
-      matchLabels:
-        environment-scope: "all"
-        role: "developer"
-        tier: "free"
-        tenant: {{ $.Values.tenant.name }}
+    principalObjectIdRef:
+      name: {{ $.Values.tenant.name }}
+      namespace: crossplane
     # principalObjectId: {{ $p | quote }}
   providerConfigRef:
     name: azuread
