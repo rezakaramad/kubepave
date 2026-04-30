@@ -3,7 +3,7 @@ tenant:
   dnsName: ""
 
   rbac:
-    entraAppId: "6ebc7a2a-0d2c-4677-aebc-2b37371aca73"
+    entraArgoCDAppObjectId: "113c7f42-c868-43cf-a1d2-121cd0b07763"
 
     # Define roles and their corresponding permissions. 
     # Each role can have multiple policies that specify the resources and actions allowed for that role.

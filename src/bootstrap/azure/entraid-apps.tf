@@ -8,6 +8,11 @@ data "azuread_user" "reza" {
   user_principal_name = "r.karamad_gmail.com#EXT#@rkaramadgmail.onmicrosoft.com"
 }
 
+# Microsoft Graph API service principal
+data "azuread_service_principal" "msgraph" {
+  client_id = "00000003-0000-0000-c000-000000000000"
+}
+
 # ---------------------------------------------------------------
 # Argo CD
 # ---------------------------------------------------------------
@@ -130,18 +135,21 @@ resource "azuread_application" "crossplane" {
   required_resource_access {
     resource_app_id = "00000003-0000-0000-c000-000000000000"
 
+    # Group.ReadWrite.All
     resource_access {
-      id   = "e1fe6dd8-ba31-4d61-89e7-88639da4683d"
-      type = "Scope"
-    }
-
-    resource_access {
-      id   = "19dbc75e-c2e2-444c-a770-ec69d8559fc7"
+      id   = "62a82d76-70ea-41e2-9197-370581804d09"
       type = "Role"
     }
 
+    # Application.ReadWrite.All
     resource_access {
-      id   = "62a82d76-70ea-41e2-9197-370581804d09"
+      id   = "18a4783c-866b-4cc7-a460-3d5e5662c884"
+      type = "Role"
+    }
+
+    # AppRoleAssignment.ReadWrite.All
+    resource_access {
+      id   = "06b708a9-e830-4db3-a914-8e69da51d44f"
       type = "Role"
     }
   }
@@ -158,6 +166,27 @@ resource "azuread_application_password" "crossplane" {
   lifecycle {
     ignore_changes = all
   }
+}
+
+# Group.ReadWrite.All
+resource "azuread_app_role_assignment" "crossplane_groups" {
+  principal_object_id = azuread_service_principal.crossplane.object_id
+  resource_object_id  = data.azuread_service_principal.msgraph.object_id
+  app_role_id         = "62a82d76-70ea-41e2-9197-370581804d09"
+}
+
+# Application.ReadWrite.All
+resource "azuread_app_role_assignment" "crossplane_apps" {
+  principal_object_id = azuread_service_principal.crossplane.object_id
+  resource_object_id  = data.azuread_service_principal.msgraph.object_id
+  app_role_id         = "18a4783c-866b-4cc7-a460-3d5e5662c884"
+}
+
+# AppRoleAssignment.ReadWrite.All
+resource "azuread_app_role_assignment" "crossplane_approles" {
+  principal_object_id = azuread_service_principal.crossplane.object_id
+  resource_object_id  = data.azuread_service_principal.msgraph.object_id
+  app_role_id         = "06b708a9-e830-4db3-a914-8e69da51d44f"
 }
 
 # Crossplane outputs
