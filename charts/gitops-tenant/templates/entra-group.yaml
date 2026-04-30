@@ -53,7 +53,7 @@ spec:
     allowedMemberTypes:
       - User
       - Group
-    applicationId: "/applications/{{ $.Values.tenant.rbac.entraAppObjectId }}"
+    applicationId: "/applications/{{ $.Values.tenant.rbac.entraAppId }}"
     description: "{{ $role.name }} access for {{ $.Values.tenant.name }} in {{ $instance.environmentPrefix }} environment"
     displayName: "{{ $.Values.tenant.name | title }} {{ $role.name | title }} {{ $instance.environmentPrefix | title }}"
     value: {{ $.Values.tenant.name }}-{{ $role.name }}-{{ $instance.environmentPrefix }}
