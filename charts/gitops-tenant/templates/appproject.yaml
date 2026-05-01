@@ -1,20 +1,23 @@
-{{- range $role := $.Values.tenant.rbac.roles }}
-{{- range $instance := $role.instances }}
+{{- range $binding := $.Values.tenant.bindings }}
+
+{{- $role := (where $.Values.tenant.roles "name" $binding.role) | first }}
+{{- if not $role }}
+{{- fail (printf "Role '%s' not defined in tenant.roles" $binding.role) }}
+{{- end }}
 
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: "{{ $.Values.tenant.name }}-{{ $role.name }}-{{ $instance.environmentPrefix }}"
+  name: "{{ $.Values.tenant.name }}-{{ $binding.role }}-{{ $binding.environmentPrefix }}"
 
   namespace: argocd
   labels:
   {{ include "common.labels" . | nindent 4 }}
     platform.rezakara.demo/tenant: "{{ $.Values.tenant.name | lower }}"
-    platform.rezakara.demo/cluster: "{{ $instance.cluster | lower }}"
-    platform.rezakara.demo/AppRoleUUID: "{{ $instance.entraID.appRoleUUID | lower }}"
-    platform.rezakara.demo/role: "{{ $role.name | lower }}"
+    platform.rezakara.demo/cluster: "{{ $binding.cluster | lower }}"
+    platform.rezakara.demo/role: "{{ $binding.role | lower }}"
 spec:
-  description: Argo CD AppProject for {{ $.Values.tenant.name }} ({{ $role.name }} - {{ $instance.environmentPrefix }})
+  description: Argo CD AppProject for {{ $.Values.tenant.name }} ({{ $binding.role }} in {{ $binding.cluster }})
 
   sourceNamespaces:
     - "gitops-{{ $.Values.tenant.name }}"
@@ -24,7 +27,7 @@ spec:
 
   destinations:
   - namespace: {{ $.Values.tenant.name }}
-    name: {{ $instance.cluster }}
+    name: {{ $binding.cluster }}
 
   clusterResourceWhitelist:
     - group: ""
@@ -99,18 +102,18 @@ spec:
       kind: "App"
 
   roles:
-    - name: {{ $role.name }}
-      description: {{ printf "%s role" $role.name | quote }}
+    - name: {{ $binding.role }}
+      description: {{ printf "%s role" $binding.role | quote }}
 
       policies:
 {{- range $policy := $role.policies }} 
 {{- range $action := $policy.actions }}
-        - p, proj:{{ $.Values.tenant.name }}-{{ $role.name }}-{{ $instance.environmentPrefix }}:{{ printf "%s-%s-%s" $.Values.tenant.name $role.name $instance.environmentPrefix }}, {{ $policy.resource }}, {{ $action }}, {{ $.Values.tenant.name }}/*, allow
+        - p, proj:{{ $.Values.tenant.name }}-{{ $binding.role }}-{{ $binding.environmentPrefix }}:{{ printf "%s-%s-%s" $.Values.tenant.name $binding.role $binding.environmentPrefix }}, {{ $policy.resource }}, {{ $action }}, {{ $.Values.tenant.name }}/*, allow
 {{- end }}
 {{- end }}
 
       groups:
-        - {{ printf "%s-%s-%s" $.Values.tenant.name $role.name $instance.environmentPrefix | lower | quote }}
+        - {{ printf "%s-%s-%s" $.Values.tenant.name $binding.role $binding.environmentPrefix | lower | quote }}
 
 ---
 {{- end }}

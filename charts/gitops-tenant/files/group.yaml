@@ -1,0 +1,16 @@
+apiVersion: groups.azuread.m.upbound.io/v1beta1
+kind: Group
+metadata:
+  name: {{ $.Values.tenant.name }}-{{ $binding.role }}-{{ $binding.environmentPrefix }}
+  namespace: crossplane
+  labels:
+    platform.rezakara.demo/tenant: "{{ $.Values.tenant.name | lower }}"
+spec:
+  forProvider:
+    displayName: {{ $.Values.tenant.name | title }}-{{ $binding.role | title }}-{{ $binding.environmentPrefix | title }}
+    securityEnabled: true
+  providerConfigRef:
+    name: azuread
+    kind: ProviderConfig
+
+---

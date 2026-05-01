@@ -1,0 +1,64 @@
+{{- range $binding := $.Values.tenant.bindings }}
+
+# Find the role this binding refers to—and crash if it doesn’t exist
+{{- $role := (where $.Values.tenant.roles "name" $binding.role) | first }}
+{{- if not $role }}
+{{- fail (printf "Role '%s' not defined in roles" $binding.role) }}
+{{- end }}
+
+# --------------------------------------------------
+# AppRole
+# --------------------------------------------------
+{{- if not $binding.entraID.appRoleUUID }}
+{{- fail (printf "Missing AppRole ObjectId (appRoleUUID) for '%s' '%s' role in '%s'" $.Values.tenant.name $binding.role $binding.cluster) }}
+{{- end }}
+
+apiVersion: applications.azuread.m.upbound.io/v1beta1
+kind: AppRole
+metadata:
+  labels:
+    platform.rezakara.demo/tenant: "{{ $.Values.tenant.name | lower }}"
+  name: {{ $.Values.tenant.name }}-{{ $binding.role }}-{{ $binding.environmentPrefix }}
+  namespace: crossplane
+spec:
+  forProvider:
+    roleId: {{ $binding.entraID.appRoleUUID | quote }}
+    allowedMemberTypes: 
+      - User
+      - Group
+    applicationId: "/applications/{{ $.Values.tenant.argocd.identity.entraID.appObjectId }}"
+    description: "{{ $binding.role | title }} access for {{ $.Values.tenant.name | title }} in {{ $binding.environmentPrefix | title }}"
+    displayName: "{{ $.Values.tenant.name | title }} {{ $binding.role | title }} {{ $binding.environmentPrefix | title }}"
+    # The value that is used for the roles claim in ID tokens and OAuth 2.0 access tokens
+    value: {{ $.Values.tenant.name }}-{{ $binding.role }}-{{ $binding.environmentPrefix }}
+  providerConfigRef:
+    name: azuread
+    kind: ProviderConfig
+
+---
+# --------------------------------------------------
+# RoleAssignment
+# --------------------------------------------------
+# We use selector-based assignment for groups in enterprise tier, and direct principalObjectId assignment for users in free tier.
+# In enterprise tier, the RoleAssignment will automatically assign the AppRole to the group that matches the specified labels.
+
+{{- if not $binding.entraID.assignment.principalObjectId }}
+{{- fail (printf "Missing Principal ObjectId (principalObjectId) for '%s' '%s' role in '%s'" $.Values.tenant.name $binding.role $binding.cluster) }}
+{{- end }}
+
+apiVersion: app.azuread.m.upbound.io/v1beta1
+kind: RoleAssignment
+metadata:
+  name: {{ $.Values.tenant.name }}-{{ $binding.role }}-{{ $binding.environmentPrefix }}
+  namespace: crossplane
+spec:
+  forProvider:
+    appRoleId: {{ $binding.entraID.appRoleUUID | quote }}
+    resourceObjectId: {{ $.Values.tenant.argocd.identity.entraID.servicePrincipalObjectId | quote }}
+    principalObjectId: {{ $binding.entraID.assignment.principalObjectId | quote }}
+  providerConfigRef:
+    name: azuread
+    kind: ProviderConfig
+
+---
+{{- end }}

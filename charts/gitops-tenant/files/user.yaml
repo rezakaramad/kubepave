@@ -1,0 +1,55 @@
+# We create an initial user for the tenant and assign the admin role to it.
+# The password is generated randomly and stored in a Kubernetes secret.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: acme-initial-password"
+  namespace: crossplane
+spec:
+  length: 32
+
+---
+# The generated password will be stored in a Kubernetes secret, which is then referenced
+# by the User resource below.
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: "acme-initial-password"
+  namespace: crossplane
+spec:
+  target:
+    name: "acme-initial-password"
+  dataFrom:
+    - sourceRef:
+      - generatorRef:
+          kind: Password
+          name: "acme-initial-password"
+
+---
+# --------------------------------------------------
+# Finally, we create the user and assign the generated password to it.
+# The principalObjectId of this user will be used for role assignment.
+# For the purpose of showcasing the full flow, a user is created for each tenant, but in a real-world scenario,
+# this will be skipped and the role will be assigned to newly created groups in Entra ID.
+apiVersion: users.azuread.m.upbound.io/v1beta1
+kind: User
+metadata:
+  labels:
+    tenant: acme
+    environment-scope: "all"
+    role: "developer"
+    tier: "free"
+  name: "acme-user"
+  namespace: crossplane
+spec:
+  forProvider:
+    userPrincipalName: "acme-user@rkaramadgmail.onmicrosoft.com"
+    displayName: "Acme User"
+    passwordSecretRef:
+      key: password
+      name: "acme-initial-password"
+  providerConfigRef:
+    name: azuread
+    kind: ProviderConfig
+
+---

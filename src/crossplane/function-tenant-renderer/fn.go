@@ -17,6 +17,22 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+func uniqueClustersFromBindings(bindings []inputv1beta1.BindingInput) []xtenant.Cluster {
+	clusters := make([]xtenant.Cluster, 0, len(bindings))
+	seen := make(map[string]struct{}, len(bindings))
+
+	for _, binding := range bindings {
+		key := binding.Cluster + "/" + binding.EnvironmentPrefix
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		clusters = append(clusters, xtenant.Cluster{Name: binding.Cluster, Prefix: binding.EnvironmentPrefix})
+	}
+
+	return clusters
+}
+
 type Function struct {
 	fnv1.UnimplementedFunctionRunnerServiceServer
 	log logging.Logger
@@ -65,6 +81,14 @@ func (f *Function) RunFunction(
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot get observed composite resource"))
 		return rsp, nil
 	}
+	if observedXR == nil || observedXR.Resource == nil {
+		response.Fatal(rsp, xperrors.New("missing observed composite resource"))
+		return rsp, nil
+	}
+	if len(observedXR.Resource.UnstructuredContent()) == 0 {
+		response.Fatal(rsp, xperrors.New("missing observed composite resource"))
+		return rsp, nil
+	}
 
 	// ---------------------------------------------------------------------
 	// 2. Desired state
@@ -72,6 +96,12 @@ func (f *Function) RunFunction(
 	desired, err := request.GetDesiredComposedResources(req)
 	if err != nil {
 		response.Fatal(rsp, xperrors.Wrap(err, "cannot get desired composed resources"))
+		return rsp, nil
+	}
+
+	observed, err := request.GetObservedComposedResources(req)
+	if err != nil {
+		response.Fatal(rsp, xperrors.Wrap(err, "cannot get observed composed resources"))
 		return rsp, nil
 	}
 
@@ -114,14 +144,50 @@ func (f *Function) RunFunction(
 		return rsp, nil
 	}
 
-	// Manage RBAC and cluster resolution
-	tenant.Roles = input.RBAC.Roles
-	clusters := make([]xtenant.Cluster, 0, len(input.Clusters))
-	for _, c := range input.Clusters {
-		clusters = append(clusters, xtenant.Cluster{Name: c.Name, Prefix: c.EnvironmentPrefix})
-	}
+	// Manage cluster resolution from tenant bindings.
+	bindings := input.Tenant.Bindings
+	clusters := uniqueClustersFromBindings(bindings)
 	log.Info("Resolved clusters", "clusters", clusters)
-	log.Info("Resolved roles", "roles", tenant.Roles)
+	log.Info("Resolved bindings", "bindings", bindings)
+	log.Info("Resolved azure config", "principalType", input.Azure.PrincipalType, "userPrincipalDomain", input.Azure.UserPrincipalDomain)
+
+	resolvedBindings := make([]ResolvedBinding, 0, len(bindings))
+	waitingForPrincipal := false
+	for _, binding := range bindings {
+		for resourceName, desiredResource := range buildPrincipalResources(tenant, binding, input.Azure) {
+			desired[resourceName] = desiredResource
+		}
+
+		objectID, ready, err := resolveBindingPrincipalObjectID(observed, input.Azure, binding)
+		if err != nil {
+			response.Fatal(rsp, xperrors.Wrapf(err, "cannot resolve principal objectId for binding %s/%s/%s", binding.Name, binding.Cluster, binding.EnvironmentPrefix))
+			return rsp, nil
+		}
+		if !ready {
+			waitingForPrincipal = true
+			continue
+		}
+
+		resolvedBindings = append(resolvedBindings, ResolvedBinding{
+			Role:              binding.Name,
+			Cluster:           binding.Cluster,
+			EnvironmentPrefix: binding.EnvironmentPrefix,
+			PrincipalObjectID: objectID,
+		})
+	}
+
+	if waitingForPrincipal {
+		delete(desired, "tenant-rendered-manifests")
+		if err := response.SetDesiredComposedResources(rsp, desired); err != nil {
+			response.Fatal(rsp, xperrors.Wrap(err, "cannot set desired composed resources"))
+			return rsp, nil
+		}
+
+		response.ConditionFalse(rsp, "Rendered", "WaitingForPrincipalObjectID").
+			WithMessage(fmt.Sprintf("Waiting for principal object IDs for tenant %q", tenant.GetName())).
+			TargetComposite()
+		return rsp, nil
+	}
 
 	// ---------------------------------------------------------------------
 	// Render ArgoCD apps
@@ -143,7 +209,8 @@ func (f *Function) RunFunction(
 	// GitOps app (management cluster)
 	gitopsApp, err := buildGitopsApplication(
 		tenant,
-		clusters,
+		resolvedBindings,
+		input.Azure,
 		f.gitopsRepoURL,
 		f.gitopsRepoBranch,
 		f.gitopsRepoBasePath,

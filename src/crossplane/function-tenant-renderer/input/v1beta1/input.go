@@ -1,6 +1,6 @@
 // Package v1beta1 contains the input type for this Function
 // +kubebuilder:object:generate=true
-// +groupName=template.fn.crossplane.io
+// +groupName=platform.rezakara.demo
 // +versionName=v1beta1
 package v1beta1
 
@@ -12,8 +12,8 @@ import (
 // It is a KRM-like object, so we generate a CRD to describe its schema.
 
 // Input is the configuration passed to this Function from the Composition
-// pipeline step. It configures which workload clusters to deploy to and the
-// RBAC roles applied to the ArgoCD project for the tenant.
+// pipeline step. It configures the tenant bindings that should be rendered
+// into the GitOps application.
 //
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
@@ -22,59 +22,46 @@ type Input struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Clusters is the list of workload clusters this function deploys to.
-	// At least one cluster must be provided.
-	// +kubebuilder:validation:MinItems=1
-	Clusters []ClusterInput `json:"clusters"`
-
-	// RBAC configures the ArgoCD project roles applied to the tenant.
-	// If omitted, default admin and viewer roles are applied.
+	// Azure configures Entra-specific rendering behavior.
 	// +optional
-	RBAC RBACInput `json:"rbac,omitempty"`
+	Azure AzureInput `json:"azure,omitempty"`
+
+	// Tenant contains the binding assignments rendered into the GitOps chart.
+	Tenant TenantInput `json:"tenant"`
 }
 
-// ClusterInput identifies a single workload cluster.
-type ClusterInput struct {
-	// Name is the ArgoCD destination cluster name.
+// AzureInput configures how Entra principals are provisioned.
+type AzureInput struct {
+	// PrincipalType selects whether the function creates Entra groups or users.
+	// +kubebuilder:validation:Enum=group;user
+	// +optional
+	PrincipalType string `json:"principalType,omitempty"`
+
+	// UserPrincipalDomain is used when principalType=user and the function creates
+	// AzureAD users.
+	// +optional
+	UserPrincipalDomain string `json:"userPrincipalDomain,omitempty"`
+}
+
+// TenantInput configures tenant-specific bindings rendered by the function.
+type TenantInput struct {
+	// Bindings associates a role with a cluster/environment pair.
+	// +kubebuilder:validation:MinItems=1
+	Bindings []BindingInput `json:"bindings"`
+}
+
+// BindingInput identifies a single tenant binding.
+type BindingInput struct {
+	// Name is the logical role name for the binding.
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
+
+	// Cluster is the ArgoCD destination cluster name.
+	// +kubebuilder:validation:MinLength=1
+	Cluster string `json:"cluster"`
 
 	// EnvironmentPrefix is the short environment label used in resource naming
 	// (e.g. dev, test, prod).
 	// +kubebuilder:validation:MinLength=1
 	EnvironmentPrefix string `json:"environmentPrefix"`
-}
-
-// RBACInput configures the ArgoCD project roles for the tenant.
-type RBACInput struct {
-	// Roles is the list of ArgoCD project roles to create.
-	// +optional
-	Roles []RoleInput `json:"roles,omitempty"`
-}
-
-// RoleInput defines an ArgoCD project role.
-type RoleInput struct {
-	// Name is the role name.
-	// +kubebuilder:validation:MinLength=1
-	Name string `json:"name"`
-
-	// Policies defines the ArgoCD RBAC policies attached to this role.
-	// +optional
-	Policies []PolicyInput `json:"policies,omitempty"`
-
-	// PrincipalObjectIds is the list of Azure AD object IDs (users or groups)
-	// to assign to this role. Used in free tier where group selectors are unavailable.
-	// +optional
-	PrincipalObjectIds []string `json:"principalObjectIds,omitempty"`
-}
-
-// PolicyInput defines a single ArgoCD RBAC policy entry.
-type PolicyInput struct {
-	// Resource is the ArgoCD resource type (e.g. applications, logs).
-	// +kubebuilder:validation:MinLength=1
-	Resource string `json:"resource"`
-
-	// Actions is the list of permitted actions on the resource.
-	// +kubebuilder:validation:MinItems=1
-	Actions []string `json:"actions"`
 }

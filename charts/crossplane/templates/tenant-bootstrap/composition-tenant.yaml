@@ -29,41 +29,16 @@ spec:
         name: function-tenant-renderer
 
       input:
-        apiVersion: template.fn.crossplane.io/v1beta1
+        apiVersion: platform.rezakara.demo/v1beta1
         kind: Input
-        clusters:
-          - name: minikube-workload
-            environmentPrefix: wl
-        rbac:
-          roles:
+        azure:
+          principalType: user
+          userPrincipalDomain: rkaramadgmail.onmicrosoft.com
+        tenant:
+          bindings:
             - name: admin
-              # principalObjectIds:
-              #   - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
-              policies:
-                - resource: applications
-                  actions:
-                    - get
-                    - update
-                    - delete
-                    - sync
-                    - action/apps/Deployment/pause
-                    - action/apps/Deployment/resume
-                    - action/apps/Deployment/restart
-                    - action/batch/CronJob/create-job
-                - resource: logs
-                  actions:
-                    - get
-
-            - name: viewer
-              # principalObjectIds:
-              #   - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
-              policies:
-                - resource: applications
-                  actions:
-                    - get
-                - resource: logs
-                  actions:
-                    - get
+              cluster: minikube-workload
+              environmentPrefix: wl
 
 {{- end }}
 {{- end }}

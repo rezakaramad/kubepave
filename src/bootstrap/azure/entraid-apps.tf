@@ -135,6 +135,12 @@ resource "azuread_application" "crossplane" {
   required_resource_access {
     resource_app_id = "00000003-0000-0000-c000-000000000000"
 
+    # User.ReadWrite.All
+    resource_access {
+      id   = "741f803b-c850-494e-b5df-cde7c675a1ca" # User.ReadWrite.All
+      type = "Role"
+    }
+
     # Group.ReadWrite.All
     resource_access {
       id   = "62a82d76-70ea-41e2-9197-370581804d09"
@@ -166,6 +172,13 @@ resource "azuread_application_password" "crossplane" {
   lifecycle {
     ignore_changes = all
   }
+}
+
+# User.ReadWrite.All
+resource "azuread_app_role_assignment" "crossplane_users" {
+  principal_object_id = azuread_service_principal.crossplane.object_id
+  resource_object_id  = data.azuread_service_principal.msgraph.object_id
+  app_role_id         = "741f803b-c850-494e-b5df-cde7c675a1ca"
 }
 
 # Group.ReadWrite.All

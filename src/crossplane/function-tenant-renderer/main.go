@@ -9,6 +9,26 @@ import (
 	"github.com/crossplane/function-sdk-go"
 )
 
+// This file contains the main entrypoint and CLI for this Function
+// Program starts
+//    ↓
+// func main()
+//    ↓
+// kong.Parse() → fills CLI struct
+//    ↓
+// ctx.Run() → calls CLI.Run()
+//    ↓
+// CLI.Run():
+//    ↓
+//   create logger
+//   create Function struct
+//   start gRPC server
+//    ↓
+// Server waits for Crossplane calls
+
+// main.go = runtime wiring
+// fn.go   = business logic
+
 // CLI of this Function.
 type CLI struct {
 	Debug bool `help:"Emit debug logs in addition to info logs." short:"d"`
@@ -46,6 +66,7 @@ func (c *CLI) Run() error {
 	}
 
 	// Run a server, and whenever a Crossplane request comes in, hand it to this fn object
+	// Crossplane → gRPC → Function.RunFunction()
 	return function.Serve(fn,
 		function.Listen(c.Network, c.Address),
 		function.MTLSCertificates(c.TLSCertsDir),

@@ -1,76 +1,56 @@
+# --------------------------------------------------------------
+# Azure AD and Entra ID configuration
+azure:
+  # principalType determines which Entra principal kind is assigned to AppRoles.
+  # Use "user" when the function must provision a tenant user, or "group" when it should provision a group.
+  # This is due to free tier Entra ID not supporting group-based assignment, so we use users in free tier and groups in enterprise tier.
+  principalType: group
+
+# --------------------------------------------------------------
+# Tenant configuration
 tenant:
   name: ""
   dnsName: ""
 
-  rbac:
-    entraArgoCDAppObjectId: "113c7f42-c868-43cf-a1d2-121cd0b07763"
-    entraArgoCDServicePrincipalObjectId: "94ed43de-b44a-4174-a093-e3f78cd38b1e"
+  argocd:
 
-    # Define roles and their corresponding permissions. 
-    # Each role can have multiple policies that specify the resources and actions allowed for that role.
-    # Assignments define how the AppRole is assigned to users or groups in Azure AD.
-    #   In free tier, we're limited to users only, so we can disable the selector and directly specify principalObjectIds.
-    #   In enterprise tier, you can enable the selector to dynamically assign the role based on user or group attributes.
-    #   if enabled, it automatically assigns the role to the group that matches the tenant name, role name, and cluster environment prefix.
-    #   E.g. for tenant "acme", role "admin", and cluster environment prefix "prod",
-    #     it would look for a group with the name "acme-admin-prod" and assign the role to that group.
-    # If the selector is disabled, you directly specify the principal object IDs (users or groups) that should be assigned to the role.
-    # In enterprise tier, users will no longer be needed for role assignments.
-    # 
-    # We create one AppRole per role (admin, viewer) per environment (dev, staging, prod) to allow for granular access control.
-    # This means that if you have 2 roles and 3 environments, you'll end up with 6 AppRoles in total 
-    # (e.g., foo-admin-dev, foo-admin-staging, foo-admin-prod, foo-viewer-dev, foo-viewer-staging, foo-viewer-prod).
+    # Application identity in Microsoft Entra ID.
+    # You can find this in the Azure portal under Azure Active Directory > App registrations
+    # These are persistent and should not be changed unless you are using a different Argo CD instance with a different service principal.
+    identity:
+      entraID:
+        appObjectId: "113c7f42-c868-43cf-a1d2-121cd0b07763"
+        servicePrincipalObjectId: "94ed43de-b44a-4174-a093-e3f78cd38b1e"
 
-    roles:
-      - name: admin
-        instances:
-          - cluster: minikube-workload
-            environmentPrefix: wl
-            entraID:
-              appRoleUUID: "00000000-0000-0000-0000-000000000001"
-              assignment:
-                principalObjectIdSelector:
-                  enabled: false
-                # principalObjectIds:
-                #   - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
-        policies:
-          - resource: applications
-            actions:
-              - get
-              - update
-              - delete
-              - sync
-              - action/apps/Deployment/pause
-              - action/apps/Deployment/resume
-              - action/apps/Deployment/restart
-              - action/batch/CronJob/create-job
-          - resource: logs
-            actions:
-              - get
+  # -----------------------------------
+  # WHAT (permissions)
+  roles:
+    - name: admin
+      policies:
+        - resource: applications
+          actions:
+            - get
+            - update
+            - delete
+            - sync
+            - action/apps/Deployment/pause
+            - action/apps/Deployment/resume
+            - action/apps/Deployment/restart
+            - action/batch/CronJob/create-job
+        - resource: logs
+          actions:
+            - get
 
-      - name: viewer
-        instances:
-          - cluster: minikube-workload
-            environmentPrefix: wl
-            entraID:
-              appRoleUUID: "00000000-0000-0000-0000-000000000002"
-              assignment:
-                principalObjectIdSelector:
-                  enabled: false
-                # principalObjectIds:
-                #   - "ee16a472-e5bd-4f24-9cfe-cb22429b11c4"
-        policies:
-          - resource: applications
-            actions:
-              - get
-          - resource: logs
-            actions:
-              - get
+  # -----------------------------------
+  # WHO and WHERE (assignment + Entra ID binding)
+  bindings:
+    - role: admin
+      cluster: minikube-workload
+      environmentPrefix: wl
 
-# --------------------------------------------------------------
-# Azure AD and Entra ID configuration
-azure:
-  # This flag indicates whether the tenant is using the free tier of Azure AD or the enterprise tier.
-  # In free tier, we have limitations such as no group-based role assignments, so we need to directly assign roles to users.
-  # In enterprise tier, we can leverage groups and dynamic assignments.
-  freeTier: true
+      entraID:
+        appRoleUUID: "00000000-0000-0000-0000-000000000001"
+
+        assignment:
+          # populated at deploy time via Crossplane function
+          principalObjectId: ""

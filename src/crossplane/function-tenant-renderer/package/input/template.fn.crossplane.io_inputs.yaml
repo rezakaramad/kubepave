@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.20.1
-  name: inputs.template.fn.crossplane.io
+  name: inputs.platform.rezakara.demo
 spec:
-  group: template.fn.crossplane.io
+  group: platform.rezakara.demo
   names:
     categories:
     - crossplane
@@ -21,8 +21,8 @@ spec:
       openAPIV3Schema:
         description: |-
           Input is the configuration passed to this Function from the Composition
-          pipeline step. It configures which workload clusters to deploy to and the
-          RBAC roles applied to the ArgoCD project for the tenant.
+          pipeline step. It configures the tenant bindings that should be rendered
+          into the GitOps application.
         properties:
           apiVersion:
             description: |-
@@ -31,29 +31,51 @@ spec:
               may reject unrecognized values.
               More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
-          clusters:
-            description: |-
-              Clusters is the list of workload clusters this function deploys to.
-              At least one cluster must be provided.
-            items:
-              description: ClusterInput identifies a single workload cluster.
-              properties:
-                environmentPrefix:
-                  description: |-
-                    EnvironmentPrefix is the short environment label used in resource naming
-                    (e.g. dev, test, prod).
-                  minLength: 1
-                  type: string
-                name:
-                  description: Name is the ArgoCD destination cluster name.
-                  minLength: 1
-                  type: string
-              required:
-              - environmentPrefix
-              - name
-              type: object
-            minItems: 1
-            type: array
+          azure:
+            description: Azure configures Entra-specific rendering behavior.
+            properties:
+              principalType:
+                description: PrincipalType selects whether the function creates Entra groups or users.
+                enum:
+                - group
+                - user
+                type: string
+              userPrincipalDomain:
+                description: UserPrincipalDomain is used when principalType=user and the function creates AzureAD users.
+                type: string
+            type: object
+          tenant:
+            description: Tenant contains the binding assignments rendered into the GitOps chart.
+            properties:
+              bindings:
+                description: Bindings associates a role with a cluster/environment pair.
+                items:
+                  description: BindingInput identifies a single tenant binding.
+                  properties:
+                    cluster:
+                      description: Cluster is the ArgoCD destination cluster name.
+                      minLength: 1
+                      type: string
+                    environmentPrefix:
+                      description: |-
+                        EnvironmentPrefix is the short environment label used in resource naming
+                        (e.g. dev, test, prod).
+                      minLength: 1
+                      type: string
+                    name:
+                      description: Name is the logical role name for the binding.
+                      minLength: 1
+                      type: string
+                  required:
+                  - cluster
+                  - environmentPrefix
+                  - name
+                  type: object
+                minItems: 1
+                type: array
+            required:
+            - bindings
+            type: object
           kind:
             description: |-
               Kind is a string value representing the REST resource this object represents.
@@ -64,51 +86,8 @@ spec:
             type: string
           metadata:
             type: object
-          rbac:
-            description: |-
-              RBAC configures the ArgoCD project roles applied to the tenant.
-              If omitted, default admin and viewer roles are applied.
-            properties:
-              roles:
-                description: Roles is the list of ArgoCD project roles to create.
-                items:
-                  description: RoleInput defines an ArgoCD project role.
-                  properties:
-                    name:
-                      description: Name is the role name.
-                      minLength: 1
-                      type: string
-                    policies:
-                      description: Policies defines the ArgoCD RBAC policies attached
-                        to this role.
-                      items:
-                        description: PolicyInput defines a single ArgoCD RBAC policy
-                          entry.
-                        properties:
-                          actions:
-                            description: Actions is the list of permitted actions
-                              on the resource.
-                            items:
-                              type: string
-                            minItems: 1
-                            type: array
-                          resource:
-                            description: Resource is the ArgoCD resource type (e.g.
-                              applications, logs).
-                            minLength: 1
-                            type: string
-                        required:
-                        - actions
-                        - resource
-                        type: object
-                      type: array
-                  required:
-                  - name
-                  type: object
-                type: array
-            type: object
         required:
-        - clusters
+        - tenant
         type: object
     served: true
     storage: true
