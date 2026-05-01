@@ -4,7 +4,7 @@ metadata:
   name: argocd-azure-identity
   namespace: argocd
 spec:
-  refreshInterval: 20m
+  refreshInterval: 1m
   secretStoreRef:
     name: vault-local
     kind: ClusterSecretStore
