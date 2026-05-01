@@ -9,6 +9,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/rezakaramad/kubepave/src/crossplane/xr-types/tenant v0.1.0
+	golang.org/x/text v0.32.0
 	google.golang.org/protobuf v1.36.11
 	k8s.io/apimachinery v0.34.3
 	sigs.k8s.io/controller-tools v0.19.0
@@ -64,7 +65,6 @@ require (
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/term v0.38.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
 	golang.org/x/tools v0.39.0 // indirect
 	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
