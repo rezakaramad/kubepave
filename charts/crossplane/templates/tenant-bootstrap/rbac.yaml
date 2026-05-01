@@ -40,7 +40,7 @@ rules:
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: ["external-secrets.io"]
   resources: ["externalsecrets/status"]
-  verbs: ["get", "list", "watch"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: ["generators.external-secrets.io"]
   resources: ["passwords"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

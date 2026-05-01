@@ -85,12 +85,10 @@ func buildPrincipalUserPasswordSecret(binding inputv1beta1.BindingInput, secretN
 	_ = externalSecret.SetValue("spec.target.name", secretName)
 	_ = externalSecret.SetValue("spec.dataFrom", []any{
 		map[string]any{
-			"sourceRef": []any{
-				map[string]any{
-					"generatorRef": map[string]any{
-						"kind": "Password",
-						"name": secretName,
-					},
+			"sourceRef": map[string]any{
+				"generatorRef": map[string]any{
+					"kind": "Password",
+					"name": secretName,
 				},
 			},
 		},
@@ -158,9 +156,17 @@ func resolveBindingPrincipalObjectID(observed map[resource.Name]resource.Observe
 	}
 
 	objectID, err := observedResource.Resource.GetString("status.atProvider.objectId")
-	if err != nil || objectID == "" {
-		return "", false, err
+	if err == nil && objectID != "" {
+		return objectID, true, nil
 	}
 
-	return objectID, true, nil
+	providerID, idErr := observedResource.Resource.GetString("status.atProvider.id")
+	if idErr == nil && providerID != "" {
+		return providerID, true, nil
+	}
+
+	if err != nil {
+		return "", false, err
+	}
+	return "", false, idErr
 }
