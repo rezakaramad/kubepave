@@ -19,7 +19,10 @@ data "azuread_service_principal" "msgraph" {
 resource "azuread_application" "argocd" {
   display_name = "Argo CD"
   sign_in_audience = "AzureADMyOrg"
-  owners = [ data.azuread_client_config.current.object_id ]
+  owners = [ 
+    data.azuread_client_config.current.object_id,
+    azuread_service_principal.crossplane.object_id
+  ]
 
   web {
     redirect_uris = [
