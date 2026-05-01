@@ -1,6 +1,6 @@
 {{- range $binding := $.Values.tenant.bindings }}
 
-{{- $role := (where $.Values.tenant.roles "name" $binding.role) | first }}
+{{- $role := include "tenant.roleByName" (dict "roles" $.Values.tenant.roles "name" $binding.role) | fromYaml }}
 {{- if not $role }}
 {{- fail (printf "Role '%s' not defined in tenant.roles" $binding.role) }}
 {{- end }}
@@ -117,4 +117,3 @@ spec:
 
 ---
 {{- end }}
-{{ end }}

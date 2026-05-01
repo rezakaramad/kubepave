@@ -37,3 +37,13 @@ platform-deploy-{{ . | lower }}
 {{- define "tenant.repoURL" -}}
 https://github.com/{{ include "deploy.githubOrg" $ }}/{{ include "tenant.repoName" . }}
 {{- end -}}
+
+{{/* Returns a tenant role object by name as YAML so callers can parse it with fromYaml */}}
+{{- define "tenant.roleByName" -}}
+{{- $name := .name -}}
+{{- range $role := .roles -}}
+{{- if eq $role.name $name -}}
+{{ toYaml $role }}
+{{- end -}}
+{{- end -}}
+{{- end -}}

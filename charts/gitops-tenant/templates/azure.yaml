@@ -1,7 +1,7 @@
 {{- range $binding := $.Values.tenant.bindings }}
 
 # Find the role this binding refers to—and crash if it doesn’t exist
-{{- $role := (where $.Values.tenant.roles "name" $binding.role) | first }}
+{{- $role := include "tenant.roleByName" (dict "roles" $.Values.tenant.roles "name" $binding.role) | fromYaml }}
 {{- if not $role }}
 {{- fail (printf "Role '%s' not defined in roles" $binding.role) }}
 {{- end }}
