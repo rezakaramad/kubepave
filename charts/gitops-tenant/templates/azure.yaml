@@ -25,7 +25,6 @@ spec:
     roleId: {{ $binding.entraID.appRoleUUID | quote }}
     allowedMemberTypes: 
       - User
-      - Group
     applicationId: "/applications/{{ $.Values.tenant.argocd.identity.entraID.appObjectId }}"
     description: "{{ $binding.role | title }} access for {{ $.Values.tenant.name | title }} in {{ $binding.environmentPrefix | title }}"
     displayName: "{{ $.Values.tenant.name | title }} {{ $binding.role | title }} {{ $binding.environmentPrefix | title }}"
