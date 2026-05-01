@@ -78,7 +78,7 @@ func buildPrincipalUserPassword(binding inputv1beta1.BindingInput, secretName st
 
 func buildPrincipalUserPasswordSecret(binding inputv1beta1.BindingInput, secretName string) *composed.Unstructured {
 	externalSecret := composed.New()
-	externalSecret.SetAPIVersion("external-secrets.io/v1beta1")
+	externalSecret.SetAPIVersion("external-secrets.io/v1")
 	externalSecret.SetKind("ExternalSecret")
 	externalSecret.SetName(secretName)
 	externalSecret.SetNamespace("crossplane")
