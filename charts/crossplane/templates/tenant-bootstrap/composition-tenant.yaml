@@ -21,6 +21,14 @@ spec:
     - step: validate-and-approve
       functionRef:
         name: function-tenant-validator
+      input:
+        apiVersion: platform.rezakara.demo/v1beta1
+        kind: Input
+        dns:
+          baseDomain: rezakara.demo
+        clusters:
+          - name: minikube-workload
+            prefix: wl
 
     # Step 2: Render ArgoCD Applications + RepositoryFile to Git.
     # Only runs if Step 1 passes (i.e. approved).
@@ -31,6 +39,10 @@ spec:
       input:
         apiVersion: platform.rezakara.demo/v1beta1
         kind: Input
+        github:
+          providerConfigName: github-rezakaramad
+          commitAuthor: "Crossplane"
+          commitEmail: "crossplane@rezkara.demo"
         azure:
           principalType: user
           userPrincipalDomain: rkaramadgmail.onmicrosoft.com

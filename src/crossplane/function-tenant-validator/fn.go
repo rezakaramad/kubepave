@@ -10,6 +10,7 @@ import (
 	"github.com/crossplane/function-sdk-go/request"
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/response"
+	inputv1beta1 "github.com/crossplane/function-tenant-validator/input/v1beta1"
 	"github.com/crossplane/function-tenant-validator/model"
 
 	xtenant "github.com/rezakaramad/kubepave/src/crossplane/xr-types/tenant"
@@ -21,13 +22,8 @@ type Function struct {
 	fnv1.UnimplementedFunctionRunnerServiceServer
 	log logging.Logger
 
-	crossplaneNamespace string
-	workloadClusters    []xtenant.Cluster
-
 	kube ctrlclient.Client
 	pdns PDNSClient
-
-	dnsBaseDomain string
 }
 
 func NewFunction(l logging.Logger) *Function {
@@ -64,6 +60,28 @@ func (f *Function) RunFunction(
 
 	log = log.WithValues("tenant", tenantRequest.GetName())
 
+	var input inputv1beta1.Input
+	if err := request.GetInput(req, &input); err != nil {
+		return fail(rsp, xr, PhaseFailed, err, "cannot parse function input")
+	}
+	if input.DNS.BaseDomain == "" {
+		return fail(rsp, xr, PhaseFailed, xperrors.New("dns.baseDomain is required"), "cannot parse function input")
+	}
+	if len(input.Clusters) == 0 {
+		return fail(rsp, xr, PhaseFailed, xperrors.New("clusters is required"), "cannot parse function input")
+	}
+
+	workloadClusters := make([]xtenant.Cluster, 0, len(input.Clusters))
+	for _, cluster := range input.Clusters {
+		if cluster.Name == "" || cluster.Prefix == "" {
+			return fail(rsp, xr, PhaseFailed, xperrors.New("clusters entries require name and prefix"), "cannot parse function input")
+		}
+		workloadClusters = append(workloadClusters, xtenant.Cluster{
+			Name:   cluster.Name,
+			Prefix: cluster.Prefix,
+		})
+	}
+
 	// ---------------------------------------------------------------------
 	// 3. Validation
 	// ---------------------------------------------------------------------
@@ -72,8 +90,8 @@ func (f *Function) RunFunction(
 	if verr := Validate(ctx, tenantRequest, Deps{
 		Kube:             f.kube,
 		PDNSClient:       f.pdns,
-		BaseDomain:       f.dnsBaseDomain,
-		WorkloadClusters: f.workloadClusters,
+		BaseDomain:       input.DNS.BaseDomain,
+		WorkloadClusters: workloadClusters,
 	}); verr != nil {
 
 		if verr.Retryable {

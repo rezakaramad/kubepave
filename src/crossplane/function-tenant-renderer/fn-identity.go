@@ -6,6 +6,8 @@ import (
 	"github.com/crossplane/function-sdk-go/resource"
 	"github.com/crossplane/function-sdk-go/resource/composed"
 	inputv1beta1 "github.com/crossplane/function-tenant-renderer/input/v1beta1"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const defaultUserPrincipalDomain = "rkaramadgmail.onmicrosoft.com"
@@ -58,7 +60,7 @@ func buildPrincipalGroup(t TenantSpec, binding inputv1beta1.BindingInput) *compo
 		"platform.rezakara.demo/prefix": binding.EnvironmentPrefix,
 	})
 
-	_ = group.SetValue("spec.forProvider.displayName", fmt.Sprintf("%s-%s-%s", t.Spec.DisplayName, binding.Name, binding.EnvironmentPrefix))
+	_ = group.SetValue("spec.forProvider.displayName", fmt.Sprintf("%s-%s-%s", t.Spec.DisplayName, cases.Title(language.English).String(binding.Name), cases.Title(language.English).String(binding.EnvironmentPrefix)))
 	_ = group.SetValue("spec.forProvider.securityEnabled", true)
 	_ = group.SetValue("spec.providerConfigRef.name", "azuread")
 	_ = group.SetValue("spec.providerConfigRef.kind", "ProviderConfig")
@@ -117,7 +119,7 @@ func buildPrincipalUser(t TenantSpec, binding inputv1beta1.BindingInput, azure i
 	})
 
 	_ = user.SetValue("spec.forProvider.userPrincipalName", fmt.Sprintf("%s@%s", principalName, domain))
-	_ = user.SetValue("spec.forProvider.displayName", fmt.Sprintf("%s %s", t.Spec.DisplayName, binding.Name))
+	_ = user.SetValue("spec.forProvider.displayName", fmt.Sprintf("%s %s", t.Spec.DisplayName, cases.Title(language.English).String(binding.Name)))
 	_ = user.SetValue("spec.forProvider.passwordSecretRef.key", "password")
 	_ = user.SetValue("spec.forProvider.passwordSecretRef.name", secretName)
 	_ = user.SetValue("spec.providerConfigRef.name", "azuread")

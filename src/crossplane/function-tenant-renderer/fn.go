@@ -38,7 +38,7 @@ type Function struct {
 	log logging.Logger
 
 	// Git export (final bundle destination)
-	exportRepoURL      string
+	exportRepository   string
 	exportRepoBranch   string
 	exportRepoBasePath string
 
@@ -54,9 +54,6 @@ type Function struct {
 	gitopsRepoURL      string
 	gitopsRepoBranch   string
 	gitopsRepoBasePath string
-
-	// External dependency
-	argocdAppID string
 }
 
 func NewFunction(l logging.Logger) *Function {
@@ -241,17 +238,32 @@ func (f *Function) RunFunction(
 	// ---------------------------------------------------------------------
 	// Git export (RepositoryFile)
 	// ---------------------------------------------------------------------
+	providerConfigName := input.Github.ProviderConfigName
+	if providerConfigName == "" {
+		providerConfigName = "github-rezakaramad"
+	}
+
+	commitAuthor := input.Github.CommitAuthor
+	if commitAuthor == "" {
+		commitAuthor = "Crossplane"
+	}
+
+	commitEmail := input.Github.CommitEmail
+	if commitEmail == "" {
+		commitEmail = "crossplane@rezakara.demo"
+	}
+
 	repoFile := buildRepositoryFile(
 		tenant,
 		content,
 		RepositoryFileConfig{
 			Namespace:          f.crossplaneNamespace,
-			ProviderConfigName: "github-rezakaramad",
-			Repository:         f.exportRepoURL,
+			ProviderConfigName: providerConfigName,
+			Repository:         f.exportRepository,
 			Branch:             f.exportRepoBranch,
 			BasePath:           f.exportRepoBasePath,
-			CommitAuthor:       "Crossplane",
-			CommitEmail:        "crossplane@local",
+			CommitAuthor:       commitAuthor,
+			CommitEmail:        commitEmail,
 		},
 	)
 

@@ -31,6 +31,19 @@ spec:
               may reject unrecognized values.
               More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
+          github:
+            description: Github configures how rendered manifests are written to the export repository.
+            properties:
+              commitAuthor:
+                description: CommitAuthor is the git author name used for rendered commits.
+                type: string
+              commitEmail:
+                description: CommitEmail is the git author email used for rendered commits.
+                type: string
+              providerConfigName:
+                description: ProviderConfigName references the GitHub provider config used for RepositoryFile resources.
+                type: string
+            type: object
           azure:
             description: Azure configures Entra-specific rendering behavior.
             properties:

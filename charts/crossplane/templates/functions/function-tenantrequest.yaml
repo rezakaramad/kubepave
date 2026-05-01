@@ -33,18 +33,6 @@ spec:
                     secretKeyRef:
                       name: powerdns-api-key
                       key: key
-                - name: DNS_BASE_DOMAIN
-                  value: "rezakara.demo"
-                - name: GIT_REPOSITORY
-                  value: "kubepave-tenants"
-                - name: GIT_BRANCH
-                  value: "main"
-                - name: GIT_BASE_PATH
-                  value: "tenants"
-                - name: CROSSPLANE_NAMESPACE
-                  value: "crossplane"
-                - name: WORKLOAD_CLUSTERS
-                  value: "minikube-workload:wl"
 
 ---
 {{- end }}

@@ -229,7 +229,7 @@ func TestRunFunction(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			f := &Function{
 				log:                  logging.NewNopLogger(),
-				exportRepoURL:        "kubepave-tenants",
+				exportRepository:     "kubepave-tenants",
 				exportRepoBranch:     "main",
 				exportRepoBasePath:   "tenants",
 				crossplaneNamespace:  "crossplane",

@@ -26,14 +26,12 @@ spec:
           containers:
             - name: package-runtime
               env:
-                - name: EXPORT_REPO_URL
+                - name: EXPORT_REPOSITORY
                   value: "kubepave-tenants"
                 - name: EXPORT_REPO_BRANCH
                   value: "main"
                 - name: EXPORT_REPO_BASE_PATH
                   value: "tenants"
-                - name: CROSSPLANE_NAMESPACE
-                  value: "crossplane"
                 - name: BASELINE_REPO_URL
                   value: "https://github.com/rezakaramad/kubepave.git"
                 - name: BASELINE_REPO_BRANCH

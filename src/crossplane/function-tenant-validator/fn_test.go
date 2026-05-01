@@ -15,6 +15,12 @@ import (
 	"github.com/crossplane/function-sdk-go/response"
 )
 
+type fakePDNSClient struct{}
+
+func (fakePDNSClient) CheckDNSAvailable(_ context.Context, _ string) (DNSAvailabilityResult, error) {
+	return DNSAvailabilityResult{Available: true}, nil
+}
+
 func TestRunFunction(t *testing.T) {
 	type args struct {
 		ctx context.Context
@@ -30,34 +36,92 @@ func TestRunFunction(t *testing.T) {
 		args   args
 		want   want
 	}{
-		"ResponseIsReturned": {
-			reason: "The Function should return a fatal result if no input was specified",
+		"FailsOnMissingInput": {
+			reason: "The Function should return a fatal result when the required validator input is incomplete",
 			args: args{
+				ctx: context.Background(),
 				req: &fnv1.RunFunctionRequest{
-					Meta: &fnv1.RequestMeta{Tag: "hello"},
+					Meta: &fnv1.RequestMeta{Tag: "missing-input"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{Resource: resource.MustStructJSON(`{
+							"apiVersion": "idp.rezakara.demo/v1alpha1",
+							"kind": "Tenant",
+							"metadata": {"name": "payment"},
+							"spec": {
+								"dnsName": "payment",
+								"approved": false,
+								"owner": {"team": "platform", "email": "platform@example.com"}
+							}
+						}`)},
+					},
 					Input: resource.MustStructJSON(`{
-						"apiVersion": "template.fn.crossplane.io/v1beta1",
-						"kind": "Input",
-						"example": "Hello, world"
+						"apiVersion": "platform.rezakara.demo/v1beta1",
+						"kind": "Input"
 					}`),
 				},
 			},
 			want: want{
 				rsp: &fnv1.RunFunctionResponse{
-					Meta: &fnv1.ResponseMeta{Tag: "hello", Ttl: durationpb.New(response.DefaultTTL)},
+					Meta: &fnv1.ResponseMeta{Tag: "missing-input", Ttl: durationpb.New(response.DefaultTTL)},
 					Results: []*fnv1.Result{
 						{
-							Severity: fnv1.Severity_SEVERITY_NORMAL,
-							Message:  "I was run with input \"Hello, world\"!",
+							Severity: fnv1.Severity_SEVERITY_FATAL,
+							Message:  "cannot parse function input: dns.baseDomain is required",
 							Target:   fnv1.Target_TARGET_COMPOSITE.Enum(),
 						},
 					},
+				},
+			},
+		},
+		"WaitsForApproval": {
+			reason: "The Function should validate successfully and wait for approval when the tenant is not approved",
+			args: args{
+				ctx: context.Background(),
+				req: &fnv1.RunFunctionRequest{
+					Meta: &fnv1.RequestMeta{Tag: "waiting"},
+					Observed: &fnv1.State{
+						Composite: &fnv1.Resource{Resource: resource.MustStructJSON(`{
+							"apiVersion": "idp.rezakara.demo/v1alpha1",
+							"kind": "Tenant",
+							"metadata": {"name": "payment"},
+							"spec": {
+								"dnsName": "payment",
+								"approved": false,
+								"owner": {"team": "platform", "email": "platform@example.com"}
+							}
+						}`)},
+					},
+					Input: resource.MustStructJSON(`{
+						"apiVersion": "platform.rezakara.demo/v1beta1",
+						"kind": "Input",
+						"dns": {"baseDomain": "rezakara.demo"},
+						"clusters": [
+							{"name": "minikube-workload", "prefix": "wl"}
+						]
+					}`),
+				},
+			},
+			want: want{
+				rsp: &fnv1.RunFunctionResponse{
+					Meta: &fnv1.ResponseMeta{Tag: "waiting", Ttl: durationpb.New(response.DefaultTTL)},
 					Conditions: []*fnv1.Condition{
 						{
-							Type:   "FunctionSuccess",
+							Type:   "Valid",
 							Status: fnv1.Status_STATUS_CONDITION_TRUE,
-							Reason: "Success",
-							Target: fnv1.Target_TARGET_COMPOSITE_AND_CLAIM.Enum(),
+							Reason: "ValidationPassed",
+							Target: fnv1.Target_TARGET_COMPOSITE.Enum(),
+						},
+						{
+							Type:   "Approved",
+							Status: fnv1.Status_STATUS_CONDITION_FALSE,
+							Reason: "WaitingForApproval",
+							Target: fnv1.Target_TARGET_COMPOSITE.Enum(),
+						},
+						{
+							Type:   "Ready",
+							Status: fnv1.Status_STATUS_CONDITION_FALSE,
+							Reason: "WaitingForApproval",
+							Target: fnv1.Target_TARGET_COMPOSITE.Enum(),
 						},
 					},
 				},
@@ -67,10 +131,10 @@ func TestRunFunction(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			f := &Function{log: logging.NewNopLogger()}
+			f := &Function{log: logging.NewNopLogger(), pdns: fakePDNSClient{}}
 			rsp, err := f.RunFunction(tc.args.ctx, tc.args.req)
 
-			if diff := cmp.Diff(tc.want.rsp, rsp, protocmp.Transform()); diff != "" {
+			if diff := cmp.Diff(tc.want.rsp, rsp, protocmp.Transform(), protocmp.IgnoreFields(&fnv1.RunFunctionResponse{}, "desired")); diff != "" {
 				t.Errorf("%s\nf.RunFunction(...): -want rsp, +got rsp:\n%s", tc.reason, diff)
 			}
 

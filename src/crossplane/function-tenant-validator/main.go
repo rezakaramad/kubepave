@@ -4,12 +4,10 @@ package main
 import (
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/crossplane/function-sdk-go"
-	xtenant "github.com/rezakaramad/kubepave/src/crossplane/xr-types/tenant"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -37,8 +35,6 @@ func (c *CLI) Run() error {
 	if err != nil {
 		return err
 	}
-
-	workloadClusters := parseClusters(getEnv("WORKLOAD_CLUSTERS", ""))
 
 	// ------------------------------------------------------------------
 	// Build Kubernetes client
@@ -84,12 +80,9 @@ func (c *CLI) Run() error {
 	// Function setup
 	// ------------------------------------------------------------------
 	fn := &Function{
-		log:                 log,
-		workloadClusters:    workloadClusters,
-		kube:                kubeClient,
-		pdns:                pdnsClient,
-		dnsBaseDomain:       getEnv("DNS_BASE_DOMAIN", "rezakara.demo"),
-		crossplaneNamespace: getEnv("CROSSPLANE_NAMESPACE", "crossplane"),
+		log:  log,
+		kube: kubeClient,
+		pdns: pdnsClient,
 	}
 
 	// Run a server, and whenever a Crossplane request comes in, hand it to this fn object
@@ -99,25 +92,6 @@ func (c *CLI) Run() error {
 		function.Insecure(c.Insecure),
 		function.MaxRecvMessageSize(c.MaxRecvMessageSize*1024*1024))
 }
-
-func parseClusters(s string) []xtenant.Cluster {
-	var out []xtenant.Cluster
-
-	for _, item := range strings.Split(s, ",") {
-		parts := strings.Split(item, ":")
-		if len(parts) != 2 {
-			continue // or log warning
-		}
-
-		out = append(out, xtenant.Cluster{
-			Name:   strings.TrimSpace(parts[0]),
-			Prefix: strings.TrimSpace(parts[1]),
-		})
-	}
-
-	return out
-}
-
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v

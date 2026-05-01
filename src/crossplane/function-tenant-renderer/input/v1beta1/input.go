@@ -22,12 +22,31 @@ type Input struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// Github configures how rendered manifests are written to the export repository.
+	// +optional
+	Github GithubInput `json:"github,omitempty"`
+
 	// Azure configures Entra-specific rendering behavior.
 	// +optional
 	Azure AzureInput `json:"azure,omitempty"`
 
 	// Tenant contains the binding assignments rendered into the GitOps chart.
 	Tenant TenantInput `json:"tenant"`
+}
+
+// GithubInput configures the Crossplane RepositoryFile resource written by this function.
+type GithubInput struct {
+	// ProviderConfigName references the GitHub provider config used for RepositoryFile resources.
+	// +optional
+	ProviderConfigName string `json:"providerConfigName,omitempty"`
+
+	// CommitAuthor is the git author name used for rendered commits.
+	// +optional
+	CommitAuthor string `json:"commitAuthor,omitempty"`
+
+	// CommitEmail is the git author email used for rendered commits.
+	// +optional
+	CommitEmail string `json:"commitEmail,omitempty"`
 }
 
 // AzureInput configures how Entra principals are provisioned.

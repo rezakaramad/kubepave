@@ -3,11 +3,14 @@ package main
 
 import (
 	"os"
+	"strings"
 
 	"github.com/alecthomas/kong"
 
 	"github.com/crossplane/function-sdk-go"
 )
+
+const serviceAccountNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 
 // This file contains the main entrypoint and CLI for this Function
 // Program starts
@@ -53,7 +56,7 @@ func (c *CLI) Run() error {
 	fn := &Function{
 		log: log,
 
-		exportRepoURL:        getEnv("EXPORT_REPO_URL", "kubepave-tenants"),
+		exportRepository:     getEnv("EXPORT_REPOSITORY", "kubepave-tenants"),
 		exportRepoBranch:     getEnv("EXPORT_REPO_BRANCH", "main"),
 		exportRepoBasePath:   getEnv("EXPORT_REPO_BASE_PATH", "tenants"),
 		baselineRepoURL:      getEnv("BASELINE_REPO_URL", "kubepave"),
@@ -62,7 +65,7 @@ func (c *CLI) Run() error {
 		gitopsRepoURL:        getEnv("GITOPS_REPO_URL", "kubepave"),
 		gitopsRepoBranch:     getEnv("GITOPS_REPO_BRANCH", "main"),
 		gitopsRepoBasePath:   getEnv("GITOPS_REPO_BASE_PATH", "charts/gitops-tenant"),
-		crossplaneNamespace:  getEnv("CROSSPLANE_NAMESPACE", "crossplane"),
+		crossplaneNamespace:  discoverNamespace(),
 	}
 
 	// Run a server, and whenever a Crossplane request comes in, hand it to this fn object
@@ -79,6 +82,16 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func discoverNamespace() string {
+	if data, err := os.ReadFile(serviceAccountNamespacePath); err == nil {
+		if namespace := strings.TrimSpace(string(data)); namespace != "" {
+			return namespace
+		}
+	}
+
+	return getEnv("CROSSPLANE_NAMESPACE", "crossplane")
 }
 
 func main() {
