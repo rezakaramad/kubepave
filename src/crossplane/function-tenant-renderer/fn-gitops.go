@@ -82,6 +82,7 @@ func buildGitopsApplication(
 	app.SetName(name)
 	app.SetNamespace("argocd")
 	_ = app.SetValue("metadata.namespace", "argocd")
+	_ = app.SetValue("metadata.finalizers", []string{"resources-finalizer.argocd.argoproj.io"})
 
 	app.SetLabels(commonLabels(t))
 
