@@ -4,14 +4,12 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: tenant-default
-  labels:
-    crossplane.io/xrd: tenants.idp.rezakara.demo
+  name: xtenant
 
 spec:
   compositeTypeRef:
-    apiVersion: idp.rezakara.demo/v1alpha1
-    kind: Tenant
+    apiVersion: idp.rezakara.demo/v1beta1
+    kind: XTenant
 
   mode: Pipeline
 
@@ -20,12 +18,18 @@ spec:
     # Halts here with PendingApproval until spec.approved=true.
     - step: validate-and-approve
       functionRef:
-        name: function-tenant-validator
+        name: xtenant-validate
       input:
         apiVersion: platform.rezakara.demo/v1beta1
         kind: Input
         dns:
           baseDomain: rezakara.demo
+          provider: powerdns
+          apiURL: "http://host.minikube.internal:5380/api/v1"
+          credentialsSecretRef:
+            namespace: crossplane
+            name: powerdns-api-key
+            key: key
         clusters:
           - name: minikube-workload
             prefix: wl
@@ -34,7 +38,7 @@ spec:
     # Only runs if Step 1 passes (i.e. approved).
     - step: provision
       functionRef:
-        name: function-tenant-renderer
+        name: xtenant-render
 
       input:
         apiVersion: platform.rezakara.demo/v1beta1

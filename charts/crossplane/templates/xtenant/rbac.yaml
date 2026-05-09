@@ -1,32 +1,7 @@
 {{- if .Capabilities.APIVersions.Has "apiextensions.crossplane.io/v1/Composition" }}
 {{- if .Values.tenantBootstrap.enabled }}
 
-# Developers: submit TenantClaims in devex namespace (no patch/update)
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: tenantclaim-submitter
-  namespace: devex
-rules:
-- apiGroups: ["idp.rezakara.demo"]
-  resources: ["tenantclaims"]
-  verbs: ["create", "get", "list", "watch"]
-
----
-
-# Platform engineers: approve Tenants (cluster-scoped XR)
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: tenant-approver
-rules:
-- apiGroups: ["idp.rezakara.demo"]
-  resources: ["tenants"]
-  verbs: ["get", "list", "watch", "patch", "update"]
-
----
-
-# Crossplane internal: manage ArgoCD apps
+# Crossplane internal: manage ArgoCD apps, ExternalSecrets, and read Tenants
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -61,6 +36,36 @@ subjects:
 roleRef:
   kind: ClusterRole
   name: crossplane-manage-argocd-apps
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+# xtenant-validate reads the PowerDNS API key Secret at reconcile time
+# (for key rotation support). Scoped to the crossplane namespace only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: crossplane-function-xtenant-validate-read-secrets
+  namespace: crossplane
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: crossplane-function-xtenant-validate-read-secrets
+  namespace: crossplane
+subjects:
+- kind: ServiceAccount
+  name: crossplane
+  namespace: crossplane
+roleRef:
+  kind: Role
+  name: crossplane-function-xtenant-validate-read-secrets
   apiGroup: rbac.authorization.k8s.io
 
 ---
