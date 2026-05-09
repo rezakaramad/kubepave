@@ -6,7 +6,7 @@ kind: Function
 metadata:
   name: xtenant-validate
 spec:
-  package: {{ required "tenantBootstrap.functions.tenantrequest.providerPackage is required" .Values.tenantBootstrap.functions.tenantrequest.providerPackage }}
+  package: {{ required "tenantBootstrap.functions.xtenantValidate.providerPackage is required" .Values.tenantBootstrap.functions.xtenantValidate.providerPackage }}
   runtimeConfigRef:
     name: xtenant-validate
 
