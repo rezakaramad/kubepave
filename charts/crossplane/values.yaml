@@ -17,24 +17,12 @@ tenantBootstrap:
   enabled: false
 
   functions:
-    # function-patch-and-transform:
-    patchAndTransform: 
-      providerPackage: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.8.2
-
-    # crossplane-contrib-function-go-templating:
-    goTemplating:
-      providerPackage: xpkg.upbound.io/crossplane-contrib/function-go-templating:v0.11.3
-
-    # function-auto-ready
-    autoReady:
-      providerPackage: xpkg.upbound.io/crossplane-contrib/function-auto-ready:v0.6.1
-
     # xtenant render function package
-    tenant:
+    xtenantRender:
       providerPackage: ghcr.io/rezakaramad/function-xtenant-render:latest
 
     # xtenant validate function package
-    tenantrequest:
+    xtenantValidate:
       providerPackage: ghcr.io/rezakaramad/function-xtenant-validate:latest
 
 ---
