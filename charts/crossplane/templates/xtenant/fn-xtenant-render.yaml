@@ -6,7 +6,7 @@ kind: Function
 metadata:
   name: xtenant-render
 spec:
-  package: {{ .Values.tenantBootstrap.functions.xtenant.providerPackage }}
+  package: {{ required "tenantBootstrap.functions.tenant.providerPackage is required" .Values.tenantBootstrap.functions.tenant.providerPackage }}
   runtimeConfigRef:
     name: xtenant-render
 

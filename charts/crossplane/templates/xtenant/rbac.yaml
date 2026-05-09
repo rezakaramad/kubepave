@@ -1,7 +1,7 @@
 {{- if .Capabilities.APIVersions.Has "apiextensions.crossplane.io/v1/Composition" }}
 {{- if .Values.tenantBootstrap.enabled }}
 
-# Crossplane internal: manage ArgoCD apps, ExternalSecrets, and read Tenants
+# Crossplane internal: manage ArgoCD apps, ExternalSecrets, and read XTenants
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -20,7 +20,7 @@ rules:
   resources: ["passwords"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 - apiGroups: ["idp.rezakara.demo"]
-  resources: ["tenants"]
+  resources: ["xtenants"]
   verbs: ["get", "list"]
 
 ---

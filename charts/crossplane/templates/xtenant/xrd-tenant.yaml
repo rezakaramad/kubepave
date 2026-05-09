@@ -4,21 +4,21 @@
 apiVersion: apiextensions.crossplane.io/v2
 kind: CompositeResourceDefinition
 metadata:
-  name: tenants.idp.rezakara.demo
+  name: xtenants.idp.rezakara.demo
 
 spec:
   scope: Cluster
   group: idp.rezakara.demo
 
   names:
-    kind: Tenant
-    plural: tenants
+    kind: XTenant
+    plural: xtenants
 
   defaultCompositionRef:
-    name: tenant-default
+    name: xtenant
 
   versions:
-    - name: v1alpha1
+    - name: v1beta1
       served: true
       referenceable: true
 
@@ -32,13 +32,13 @@ spec:
           # ------------------------------------------------------------------
           x-kubernetes-validations:
             - rule: "self.metadata.name.size() <= 20"
-              message: "Tenant name must be 20 characters or less"
+              message: "XTenant name must be 20 characters or less"
 
             - rule: "self.metadata.name.matches('^[a-z0-9]+(-[a-z0-9]+)*$')"
-              message: "Tenant name must be lowercase alphanumeric with hyphens"
+              message: "XTenant name must be lowercase alphanumeric with hyphens"
 
             - rule: "!self.metadata.name.matches('(^|-)(dev|test|stage|prod)(-|$)')"
-              message: "Tenant name must not include reserved environment segments (dev, test, stage, prod)"
+              message: "XTenant name must not include reserved environment segments (dev, test, stage, prod)"
 
             # Core identity fields are immutable after creation
             - rule: >-

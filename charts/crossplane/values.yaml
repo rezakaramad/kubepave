@@ -29,12 +29,12 @@ tenantBootstrap:
     autoReady:
       providerPackage: xpkg.upbound.io/crossplane-contrib/function-auto-ready:v0.6.1
 
-    # crossplane tenant render function
+    # xtenant render function
     tenant:
-      providerPackage: ghcr.io/rezakaramad/function-tenant-render:1de01af62d010b80a3abd47f5d0d8ac05035b81e
+      providerPackage: ghcr.io/rezakaramad/xtenant-render:latest
 
-    # crossplane tenant validate function
+    # xtenant validate function
     tenantrequest:
-      providerPackage: ghcr.io/rezakaramad/function-tenant-validate:1de01af62d010b80a3abd47f5d0d8ac05035b81e
+      providerPackage: ghcr.io/rezakaramad/xtenant-validate:latest
 
 ---
