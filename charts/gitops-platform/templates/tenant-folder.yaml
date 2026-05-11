@@ -13,7 +13,7 @@ spec:
     namespace: '*'
   clusterResourceWhitelist:
     - group: idp.rezakara.demo
-      kind: Tenant
+      kind: XTenant
 
 ---
 apiVersion: argoproj.io/v1alpha1
