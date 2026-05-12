@@ -19,8 +19,8 @@ tenant:
     # These are persistent and should not be changed unless you are using a different Argo CD instance with a different service principal.
     identity:
       entraID:
-        appObjectId: "113c7f42-c868-43cf-a1d2-121cd0b07763"
-        servicePrincipalObjectId: "94ed43de-b44a-4174-a093-e3f78cd38b1e"
+        appObjectId: "805df85c-99e7-4e82-979f-242334735f59"
+        servicePrincipalObjectId: "622026ce-04e7-4b50-be99-f4302860da61"
 
   # -----------------------------------
   # WHAT (permissions)
