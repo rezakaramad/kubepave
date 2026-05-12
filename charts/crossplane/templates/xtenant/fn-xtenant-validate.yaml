@@ -18,6 +18,9 @@ kind: DeploymentRuntimeConfig
 metadata:
   name: xtenant-validate
 spec:
+  serviceAccountTemplate:
+    metadata:
+      name: xtenant-validate
   deploymentTemplate:
     spec:
       selector: {}

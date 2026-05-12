@@ -1,4 +1,4 @@
-module github.com/r-karamad/kubepave/kubectl-tenant
+module github.com/r-karamad/kubepave/kubectl-xtenant
 
 go 1.24.3
 

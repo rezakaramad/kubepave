@@ -61,7 +61,7 @@ metadata:
   namespace: crossplane
 subjects:
 - kind: ServiceAccount
-  name: crossplane
+  name: xtenant-validate
   namespace: crossplane
 roleRef:
   kind: Role

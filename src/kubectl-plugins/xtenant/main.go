@@ -11,7 +11,7 @@ import (
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "kubectl-tenant",
+		Use:   "kubectl-xtenant",
 		Short: "kubectl plugin for managing tenants",
 	}
 
@@ -96,7 +96,7 @@ func approve(name string) {
 	out, err := exec.Command(
 		"kubectl",
 		"get",
-		"tenants.idp.rezakara.demo",
+		"xtenants.idp.rezakara.demo",
 		name,
 		"-o",
 		"jsonpath={.spec.approved}",
@@ -116,7 +116,7 @@ func approve(name string) {
 	cmd := exec.Command(
 		"kubectl",
 		"patch",
-		"tenants.idp.rezakara.demo",
+		"xtenants.idp.rezakara.demo",
 		name,
 		"--type=merge",
 		"-p",

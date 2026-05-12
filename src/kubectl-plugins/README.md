@@ -8,36 +8,35 @@ kubectl-<plugin-name>
 
 So for your command:
 ```
-kubectl tenant approve <tenantrequest>
+kubectl xtenant approve <xtenant>
 ```
 
 👉 The binary must be named:
 ```
-kubectl-tenant
+kubectl-xtenant
 ```
 
 ## Build the Binary
 
 Create the executable:
 ```
-go build -o kubectl-tenant
+cd xtenant && go build -o kubectl-xtenant
+```
+Make sure it’s executable:
+```
+chmod +x kubectl-xtenant
 ```
 
-## Move It to Your PATH
+## Move it to your PATH
 
 You need to place it somewhere kubectl can find it.
 
 **Option A (recommended):**
 ```
-mv kubectl-tenant /usr/local/bin/
+mv kubectl-xtenant /usr/local/bin/
 ```
 
 **Option B (user-only):**
 ```
-mv kubectl-tenant ~/.local/bin/
-```
-
-Make sure it’s executable:
-```
-chmod +x kubectl-tenant
+mv kubectl-xtenant ~/.local/bin/
 ```
