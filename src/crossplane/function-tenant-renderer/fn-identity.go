@@ -167,8 +167,7 @@ func resolveBindingPrincipalObjectID(observed map[resource.Name]resource.Observe
 		return providerID, true, nil
 	}
 
-	if err != nil {
-		return "", false, err
-	}
-	return "", false, idErr
+	// Neither field is populated yet — provider hasn't synced the resource.
+	// Signal "not ready" so the caller waits rather than treating this as fatal.
+	return "", false, nil
 }
