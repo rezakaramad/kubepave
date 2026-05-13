@@ -4,7 +4,7 @@
 apiVersion: repo.github.m.upbound.io/v1alpha1
 kind: Repository
 metadata:
-  name: "{{ $repoName | quote }}"
+  name: {{ $repoName | quote }}
   namespace: "gitops-{{ .Values.tenant.name }}"
   labels:
   {{- include "common.labels" . | nindent 4 }}
