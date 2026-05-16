@@ -28,3 +28,9 @@ spec:
       kind: Secret
       name: argocd-secret
       namespace: argocd
+      jsonPointers:
+        - /data/oidc.azure.clientSecret
+        - /metadata/annotations/argocd.argoproj.io~1sync-options
+        - /metadata/annotations/argocd.argoproj.io~1tracking-id
+        - /metadata/annotations/reconcile.external-secrets.io~1data-hash
+        - /metadata/labels/reconcile.external-secrets.io~1managed
