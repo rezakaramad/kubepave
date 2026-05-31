@@ -5,180 +5,206 @@ apiVersion: apiextensions.crossplane.io/v2
 kind: CompositeResourceDefinition
 metadata:
   name: xtenants.idp.rezakara.demo
-
 spec:
-  scope: Cluster
   group: idp.rezakara.demo
-
   names:
     kind: XTenant
     plural: xtenants
-
+  scope: Cluster
   defaultCompositionRef:
     name: xtenant
-
   versions:
-    - name: v1beta1
-      served: true
-      referenceable: true
-
-      schema:
-        openAPIV3Schema:
-          type: object
-          required: ["spec"]
-
-          # ------------------------------------------------------------------
-          # Metadata-based validation (identity rules)
-          # ------------------------------------------------------------------
-          x-kubernetes-validations:
-            - rule: "self.metadata.name.size() <= 20"
-              message: "XTenant name must be 20 characters or less"
-
-            - rule: "self.metadata.name.matches('^[a-z0-9]+(-[a-z0-9]+)*$')"
-              message: "XTenant name must be lowercase alphanumeric with hyphens"
-
-            - rule: "!self.metadata.name.matches('(^|-)(dev|test|stage|prod)(-|$)')"
-              message: "XTenant name must not include reserved environment segments (dev, test, stage, prod)"
-
-            # Core identity fields are immutable after creation
-            - rule: >-
-                oldSelf == null || (
-                  self.spec.dnsName == oldSelf.spec.dnsName &&
-                  self.spec.owner == oldSelf.spec.owner
-                )
-              message: "spec.dnsName and spec.owner are immutable after creation"
-
-            # approved can only go from false → true, never back
-            - rule: "oldSelf == null || !oldSelf.spec.approved || self.spec.approved"
-              message: "spec.approved cannot be set back to false once approved"
-
-          properties:
-
-            spec:
-              type: object
-              required: ["dnsName", "owner", "argocd"]
-
-              properties:
-                crossplane:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
-
-                dnsName:
-                  type: string
-                  minLength: 1
-                  maxLength: 63
-                  pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-
-                displayName:
-                  type: string
-                  minLength: 1
-                  maxLength: 128
-
-                owner:
-                  type: object
-                  required: ["team"]
-                  properties:
-                    team:
-                      type: string
-                      minLength: 1
-                      maxLength: 128
-                    email:
-                      type: string
-                      maxLength: 256
-
-                argocd:
-                  type: object
-                  properties:
-                    syncPolicy:
-                      type: object
-                      properties:
-                        automatedSync:
-                          type: boolean
-                        prune:
-                          type: boolean
-                        selfHeal:
-                          type: boolean
-
-                approved:
-                  type: boolean
-                  default: false
-
-                options:
-                  type: object
-                  properties:
-                    costCenter:
-                      type: string
-                      maxLength: 64
-                    labels:
-                      type: object
-                      additionalProperties:
-                        type: string
-                    annotations:
-                      type: object
-                      additionalProperties:
-                        type: string
-
-            status:
-              type: object
-              x-kubernetes-preserve-unknown-fields: true 
-
-              properties:
-
-                phase:
-                  type: string
-                  description: Current lifecycle phase of the tenant.
-                  enum:
-                    - Validating
-                    - PendingApproval
-                    - Provisioning
-                    - Ready
-                    - Failed
-
-                rendered:
-                  type: object
-                  description: Summary of rendered resources exported to Git.
-                  properties:
-                    resources:
-                      type: integer
-                    message:
-                      type: string
-
-                conditions:
-                  type: array
-                  description: Standard Crossplane conditions.
-                  items:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.name
+      name: Tenant
+      type: string
+    - jsonPath: .spec.dnsName
+      name: DNS
+      type: string
+    - jsonPath: .spec.teamId
+      name: Team
+      type: string
+    - jsonPath: .status.rendered.resources
+      name: Resources
+      type: integer
+    - jsonPath: .spec.approved
+      name: Approved
+      type: boolean
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    name: v1beta1
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            description: XTenantSpec defines the desired state of an XTenant.
+            properties:
+              approved:
+                default: false
+                description: |-
+                  approved gates provisioning. Must be set to true by a platform engineer
+                  before function-tenant-renderer will create any resources.
+                  Once set to true it cannot be reverted.
+                type: boolean
+              argocd:
+                description: argocd contains ArgoCD-specific configuration.
+                properties:
+                  syncPolicy:
+                    description: SyncPolicySpec configures ArgoCD automated sync behaviour.
+                    properties:
+                      automatedSync:
+                        default: true
+                        type: boolean
+                      prune:
+                        default: true
+                        type: boolean
+                      selfHeal:
+                        default: true
+                        type: boolean
                     type: object
-                    x-kubernetes-preserve-unknown-fields: true
-
-                observedGeneration:
-                  type: integer
-                  format: int64
-
-      additionalPrinterColumns:
-
-        - name: Tenant
-          type: string
-          jsonPath: .metadata.name
-
-        - name: DNS
-          type: string
-          jsonPath: .spec.dnsName
-
-        - name: Team
-          type: string
-          jsonPath: .spec.owner.team
-
-        - name: Resources
-          type: integer
-          jsonPath: .status.rendered.resources
-
-        - name: Approved
-          type: boolean
-          jsonPath: .spec.approved
-
-        - name: Phase
-          type: string
-          jsonPath: .status.phase
+                type: object
+              crossplane:
+                description: crossplane is reserved for Crossplane-specific implementation
+                  details.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              displayName:
+                description: displayName is a human-readable name shown in UIs.
+                maxLength: 128
+                type: string
+              dnsName:
+                description: dnsName is the base DNS label for the tenant. Immutable
+                  after creation.
+                maxLength: 63
+                minLength: 1
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                type: string
+              options:
+                description: options contains optional metadata and cost allocation
+                  fields.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  costCenter:
+                    maxLength: 64
+                    type: string
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
+                type: object
+              teamId:
+                description: |-
+                  teamId is the Next-Insight identifier for the Agile team that owns this
+                  tenant. When set, the render function enriches namespace labels with
+                  ownership metadata (Agile Release Train and Agile Team) fetched from
+                  the Next-Insight API.
+                maxLength: 128
+                type: string
+            required:
+            - dnsName
+            type: object
+          status:
+            description: XTenantStatus defines the observed state of an XTenant.
+            properties:
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                type: integer
+              phase:
+                description: Phase represents the lifecycle state of an XTenant.
+                enum:
+                - Validating
+                - PendingApproval
+                - Provisioning
+                - Ready
+                - Failed
+                type: string
+              rendered:
+                description: RenderedStatus summarises the resources exported to Git.
+                properties:
+                  message:
+                    type: string
+                  resources:
+                    type: integer
+                type: object
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - spec
+        type: object
+        x-kubernetes-validations:
+        - message: Tenant name must be 20 characters or less
+          rule: self.metadata.name.size() <= 20
+        - message: Tenant name must be lowercase alphanumeric with hyphens
+          rule: self.metadata.name.matches('^[a-z0-9]+(-[a-z0-9]+)*$')
+        - message: Tenant name must not include reserved environment segments (dev,
+            test, stage, prod)
+          rule: '!self.metadata.name.matches(''(^|-)(dev|test|stage|prod)(-|$)'')'
+        - message: spec.dnsName is immutable after creation
+          rule: oldSelf == null || self.spec.dnsName == oldSelf.spec.dnsName
+        - message: spec.approved cannot be set back to false once approved
+          rule: oldSelf == null || !oldSelf.spec.approved || self.spec.approved
+    served: true
 
 ---
 {{- end }}
