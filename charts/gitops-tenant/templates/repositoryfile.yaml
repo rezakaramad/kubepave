@@ -20,6 +20,7 @@ spec:
     repository: {{ $repoName | quote }}
     file: README.md
     branch: main
+    overwriteOnCreate: true
     commitMessage: "chore: post tenant details in README.md via Crossplane"
     content: |
     {{ tpl (.Files.Get "files/README.md") . | nindent 6 }}
