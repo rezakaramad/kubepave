@@ -45,6 +45,7 @@ spec:
   forProvider:
     userPrincipalName: "acme-user@rkaramadgmail.onmicrosoft.com"
     displayName: "Acme User"
+  initProvider:
     passwordSecretRef:
       key: password
       name: "acme-initial-password"
