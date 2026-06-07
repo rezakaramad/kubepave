@@ -44,6 +44,13 @@ spec:
                   value: "main"
                 - name: GITOPS_REPO_BASE_PATH
                   value: "charts/gitops-tenant"
+                - name: NEXTINSIGHT_BASE_URL
+                  value: "https://app.next-insight.com"
+                - name: NEXTINSIGHT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: nextinsight-credentials
+                      key: token
 
 ---
 {{- end }}

@@ -50,6 +50,8 @@ spec:
         azure:
           principalType: user
           userPrincipalDomain: rkaramadgmail.onmicrosoft.com
+        nextInsight:
+          labelPrefix: "nextinsight.rezakara.demo/"
         tenant:
           bindings:
             - name: admin
