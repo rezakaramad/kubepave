@@ -1,0 +1,73 @@
+{{- if .Capabilities.APIVersions.Has "apiextensions.crossplane.io/v1/Composition" }}
+{{- if .Values.tenantBootstrap.enabled }}
+
+# Crossplane internal: manage ArgoCD apps, ExternalSecrets, and read XTenants
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crossplane-manage-argocd-apps
+rules:
+- apiGroups: ["argoproj.io"]
+  resources: ["applications"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["external-secrets.io"]
+  resources: ["externalsecrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["external-secrets.io"]
+  resources: ["externalsecrets/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["generators.external-secrets.io"]
+  resources: ["passwords"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["idp.rezakara.demo"]
+  resources: ["xtenants"]
+  verbs: ["get", "list"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: crossplane-manage-argocd-apps
+subjects:
+- kind: ServiceAccount
+  name: crossplane
+  namespace: crossplane
+roleRef:
+  kind: ClusterRole
+  name: crossplane-manage-argocd-apps
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+# xtenant-validate reads the PowerDNS API key Secret at reconcile time
+# (for key rotation support). Scoped to the crossplane namespace only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: crossplane-function-xtenant-validate-read-secrets
+  namespace: crossplane
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: crossplane-function-xtenant-validate-read-secrets
+  namespace: crossplane
+subjects:
+- kind: ServiceAccount
+  name: xtenant-validate
+  namespace: crossplane
+roleRef:
+  kind: Role
+  name: crossplane-function-xtenant-validate-read-secrets
+  apiGroup: rbac.authorization.k8s.io
+
+---
+{{- end }}
+{{- end }}

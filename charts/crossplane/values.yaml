@@ -25,4 +25,8 @@ tenantBootstrap:
     xtenantValidate:
       providerPackage: ghcr.io/rezakaramad/function-xtenant-validate:v0.1.2
 
+xDeployment:
+  enabled: false
+  providerPackage: ghcr.io/rezakaramad/function-xdeployment:v0.1.0
+
 ---

@@ -9,3 +9,6 @@ azureADProvider:
 
 tenantBootstrap:
   enabled: true
+
+xDeployment:
+  enabled: true

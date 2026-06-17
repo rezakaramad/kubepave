@@ -1,0 +1,45 @@
+{{- if .Values.tenantBootstrap.enabled }}
+
+{{- if .Capabilities.APIVersions.Has "pkg.crossplane.io/v1/Function" }}
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: xtenant-validate
+spec:
+  package: {{ required "tenantBootstrap.functions.xtenantValidate.providerPackage is required" .Values.tenantBootstrap.functions.xtenantValidate.providerPackage }}
+  runtimeConfigRef:
+    name: xtenant-validate
+
+---
+{{- end }}
+{{- if .Capabilities.APIVersions.Has "pkg.crossplane.io/v1beta1/DeploymentRuntimeConfig" }}
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: xtenant-validate
+spec:
+  serviceAccountTemplate:
+    metadata:
+      name: xtenant-validate
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              env:
+                - name: NEXTINSIGHT_BASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: nextinsight-credentials
+                      key: url
+                - name: NEXTINSIGHT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: nextinsight-credentials
+                      key: token
+
+---
+{{- end }}
+{{- end }}
