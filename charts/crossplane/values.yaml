@@ -19,7 +19,7 @@ tenantBootstrap:
   functions:
     # xtenant render function package
     xtenantRender:
-      providerPackage: ghcr.io/rezakaramad/function-xtenant-render:v0.1.3
+      providerPackage: ghcr.io/rezakaramad/function-xtenant-render:v0.1.4
 
     # xtenant validate function package
     xtenantValidate:
