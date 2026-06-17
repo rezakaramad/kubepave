@@ -1,0 +1,79 @@
+{{- if .Capabilities.APIVersions.Has "apiextensions.crossplane.io/v2/CompositeResourceDefinition" }}
+{{- if .Values.xDeployment.enabled }}
+
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: xdeployments.idp.rezakara.demo
+spec:
+  group: idp.rezakara.demo
+  names:
+    kind: XDeployment
+    plural: xdeployments
+  scope: Cluster
+  defaultCompositionRef:
+    name: xdeployment
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.name
+      name: App
+      type: string
+    - jsonPath: .spec.image
+      name: Image
+      type: string
+    - jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    name: v1beta1
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            description: XDeploymentSpec defines the desired state of an XDeployment.
+            properties:
+              crossplane:
+                description: crossplane is reserved for Crossplane-specific implementation details.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              image:
+                description: image is the container image to deploy, e.g. "nginx:1.25".
+                minLength: 1
+                type: string
+              replicas:
+                default: 1
+                description: replicas is the desired number of pod replicas.
+                minimum: 0
+                type: integer
+              appId:
+                description: |-
+                  appId is the Next-Insight application identifier. When set, the function
+                  enriches the Deployment labels with application metadata fetched from
+                  the Next-Insight API.
+                type: string
+              namespace:
+                description: namespace is the target namespace for the Deployment.
+                minLength: 1
+                type: string
+            required:
+            - image
+            - namespace
+            type: object
+          status:
+            description: XDeploymentStatus reflects the observed state of an XDeployment.
+            properties:
+              phase:
+                description: phase is the current lifecycle phase of the deployment.
+                type: string
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - spec
+        type: object
+    served: true
+
+{{- end }}
+{{- end }}
