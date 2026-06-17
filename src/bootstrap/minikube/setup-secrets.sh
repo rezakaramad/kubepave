@@ -271,7 +271,6 @@ create_github_app_secret_crossplane() {
   echo "🎉 All Crossplane GitHub App secrets successfully stored in Vault so Argo CD can access GitHub repositories securely."
 }
 
-
 # ----------------------------------------------------------------------------
 # PowerDNS secret for external-dns
 # ----------------------------------------------------------------------------
@@ -298,6 +297,22 @@ create_powerdns_secrets() {
   echo "✅ Secrets stored in Vault"
 }
 
+# ----------------------------------------------------------------------------
+# Next Insight credentials for Crossplane xtenant-render function
+# ----------------------------------------------------------------------------
+create_nextinsight_credentials() {
+  VAULT_PATH="local/management/nextinsight"
+  URL=$(pass show corporate/nextinsight/url | head -n1)
+  TOKEN=$(pass show corporate/nextinsight/token | head -n1)
+
+  echo "🔐 Writing Next Insight credentials..."
+
+  vault kv put "$VAULT_PATH" \
+    url="$URL" \
+    token="$TOKEN"
+
+  echo "✅ NextInsight credentials stored in Vault"
+}
 
 # ----------------------------------------------------------------------------
 # Main
@@ -317,6 +332,7 @@ main() {
   create_keycloak_administrator_secret
   create_crossplane_app_registration_azure
   create_github_app_secret_crossplane
+  create_nextinsight_credentials
   create_powerdns_secrets
 
   echo "✅ Bootstrap complete"
