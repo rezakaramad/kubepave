@@ -23,16 +23,13 @@ spec:
         apiVersion: platform.rezakara.demo/v1beta1
         kind: Input
         dns:
-          baseDomain: rezakara.demo
+          referenceEnvironmentDomain: wl.rezakara.demo
           provider: powerdns
           apiURL: "http://host.minikube.internal:5380/api/v1"
           credentialsSecretRef:
             namespace: crossplane
             name: powerdns-api-key
             key: key
-        clusters:
-          - name: minikube-workload
-            prefix: wl
 
     # Step 2: Render ArgoCD Applications + RepositoryFile to Git.
     # Only runs if Step 1 passes (i.e. approved).
