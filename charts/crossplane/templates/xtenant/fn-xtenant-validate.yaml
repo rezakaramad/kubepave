@@ -28,6 +28,17 @@ spec:
         spec:
           containers:
             - name: package-runtime
+              env:
+                - name: NEXTINSIGHT_BASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: nextinsight-credentials
+                      key: url
+                - name: NEXTINSIGHT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: nextinsight-credentials
+                      key: token
 
 ---
 {{- end }}
