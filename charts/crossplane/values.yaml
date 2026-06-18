@@ -23,7 +23,7 @@ tenantBootstrap:
 
     # xtenant validate function package
     xtenantValidate:
-      providerPackage: ghcr.io/rezakaramad/function-xtenant-validate:v0.1.2
+      providerPackage: ghcr.io/rezakaramad/function-xtenant-validate:v0.1.3
 
 xDeployment:
   enabled: false
