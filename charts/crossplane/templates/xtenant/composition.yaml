@@ -35,7 +35,7 @@ spec:
     # Only runs if Step 1 passes (i.e. approved).
     - step: provision
       functionRef:
-        name: xtenant-render
+        name: xtenantentra
 
       input:
         apiVersion: platform.rezakara.demo/v1beta1
@@ -44,16 +44,10 @@ spec:
           providerConfigName: github-rezakaramad
           commitAuthor: "Crossplane"
           commitEmail: "crossplane@rezkara.demo"
-        azure:
-          principalType: user
-          userPrincipalDomain: rkaramadgmail.onmicrosoft.com
-        nextInsight:
-          labelPrefix: "nextinsight.rezakara.demo/"
         tenant:
-          bindings:
-            - name: admin
-              cluster: minikube-workload
-              environmentPrefix: wl
+          entraID:
+            appObjectId: "805df85c-99e7-4e82-979f-242334735f59"
+            servicePrincipalObjectId: "622026ce-04e7-4b50-be99-f4302860da61"
 
 {{- end }}
 {{- end }}

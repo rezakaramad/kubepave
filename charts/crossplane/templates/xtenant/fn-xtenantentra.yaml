@@ -1,0 +1,31 @@
+{- if .Capabilities.APIVersions.Has "pkg.crossplane.io/v1/Function" }}
+{{- if .Values.tenantBootstrap.enabled }}
+
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: xtenantentra
+spec:
+  package: {{ required "tenantBootstrap.functions.xtenantEntra.providerPackage is required" .Values.tenantBootstrap.functions.xtenantEntra.providerPackage }}
+  runtimeConfigRef:
+    name: xtenantentra
+
+---
+{{- end }}
+{{- if .Capabilities.APIVersions.Has "pkg.crossplane.io/v1beta1/DeploymentRuntimeConfig" }}
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: xtenantentra
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+
+---
+{{- end }}
+{{- end }}
