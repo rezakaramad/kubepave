@@ -1,0 +1,50 @@
+{{- if .Values.createIamServiceAccount }}
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMServiceAccount
+metadata:
+  name: external-secrets
+spec:
+  displayName: External Secrets
+  description: "Used by External Secrets in clusters to access kara-mgmt Google Secret Manager."
+
+---
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: external-secrets-workload-identity
+spec:
+  resourceRef:
+    apiVersion: iam.cnrm.cloud.google.com/v1beta1
+    kind: IAMServiceAccount
+    name: external-secrets
+  bindings:
+    - role: roles/iam.workloadIdentityUser
+      members:
+        - member: "serviceAccount:{{ .Values.managementGoogleProjectID }}.svc.id.goog[{{ .Values.workloadIdentityNamespace }}/external-secrets]"
+
+---
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: external-secrets-secret-viewer-role
+spec:
+  resourceRef:
+    kind: Project
+    external: projects/{{ .Values.managementGoogleProjectID }}
+  bindings:
+    - role: roles/secretmanager.secretAccessor
+      members:
+        - memberFrom:
+            serviceAccountRef:
+              name: external-secrets
+    - role: roles/secretmanager.viewer
+      members:
+        - memberFrom:
+            serviceAccountRef:
+              name: external-secrets
+---
+
+{{- end }}

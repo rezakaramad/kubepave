@@ -1,0 +1,7 @@
+createIamServiceAccount: true
+
+external-dns:
+  txtOwnerId: gke-management
+
+domainFilters:
+    - gcp.talktorubberduck.dev

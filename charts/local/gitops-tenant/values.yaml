@@ -1,0 +1,19 @@
+# --------------------------------------------------------------
+# Tenant configuration
+tenant:
+  name: ""
+  dnsName: ""
+
+  argocd:
+
+    # Application identity in Microsoft Entra ID.
+    # You can find this in the Azure portal under Azure Active Directory > App registrations
+    # These are persistent and should not be changed unless you are using a different Argo CD instance with a different service principal.
+    identity:
+      entraID:
+        appObjectId: "805df85c-99e7-4e82-979f-242334735f59"
+        servicePrincipalObjectId: "622026ce-04e7-4b50-be99-f4302860da61"
+
+    # Destination cluster and environment — populated at deploy time via Crossplane function.
+    cluster: ""
+    environmentPrefix: ""

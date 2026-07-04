@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: gcp-talktorubberduck-dev
+  annotations:
+    # ClusterIssuer requires cert-manager CRDs to exist first.
+    # As a Helm hook it runs after the main install/upgrade completes (i.e. after CRDs are registered).
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  acme:
+    server: "https://acme-v02.api.letsencrypt.org/directory"
+    privateKeySecretRef:
+      name: gcp-talktorubberduck-dev-issuer-account-key
+    solvers:
+    - dns01:
+        cloudDNS:
+          project: {{ .Values.dnsGoogleProjectID }}

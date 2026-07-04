@@ -1,0 +1,54 @@
+# The GCP project ID where the GKE cluster runs.
+# Used to construct the Workload Identity pool name (<project>.svc.id.goog) in the
+# IAMPartialPolicy that allows the 'external-secrets' Kubernetes SA to impersonate the GCP SA.
+managementGoogleProjectID: kara-mgmt
+
+# The Kubernetes namespace where external-secrets is installed.
+# Used to construct the Workload Identity member: <project>.svc.id.goog[<namespace>/external-secrets]
+workloadIdentityNamespace: platform-system
+
+# Only one Google service account (GSA) should be create for cert-manager.
+# Using workload identity all cert-manager instances use the same GSA.
+createIamServiceAccount: false
+
+# In the management cluster, we need a ClusterSecretStore;
+# In the workload clusters, we need a SecretStore in each namespace.
+clusterSecretStore: false
+
+# A list of namespaces that will get a SecretStore resource that gives access to Secret Manager in the 'kara-mgmt' project.
+secretStoreNamespaces: []
+
+external-secrets:
+  # Number of controller pods to run.
+  replicaCount: 1
+
+  # -- If set, install and upgrade CRDs through helm chart.
+  installCRDs: false
+
+  fullnameOverride: external-secrets
+
+  # -- If true, external-secrets will perform leader election between instances to ensure no more
+  # than one instance of external-secrets operates at a time.
+  leaderElect: true
+
+  # -- If true external secrets will use recommended kubernetes
+  # annotations as prometheus metric labels.
+  extendedMetricLabels: true
+
+  # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time.
+  concurrent: 1
+
+  # Each ExternalSecrets instance in every environment uses its own Google service account
+  # to provide stronger isolation for sensitive data.
+  # The Kubernetes service account must be annotated to assume the corresponding
+  # Google service account. Update this value for each environment.
+  serviceAccount:
+    annotations:
+      iam.gke.io/gcp-service-account: external-secrets@kara-mgmt.iam.gserviceaccount.com
+
+  # Webhook configuration for validating and converting ExternalSecrets CRDs
+  # Kubernetes API server → (HTTPS) → external-secrets webhook service
+  webhook:
+    replicaCount: 1
+    # How many old ReplicaSets of the webhook Deployment Kubernetes should keep
+    revisionHistoryLimit: 2

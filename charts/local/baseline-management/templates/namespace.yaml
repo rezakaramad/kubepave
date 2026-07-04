@@ -1,0 +1,27 @@
+{{- range $namespace := .Values.namespaces }}
+
+# Merge common labels/annotations with namespace-specific ones; namespace-level values take precedence.
+# default dict guards against nil when either field is not set in values.yaml, since merge requires a map.
+{{- $labels := merge (default dict $.Values.commonLabels) (default dict $namespace.labels) }}
+
+{{- $annotations := merge (default dict $.Values.commonAnnotations) (default dict $namespace.annotations) }}
+# Always inject keep policy so Helm never deletes the namespace on uninstall/upgrade,
+# which would wipe all resources inside it. Hardcoded here so it cannot be accidentally
+# omitted or overridden via values.
+{{- $annotations = merge $annotations (dict "helm.sh/resource-policy" "keep") }}
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $namespace.name }}
+  {{- if $labels }}
+  labels:
+{{ toYaml $labels | nindent 4 }}
+  {{- end }}
+  {{- if $annotations }}
+  annotations:
+{{ toYaml $annotations | nindent 4 }}
+  {{- end }}
+
+---
+{{- end }}

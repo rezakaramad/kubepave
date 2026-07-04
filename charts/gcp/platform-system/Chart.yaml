@@ -1,0 +1,4 @@
+apiVersion: v2
+name: platform-system
+description: Deploys the platform-system namespace and related resources.
+version: 1.0.0

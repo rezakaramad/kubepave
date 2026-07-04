@@ -1,0 +1,17 @@
+defaultGateway:
+  # The hostname for defeault gateway resource in 'gke-management' cluster
+  hostname: '*.gcp.talktorubberduck.dev'
+  # In tenant environments, we don't allow tenants to send traffic
+  # to platform-owned default Gateway in 'platform-system' namespace.
+  allowedRoutes:
+    namespaces:
+      from: All
+
+# The Traefik controller use the following static IP to specify the GCP Load Balancer.
+traefik:
+  # Disable the subchart's auto-created gateway; we manage our own in templates/gateway.yaml
+  gateway:
+    enabled: false
+  service:
+    spec:
+      loadBalancerIP: "34.107.46.197"

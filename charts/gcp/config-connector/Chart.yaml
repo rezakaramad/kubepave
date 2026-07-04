@@ -1,0 +1,5 @@
+apiVersion: v2
+name: configconnector-operator
+description: Config Connector is an open source Kubernetes add-on that lets you manage Google Cloud resources through Kubernetes.
+version: "1.0.0"
+appVersion: "1.153.0"

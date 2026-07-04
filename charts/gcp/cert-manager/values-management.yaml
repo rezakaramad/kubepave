@@ -1,0 +1,3 @@
+# Only one Google service account (GSA) should be create for cert-manager.
+# Using workload identity all cert-manager instances use the same GSA.
+createIamServiceAccount: true

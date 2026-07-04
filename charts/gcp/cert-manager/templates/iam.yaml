@@ -1,0 +1,44 @@
+{{- if .Values.createIamServiceAccount }}
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMServiceAccount
+metadata:
+  name: cert-manager
+spec:
+  displayName: Cert-Manager Workload Identity
+  description: "Used by Cert-Manager in clusters to obtain and renew TLS certificates"
+
+---
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: cert-manager-workload-identity
+spec:
+  resourceRef:
+    apiVersion: iam.cnrm.cloud.google.com/v1beta1
+    kind: IAMServiceAccount
+    name: cert-manager
+  bindings:
+    - role: roles/iam.workloadIdentityUser
+      members:
+        - member: "serviceAccount:{{ .Values.managementGoogleProjectID }}.svc.id.goog[{{ .Values.workloadIdentityNamespace }}/cert-manager]"
+
+---
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: cert-manager-dns-user
+spec:
+  resourceRef:
+    kind: Project
+    external: projects/{{ $.Values.dnsGoogleProjectID }}
+  bindings:
+    - role: projects/{{ $.Values.dnsGoogleProjectID }}/roles/dns.user
+      members:
+        - memberFrom:
+            serviceAccountRef:
+              name: cert-manager
+---
+
+{{- end }}

@@ -1,0 +1,24 @@
+commonLabels:
+  platform.rezakara.demo/owner: platform
+
+commonAnnotations: {}
+
+namespaces:
+  - name: platform-system
+    labels: {}
+    annotations: {}
+  - name: argocd
+    labels: {}
+    annotations: {}
+  - name: vault
+    labels: {}
+    annotations: {}
+  - name: keycloak
+    labels: {}
+    annotations: {}
+  - name: postgres
+    labels: {}
+    annotations: {}
+  - name: crossplane
+    labels: {}
+    annotations: {}

@@ -1,0 +1,35 @@
+# The Google project ID where DNS resources are managed in Cloud DNS.
+dnsGoogleProjectID: kara-dns
+
+# The GCP project ID where the GKE cluster runs.
+# Used to construct the Workload Identity pool name (<project>.svc.id.goog) in the
+# IAMPartialPolicy that allows the 'cert-manager' Kubernetes SA to impersonate the GCP SA.
+managementGoogleProjectID: kara-mgmt
+
+# The Kubernetes namespace where cert-manager is installed.
+# Used to construct the Workload Identity member: <project>.svc.id.goog[<namespace>/cert-manager]
+workloadIdentityNamespace: platform-system
+
+# Only one Google service account (GSA) should be create for cert-manager.
+# Using workload identity all cert-manager instances use the same GSA.
+createIamServiceAccount: false
+
+# Optionally pin cert-manager to a specific Cloud DNS zone for DNS-01 challenges.
+# When empty, cert-manager auto-selects by walking up the domain hierarchy and picking
+# the most specific zone it finds in dnsGoogleProjectID (e.g. gcp.talktorubberduck.dev).
+# Set this if you have multiple overlapping zones and need to force a specific one.
+hostedZoneName: ""
+
+cert-manager:
+  fullnameOverride: cert-manager
+  replicaCount: 1
+  crds:
+    enabled: true
+    keep: true
+  serviceAccount:
+    annotations:
+      iam.gke.io/gcp-service-account: "cert-manager@kara-mgmt.iam.gserviceaccount.com"
+  config:
+    apiVersion: controller.config.cert-manager.io/v1alpha1
+    kind: ControllerConfiguration
+    enableGatewayAPI: true

@@ -1,0 +1,7 @@
+createIamServiceAccount: false
+
+external-dns:
+  txtOwnerId: gke-workload
+
+domainFilters:
+    - wl.gcp.talktorubberduck.dev

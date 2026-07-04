@@ -1,0 +1,43 @@
+{{- if .Values.createIamServiceAccount }}
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMServiceAccount
+metadata:
+  name: external-dns
+spec:
+  displayName: External-DNS Workload Identity
+  description: "Used by External-DNS in PLT clusters to manage Cloud DNS records."
+
+---
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: external-dns-workload-identity
+spec:
+  resourceRef:
+    apiVersion: iam.cnrm.cloud.google.com/v1beta1
+    kind: IAMServiceAccount
+    name: external-dns
+  bindings:
+    - role: roles/iam.workloadIdentityUser
+      members:
+        - member: "serviceAccount:{{ .Values.managementGoogleProjectID }}.svc.id.goog[{{ .Values.workloadIdentityNamespace }}/external-dns]"
+
+---
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: external-dns-user
+spec:
+  resourceRef:
+    kind: Project
+    external: projects/{{ .Values.dnsGoogleProjectID }}
+  bindings:
+    - role: projects/{{ .Values.dnsGoogleProjectID }}/roles/dns.user
+      members:
+        - memberFrom:
+            serviceAccountRef:
+              name: external-dns
+{{- end }}

@@ -1,0 +1,12 @@
+[private]
+default:
+    @just --list
+
+# Get the latest Config Connector release
+get-latest-release:
+  curl -O https://storage.googleapis.com/configconnector-operator/latest/release-bundle.tar.gz
+  tar -zxvf release-bundle.tar.gz ./operator-system/configconnector-operator.yaml
+  yq 'select(.kind == "CustomResourceDefinition")' operator-system/configconnector-operator.yaml > crds/configconnector-crds.yaml
+  yq 'select(.kind != "CustomResourceDefinition")' operator-system/configconnector-operator.yaml > templates/configconnector-operator.yaml
+  export V=$(yq -r 'select(documentIndex == 0) | .metadata.annotations."cnrm.cloud.google.com/operator-version"' operator-system/configconnector-operator.yaml) && yq -i ".appVersion = strenv(V)" Chart.yaml
+  rm -vr release-bundle.tar.gz operator-system

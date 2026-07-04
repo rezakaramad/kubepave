@@ -1,0 +1,8 @@
+apiVersion: v2
+name: cert-mananger
+description: Cert-manager builds on top of Kubernetes, introducing certificate authorities and certificates as first-class resource types in the Kubernetes API.
+version: 1.0.0
+dependencies:
+- name: cert-manager
+  version: v1.19.1
+  repository: https://charts.jetstack.io

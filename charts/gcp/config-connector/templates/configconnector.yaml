@@ -1,0 +1,10 @@
+apiVersion: core.cnrm.cloud.google.com/v1beta1
+kind: ConfigConnector
+metadata:
+  # The name is restricted to ensure that there is only ConfigConnector resource installed in your cluster
+  name: configconnector.core.cnrm.cloud.google.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  mode: namespaced
+  stateIntoSpec: Absent

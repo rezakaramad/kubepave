@@ -1,0 +1,69 @@
+# The Google project ID where DNS resources are managed in Cloud DNS.
+dnsGoogleProjectID: kara-dns
+
+# The GCP project ID where the GKE cluster runs.
+# Used to construct the Workload Identity pool name (<project>.svc.id.goog) in the
+# IAMPartialPolicy that allows the 'cert-manager' Kubernetes SA to impersonate the GCP SA.
+managementGoogleProjectID: kara-mgmt
+
+# The Kubernetes namespace where cert-manager is installed.
+# Used to construct the Workload Identity member: <project>.svc.id.goog[<namespace>/cert-manager]
+workloadIdentityNamespace: platform-system
+
+# Only one Google service account (GSA) should be create for external-dns.
+# Using workload identity all external-secrets instances use the same GSA.
+createIamServiceAccount: false
+
+external-dns:
+  fullnameOverride: external-dns
+
+  logLevel: warning
+  logFormat: json
+
+  # Interval for DNS updates.
+  interval: 1m
+  
+  # Controls what ExternalDNS is allowed to do with DNS records it manages
+  # - create-only: only ever creates new records, never touches existing ones
+  # - upsert-only: creates and updates records, but never deletes them
+  # - sync: full ownership: creates, updates, and deletes records 
+  #       when the corresponding Kubernetes resource (HTTPRoute, DNSEndpoint) is removed
+  policy: sync
+
+  # Kubernetes resources to monitor for DNS entries.
+  sources:
+    - gateway-httproute  # Automatic DNS from HTTPRoute resources
+    - crd                # DNSEndpoint CRDs for explicit DNS records
+
+  # Unique identifier written into TXT ownership records; ExternalDNS only manages records it owns.
+  # MUST be stable and unique per cluster.
+  txtOwnerId: ""
+
+  # Limit possible target zones by domain suffixes.
+  domainFilters: []
+
+  # DNS Provider
+  provider: google
+
+  # Create a service account for ExternalDNS with WIF annotation.
+  serviceAccount:
+      create: true
+      annotations:
+        iam.gke.io/gcp-service-account: "external-dns@kara-mgmt.iam.gserviceaccount.com"
+
+  # These are CLI flags passed directly to the ExternalDNS container (external-dns binary)
+  extraArgs:
+    # Tells ExternalDNS which GCP project to look for Cloud DNS zones in.
+    - --google-project=kara-dns
+
+    # Cloud DNS zones can be public (internet-facing) or private (VPC-internal only).
+    # This restricts ExternalDNS to only manage public zones, so it won't accidentally touch any private zones in 'kara-dns'.
+    - --google-zone-visibility=public
+
+    # ExternalDNS by default will try to create DNS records for every HTTPRoute and DNSEndpoint it sees.
+    # This filter means it only acts on resources that have the label 'external-dns-create: "true"'.
+    # This gives you opt-in control — a route won't get a public DNS record unless you explicitly label it.
+    - --label-filter=external-dns-create in (true)
+
+    # Scopes ExternalDNS's watch to only Gateway resources in the 'platform-system' namespace
+    - --gateway-namespace=platform-system
