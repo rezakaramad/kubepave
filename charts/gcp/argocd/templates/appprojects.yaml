@@ -27,8 +27,7 @@ metadata:
 spec:
   description: Project for resources provisioned for each cluster.
   sourceRepos:
-    - https://github.com/jysk-dev/platform-hub
-    - https://github.com/jysk-dev/platform-valkey
+    - https://github.com/rezakaramad/kubepave
   destinations:
   - namespace: '*'
     server: '*'
@@ -47,8 +46,7 @@ metadata:
 spec:
   description: Project for tenant Argo CD resources.
   sourceRepos:
-    - https://github.com/jysk-dev/platform-hub
-    - https://github.com/jysk-dev/platform-tenants
+    - https://github.com/rezakaramad/kubepave
   destinations:
   - namespace: '*'
     server: '*'
