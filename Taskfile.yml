@@ -5,13 +5,13 @@ tasks:
   check:
     desc: "Verify required dependencies are installed"
     cmds:
-      - ./src/bootstrap/minikube/check-dependencies.sh
+      - ./local/minikube/check-dependencies.sh
   minikube:start:
     desc: "Start Minikube clusters"
     deps: [check]
     cmds:
-      - ./src/bootstrap/minikube/setup-minikube.sh start
-      - ./src/bootstrap/minikube/setup-iptables.sh
+      - ./local/minikube/setup-minikube.sh start
+      - ./local/minikube/setup-iptables.sh
   minikube:up:
     desc: "Run kubepave on Minikube"
     deps: [minikube:start]
@@ -20,13 +20,13 @@ tasks:
       - |
         start=$(date +%s)
 
-        ./src/bootstrap/minikube/install-charts.sh
-        ./src/bootstrap/minikube/setup-secrets.sh
-        ./src/bootstrap/minikube/setup-trust.sh
-        ./src/bootstrap/minikube/setup-vault.sh
-        ./src/bootstrap/minikube/setup-dns.sh start
-        ./src/bootstrap/minikube/setup-dns.sh clean_etc_hosts
-        ./src/bootstrap/minikube/setup-kubectl.sh
+        ./local/minikube/install-charts.sh
+        ./local/minikube/setup-secrets.sh
+        ./local/minikube/setup-trust.sh
+        ./local/minikube/setup-vault.sh
+        ./local/minikube/setup-dns.sh start
+        ./local/minikube/setup-dns.sh clean_etc_hosts
+        ./local/minikube/setup-kubectl.sh
 
         end=$(date +%s)
 
@@ -35,23 +35,23 @@ tasks:
   minikube:tunnels:
     desc: "List Minikube tunnels"
     cmds:
-      - ./src/bootstrap/minikube/setup-minikube.sh tunnels
+      - ./local/minikube/setup-minikube.sh tunnels
   minikube:down:
     desc: "Tear down everything"
     cmds:
-      - ./src/bootstrap/minikube/setup-minikube.sh destroy
-      - ./src/bootstrap/minikube/setup-dns.sh reset
-  azure:up:
+      - ./local/minikube/setup-minikube.sh destroy
+      - ./local/minikube/setup-dns.sh reset
+  azure:local:up:
     desc: "Bootstrap Azure Entra ID for kubepave"
     cmds:
-      - ./src/bootstrap/azure/tofu-apply.sh src/bootstrap/azure
+      - ./azure/local/tofu-apply.sh src/bootstrap/azure
 
-  azure:down:
+  azure:local:down:
     desc: "Tear down Azure Entra ID"
     cmds:
-      - ./src/bootstrap/azure/tofu-destroy.sh src/bootstrap/azure
+      - ./azure/local/tofu-destroy.sh src/bootstrap/azure
 
-  azure:verify:
+  azure:local:verify:
     desc: "Verify Azure Entra ID setup"
     cmds:
-      - ./src/bootstrap/azure/verify-entraid.sh "Argo CD"
+      - ./azure/local/verify-entraid.sh "Argo CD"
