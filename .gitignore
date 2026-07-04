@@ -3,3 +3,5 @@
 .ideas
 *.key
 *.jnl
+**/.terraform/
+**/.terraform.lock.hcl
