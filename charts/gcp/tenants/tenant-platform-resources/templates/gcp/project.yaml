@@ -37,14 +37,14 @@ metadata:
   name: {{ $projectId }}-shared-vpc
   annotations:
     cnrm.cloud.google.com/deletion-policy: "abandon"
+    cnrm.cloud.google.com/project-id: {{ $.Values.gcp.sharedVpcHostProjectID | quote }}
   labels:
     {{- include "tpr.labels" . | nindent 4 }}
     platform.talktorubberduck.dev/tenant: {{ $tenant.name | lower }}
     platform.talktorubberduck.dev/environment: {{ $tenantEnvironment.prefix | lower }}
 spec:
-  hostProjectRef:
-    external: {{ $.Values.gcp.sharedVpcHostProjectID | quote }}
-  serviceProjectRef:
+  deletionPolicy: ABANDON
+  projectRef:
     name: {{ $projectId }}
 
 ---
