@@ -1,0 +1,76 @@
+{{- if eq .Values.permission_profile "permissive" }}
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tenant-cluster-specific-role
+  labels:
+    rbac.talktorubberduck.dev/aggregate-to-tenant-default-role: "true"
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - configmaps
+      - services
+    verbs: ["delete"]
+
+  - apiGroups: [""]
+    resources:
+      - pods/portforward
+    verbs: ["get", "create"]
+
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - controllerrevisions
+    verbs: ["delete"]
+
+  - apiGroups: ["batch"]
+    resources:
+      - cronjobs
+      - jobs
+    verbs: ["create", "delete"]
+
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["delete"]
+
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources:
+      - httproutes
+    verbs: ["delete"]
+
+  - apiGroups: ["cert-manager.io"]
+    resources:
+      - certificates
+      - issuers
+    verbs: ["delete"]
+
+  - apiGroups: ["external-secrets.io"]
+    resources:
+      - externalsecrets
+    verbs: ["delete"]
+
+  - apiGroups:
+      - iam.cnrm.cloud.google.com
+      - pubsub.cnrm.cloud.google.com
+      - sql.cnrm.cloud.google.com
+      - storage.cnrm.cloud.google.com
+    resources:
+      - pubsubtopics
+      - iampartialpolicies
+      - iampolicies
+      - iamserviceaccounts
+      - pubsubsubscriptions
+      - pubsubtopics
+      - sqldatabases
+      - sqlinstances
+      - sqlusers
+      - storagebuckets
+    verbs: ["delete"]
+
+---
+{{- end }}

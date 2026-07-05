@@ -1,0 +1,5 @@
+apiVersion: v2
+name: tenant-cluster-roles
+description: This chart creates the needed cluster roles for tenant users.
+version: 1.0.0
+

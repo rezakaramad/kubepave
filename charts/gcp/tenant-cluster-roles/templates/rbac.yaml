@@ -1,0 +1,106 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tenant-default-aggregated-role
+  labels:
+aggregationRule:
+  clusterRoleSelectors:
+    - matchLabels:
+        rbac.talktorubberduck.dev/aggregate-to-tenant-default-role: "true"
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tenant-base-defaults
+  labels:
+    rbac.talktorubberduck.dev/aggregate-to-tenant-default-role: "true"
+rules:
+  # Core resources
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - configmaps
+      - endpoints
+      - events
+      - services
+      - persistentvolumeclaims
+    verbs: ["get", "list", "watch"]
+
+  # Workload resources
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - controllerrevisions
+    verbs: ["get", "list", "watch"]
+
+    # Batch jobs
+  - apiGroups: ["batch"]
+    resources:
+      - cronjobs
+      - jobs
+    verbs: ["get", "list", "watch"]
+
+  # Autoscaling
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["get", "list", "watch"]
+
+  # Gateway API
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources:
+      - httproutes
+    verbs: ["get", "list", "watch"]
+
+  # Certificates
+  - apiGroups: ["cert-manager.io"]
+    resources:
+      - certificates
+      - issuers
+    verbs: ["get", "list", "watch"]
+
+  # External Secrets
+  - apiGroups: ["external-secrets.io"]
+    resources:
+      - externalsecrets
+    verbs: ["get", "list", "watch"]
+
+  # GCP resources
+  - apiGroups:
+      - iam.cnrm.cloud.google.com
+      - pubsub.cnrm.cloud.google.com
+      - sql.cnrm.cloud.google.com
+      - storage.cnrm.cloud.google.com
+    resources:
+      - pubsubtopics
+      - iampartialpolicies
+      - iampolicies
+      - iamserviceaccounts
+      - pubsubsubscriptions
+      - pubsubtopics
+      - sqldatabases
+      - sqlinstances
+      - sqlusers
+      - storagebuckets
+    verbs: ["get", "list", "watch"]
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: namespace-viewer
+  labels:
+    rbac.talktorubberduck.dev/aggregate-to-tenant-default-role: "true"
+rules:
+  - apiGroups: [""]
+    resources:
+      - namespaces
+    verbs: ["get", "list", "watch"]
+
+---
