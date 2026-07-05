@@ -21,6 +21,7 @@ spec:
     - ApplyOutOfSyncOnly=true
     - RespectIgnoreDifferences=true
     - CreateNamespace=true
+    - SkipDryRunOnMissingResource=true
   ignoreDifferences:
     - group: external-secrets.io
       kind: ExternalSecret
