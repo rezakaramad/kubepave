@@ -1,0 +1,51 @@
+{{- if and .Values.createIamServiceAccount .Values.configConnectorContext.enabled }}
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMServiceAccount
+metadata:
+  name: {{ .Values.crossplane.serviceAccount.name }}
+  annotations:
+    cnrm.cloud.google.com/project-id: {{ .Values.managementGoogleProjectID }}
+spec:
+  displayName: Crossplane Workload Identity
+  description: "Used by Crossplane in clusters to pull function OCI images from Artifact Registry."
+
+---
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: {{ .Values.crossplane.serviceAccount.name }}-workload-identity
+  annotations:
+    cnrm.cloud.google.com/project-id: {{ .Values.managementGoogleProjectID }}
+spec:
+  resourceRef:
+    apiVersion: iam.cnrm.cloud.google.com/v1beta1
+    kind: IAMServiceAccount
+    name: {{ .Values.crossplane.serviceAccount.name }}
+  bindings:
+    - role: roles/iam.workloadIdentityUser
+      members:
+        - member: "serviceAccount:{{ .Values.managementGoogleProjectID }}.svc.id.goog[{{ .Values.workloadIdentityNamespace }}/{{ .Values.crossplane.serviceAccount.name }}]"
+
+---
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: {{ .Values.crossplane.serviceAccount.name }}-artifact-reader-role
+  annotations:
+    cnrm.cloud.google.com/project-id: {{ .Values.managementGoogleProjectID }}
+spec:
+  resourceRef:
+    apiVersion: artifactregistry.cnrm.cloud.google.com/v1beta1
+    kind: ArtifactRegistryRepository
+    external: projects/{{ .Values.managementGoogleProjectID }}/locations/europe-west3/repositories/crossplane
+  bindings:
+    - role: roles/artifactregistry.reader
+      members:
+        - memberFrom:
+            serviceAccountRef:
+              name: {{ .Values.crossplane.serviceAccount.name }}
+---
+{{- end }}

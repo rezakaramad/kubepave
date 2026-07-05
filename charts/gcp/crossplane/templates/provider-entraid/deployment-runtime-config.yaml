@@ -1,0 +1,32 @@
+{{- if .Values.entraIdProvider.enabled }}
+
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: provider-azuread
+spec:
+  serviceAccountTemplate:
+    metadata:
+      name: azuread-provider
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          serviceAccountName: azuread-provider
+          containers:
+          - name: package-runtime
+            volumeMounts:
+            - name: azure-token
+              mountPath: "/var/run/secrets/tokens/"
+              readOnly: true
+          volumes:
+          - name: azure-token
+            projected:
+              sources:
+              - serviceAccountToken:
+                  audience: api://AzureADTokenExchange
+                  expirationSeconds: 3600
+                  path: azure-token
+
+{{- end }}

@@ -1,0 +1,54 @@
+# The GCP project ID where the GKE cluster runs.
+# Used to construct the Workload Identity pool name (<project>.svc.id.goog) in the
+# IAMPartialPolicy that allows the 'crossplane' Kubernetes SA to impersonate the GCP SA.
+managementGoogleProjectID: kara-mgmt
+
+# The Kubernetes namespace where crossplane is installed.
+# Used to construct the Workload Identity member: <project>.svc.id.goog[<namespace>/crossplane]
+workloadIdentityNamespace: crossplane-system
+
+# Only one Google service account (GSA) should be create for crossplane.
+# Using workload identity all crossplane instances use the same GSA.
+createIamServiceAccount: false
+
+# A ConfigConnectorContext is required for Crossplane to pull OCI images from Artifact Registry.
+# It is only needed on the cluster that creates the Crossplane IAM service account, 'kara-mgmt' in this case.
+configConnectorContext:
+  enabled: false
+  googleServiceAccount: "platform-provisioner@kara-mgmt.iam.gserviceaccount.com"
+
+#--------------------------------------------------
+# Provider packages
+#--------------------------------------------------
+# GitHub
+githubProvider:
+  enabled: false
+  providerPackage: xpkg.upbound.io/crossplane-contrib/provider-upjet-github:v0.19.0
+  activatedResources:
+    - repositories.repo.github.m.upbound.io
+    - repositoryfiles.repo.github.m.upbound.io
+
+# Entra ID (Azure AD)
+entraIdProvider:
+  enabled: false
+  tenantID: 01e1ac7f-ac39-4685-9cbe-0e26a09c138f
+  clientID: <upsert-in-env-values-file>
+  providerPackage: xpkg.upbound.io/upbound/provider-azuread:v2.3.0
+  activatedResources:
+    - applications.applications.azuread.m.upbound.io
+    - principals.serviceprincipals.azuread.m.upbound.io
+    - approles.applications.azuread.m.upbound.io
+    - roleassignments.app.azuread.m.upbound.io
+    - federatedidentitycredentials.applications.azuread.m.upbound.io
+
+# Crossplane
+crossplane:
+  provider:
+    defaultActivations: []
+  serviceAccount:
+    name: crossplane
+    # Add custom `annotations` to the Crossplane ServiceAccount.
+    customAnnotations:
+      iam.gke.io/gcp-service-account: "crossplane@kara-mgmt.iam.gserviceaccount.com"
+
+compositeResources: {}

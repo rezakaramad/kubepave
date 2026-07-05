@@ -1,0 +1,5 @@
+entraIdProvider:
+  enabled: true
+  clientID: 1ddb832f-3e8d-4cda-9742-4bd9ae08617a
+
+compositeResources: {}

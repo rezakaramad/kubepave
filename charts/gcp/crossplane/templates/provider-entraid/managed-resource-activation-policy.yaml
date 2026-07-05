@@ -1,0 +1,12 @@
+{{- if .Values.entraIdProvider.enabled }}
+
+apiVersion: apiextensions.crossplane.io/v1alpha1
+kind: ManagedResourceActivationPolicy
+metadata:
+  name: azuread-resources
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  activate: {{ .Values.entraIdProvider.activatedResources | toYaml | nindent 4 }}
+
+{{- end }}
