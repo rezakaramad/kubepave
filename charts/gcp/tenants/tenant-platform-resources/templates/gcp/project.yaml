@@ -26,4 +26,26 @@ spec:
   resourceID: {{ $projectId }}
 
 ---
+
+{{/*
+Attach the tenant project as a service project to the kara-shared Shared VPC host project.
+This allows tenant resources (Valkey, Cloud SQL, etc.) to use subnets from kara-shared.
+*/}}
+apiVersion: compute.cnrm.cloud.google.com/v1beta1
+kind: ComputeSharedVPCServiceProject
+metadata:
+  name: {{ $projectId }}-shared-vpc
+  annotations:
+    cnrm.cloud.google.com/deletion-policy: "abandon"
+  labels:
+    {{- include "tpr.labels" . | nindent 4 }}
+    platform.talktorubberduck.dev/tenant: {{ $tenant.name | lower }}
+    platform.talktorubberduck.dev/environment: {{ $tenantEnvironment.prefix | lower }}
+spec:
+  hostProjectRef:
+    external: {{ $.Values.gcp.sharedVpcHostProjectID | quote }}
+  serviceProjectRef:
+    name: {{ $projectId }}
+
+---
 {{- end }}

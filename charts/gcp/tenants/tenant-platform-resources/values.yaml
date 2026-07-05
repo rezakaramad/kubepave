@@ -4,6 +4,10 @@ gcp:
   # The billing account to set the projects to use.
   billingAccountId: "01AB18-BBE5BC-76F96B"
 
+  # The GCP project ID of the Shared VPC host project.
+  # Tenant projects are attached to this as service projects.
+  sharedVpcHostProjectID: kara-shared
+
   # The GCP project ID where the GKE cluster runs.
   # Used to construct the Workload Identity pool name (<project>.svc.id.goog) in the
   # IAMPartialPolicy that allows the 'cert-manager' Kubernetes SA to impersonate the GCP SA.
