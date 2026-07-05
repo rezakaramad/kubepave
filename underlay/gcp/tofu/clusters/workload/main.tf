@@ -176,7 +176,7 @@ resource "google_container_node_pool" "primary" {
   node_config {
     # Spot VMs are the cheapest option (up to ~91% discount), at the cost of possible preemption.
     spot         = true
-    machine_type = "e2-medium"
+    machine_type = "e2-standard-2"
     # Reduce boot disk to 32 GB to stay within SSD quota (default is 100 GB).
     disk_size_gb = 32
     disk_type    = "pd-standard"
