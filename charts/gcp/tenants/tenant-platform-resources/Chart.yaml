@@ -1,0 +1,4 @@
+apiVersion: v2
+name: tenant-platform-resources
+description: Baseline configuration for tenants in platform management cluster.
+version: 0.1.0

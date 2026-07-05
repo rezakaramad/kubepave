@@ -9,6 +9,14 @@ resource "google_organization_iam_member" "owner" {
   member = "user:r.karamad@gmail.com"
 }
 
+# Required to enable Shared VPC host projects (compute.organizations.enableXpnHost permission).
+# roles/owner does not include this — it must be granted explicitly at org or folder level.
+resource "google_organization_iam_member" "xpn_admin" {
+  org_id = local.organization_id
+  role   = "roles/compute.xpnAdmin"
+  member = "user:r.karamad@gmail.com"
+}
+
 #----------------------------------------------------------------
 # Organization-level custom IAM roles
 #----------------------------------------------------------------

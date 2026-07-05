@@ -1,0 +1,18 @@
+{{- $tenant := .Values.tenant }}
+{{- $projectId := include "tnr.projectId" (dict "name" $tenant.tenantShortName "prefix" .Values.environmentPrefix) }}
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $tenant.name | lower }}
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}
+    platform.talktorubberduck.dev/tenant: {{ $tenant.name | lower }}
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/enforce-version: {{ .Values.podSecurity.enforceVersion }}
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn-version: latest
+  annotations:
+    cnrm.cloud.google.com/project-id: {{ $projectId }}

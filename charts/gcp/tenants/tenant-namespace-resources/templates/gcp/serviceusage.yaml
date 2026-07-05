@@ -1,0 +1,60 @@
+{{- $tenant := .Values.tenant }}
+
+{{/*
+Enables a fixed set of Google Cloud APIs in the tenant's GCP project
+so tenant workloads can use those services.
+*/}}
+
+apiVersion: serviceusage.cnrm.cloud.google.com/v1beta1
+kind: Service
+metadata:
+  name: iamcredentials.googleapis.com
+  namespace: {{ $tenant.name | lower }}
+  annotations:
+    cnrm.cloud.google.com/deletion-policy: "abandon"
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}
+---
+
+apiVersion: serviceusage.cnrm.cloud.google.com/v1beta1
+kind: Service
+metadata:
+  name: pubsub.googleapis.com
+  namespace: {{ $tenant.name | lower }}
+  annotations:
+    cnrm.cloud.google.com/deletion-policy: "abandon"
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}
+---
+
+apiVersion: serviceusage.cnrm.cloud.google.com/v1beta1
+kind: Service
+metadata:
+  name: sqladmin.googleapis.com
+  namespace: {{ $tenant.name | lower }}
+  annotations:
+    cnrm.cloud.google.com/deletion-policy: "abandon"
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}
+---
+
+apiVersion: serviceusage.cnrm.cloud.google.com/v1beta1
+kind: Service
+metadata:
+  name: storage-api.googleapis.com
+  namespace: {{ $tenant.name | lower }}
+  annotations:
+    cnrm.cloud.google.com/deletion-policy: "abandon"
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}
+---
+
+apiVersion: serviceusage.cnrm.cloud.google.com/v1beta1
+kind: Service
+metadata:
+  name: secretmanager.googleapis.com
+  namespace: {{ $tenant.name | lower }}
+  annotations:
+    cnrm.cloud.google.com/deletion-policy: "abandon"
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}

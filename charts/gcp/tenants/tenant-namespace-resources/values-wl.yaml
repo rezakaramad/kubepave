@@ -1,0 +1,6 @@
+# Permitted values: dev, test, prod, wl.
+environmentPrefix: "wl"
+
+gateway:
+  loadBalancerIPs:
+    - "34.179.169.208"

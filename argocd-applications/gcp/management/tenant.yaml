@@ -1,0 +1,77 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: pillow-factory
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    # 1) Platform resources -> management cluster (in-cluster)
+    - list:
+        elements:
+          - cluster: gke-management
+        template:
+          metadata:
+            name: pillow-factory-platform-resources
+          spec:
+            project: tenant-system
+            source:
+              repoURL: https://github.com/rezakaramad/kubepave
+              path: charts/gcp/tenant-platform-resources
+            destination:
+              name: in-cluster
+              namespace: tenant-platform-resources
+    # 2) Namespace resources -> the three tenant clusters
+    - clusters:
+        selector:
+          matchExpressions:
+            - key: argocd.talktorubberduck.dev/cluster-type
+              operator: In
+              values: ["tenant"]
+            - key: argocd.talktorubberduck.dev/environment
+              operator: In
+              values: ["dev", "test", "prod", "wl"]
+        template:
+          metadata:
+            name: pillow-factory-ns-{{index .metadata.labels "argocd.talktorubberduck.dev/environment"}}
+            labels:
+              environment: '{{index .metadata.labels "argocd.talktorubberduck.dev/environment"}}'
+              tenant: pillow-factory
+          spec:
+            project: tenant-system
+            source:
+              repoURL: https://github.com/rezakaramad/kubepave
+              path: charts/gcp/tenant-namespace-resources
+              helm:
+                valueFiles:
+                  - 'values-{{index .metadata.labels "argocd.talktorubberduck.dev/environment"}}.yaml'
+                parameters:
+                  - name: environmentPrefix
+                    value: '{{index .metadata.labels "argocd.talktorubberduck.dev/environment"}}'
+            destination:
+              name: "{{.name}}"
+              # no namespace on purpose: the chart creates + stamps it
+  # Shared / merged into every generated Application
+  template:
+    metadata: {}
+    spec:
+      project: tenant-system
+      source:
+        repoURL: https://github.com/rezakaramad/place-holder
+        targetRevision: HEAD
+        helm:
+          valuesObject:
+            tenant:
+              name: pillow-factory
+              tenantShortName: pil
+              gcp:
+                aadGroupName: ACL.PLT.GCP.Tenant.PillowFactory
+                pushAuthorizedGithubRepos:
+                  - rezakaramad/platform-demo-app-on-mvp
+      destination:
+        name: placeholder-name
+      syncPolicy:
+        syncOptions:
+          - ServerSideApply=true
+          - ApplyOutOfSyncOnly=true

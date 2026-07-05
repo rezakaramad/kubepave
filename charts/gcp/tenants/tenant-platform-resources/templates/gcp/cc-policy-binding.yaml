@@ -1,0 +1,84 @@
+{{- $tenant := .Values.tenant }}
+{{- range $tenantEnvironment := $.Values.gcp.tenantEnvironments }}
+{{- $projectId := include "tpr.gcp.projectId" (dict "name" $tenant.tenantShortName "prefix" $tenantEnvironment.prefix) }}
+
+
+{{/*
+Grant the tenant Google service account full ownership of its GCP project.
+This allows the tenant identity to create and manage cloud resources inside its own project.
+*/}}
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: cc-{{ $tenant.name }}-owner-on-{{ $projectId }}
+  labels:
+    {{- include "tpr.labels" . | nindent 4 }}
+    platform.talktorubberduck.dev/tenant: {{ $tenant.name | lower }}
+    platform.talktorubberduck.dev/environment: {{ $tenantEnvironment.prefix | lower }}
+spec:
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    name: {{ $projectId }}
+  bindings:
+    - role: roles/owner
+      members:
+        - memberFrom:
+            serviceAccountRef:
+              name: cc-{{ $tenant.name }}
+
+---
+
+{{- end }}
+
+{{/*
+Grant the Config Connector Kubernetes Service Account permission 
+to impersonate the tenant’s Google Service Account using Workload Identity
+This allows Config Connector to act as the tenant when calling GCP APIs.
+*/}}
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: cc-{{ $tenant.name }}-workload-identity-user
+  labels:
+    {{- include "tpr.labels" . | nindent 4 }}
+    platform.talktorubberduck.dev/tenant: {{ $tenant.name | lower }}
+spec:
+  resourceRef:
+    apiVersion: iam.cnrm.cloud.google.com/v1beta1
+    kind: IAMServiceAccount
+    name: cc-{{ $tenant.name }}
+  bindings:
+    - role: roles/iam.workloadIdentityUser
+      members:
+        - member: "serviceAccount:{{ $.Values.gcp.platformManagementProjectId }}.svc.id.goog[cnrm-system/cnrm-controller-manager-{{ $tenant.name }}]"
+
+---
+
+{{/* 
+Grant the tenant Google service account permission 
+to write metrics to the shared Platform Management project.
+*/}}
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: cc-{{ $tenant.name }}-metric-writer
+  labels:
+    {{- include "tpr.labels" . | nindent 4 }}
+    platform.talktorubberduck.dev/tenant: {{ $tenant.name | lower }}
+spec:
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: projects/{{ $.Values.gcp.platformManagementProjectId }}
+  bindings:
+    - role: roles/monitoring.metricWriter
+      members:
+        - memberFrom:
+            serviceAccountRef:
+              name: cc-{{ $tenant.name }}
+
+---

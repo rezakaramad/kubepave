@@ -5,7 +5,7 @@
 locals {
   buckets = [
     # Add a new bucket here ...
-    "artifact-registry-tfstate",
+    "organization-tfstate",
     "gke-workload-tfstate",
     "gke-management-tfstate",
     "dns-tfstate",
@@ -89,9 +89,6 @@ resource "google_storage_bucket" "buckets" {
   }
   uniform_bucket_level_access = true
   public_access_prevention    = "enforced"
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 ################################################################
