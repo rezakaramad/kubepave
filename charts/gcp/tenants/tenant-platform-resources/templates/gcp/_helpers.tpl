@@ -1,8 +1,8 @@
 {{/*
-Generate a short, GCP-safe project ID: plt-<name>-<prefix>, truncated to fit length limits.
+Generate a short, GCP-safe project ID: <name>-<prefix>, truncated to fit length limits.
 */}}
 {{- define "tpr.gcp.projectId" }}
-{{- printf "plt-%s-%s" (.name | trunc 16) (.prefix | replace " " "-" | lower | trunc 9)}}
+{{- printf "%s-%s" (.name | trunc 16) (.prefix | replace " " "-" | lower | trunc 9)}}
 {{- end }}
 
 {{/*
