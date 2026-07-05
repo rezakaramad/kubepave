@@ -9,9 +9,6 @@ spec:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
     path: charts/gcp/cert-manager
-    helm:
-      valueFiles:
-        - values-wl.yaml
   destination:
     name: gke-workload
     namespace: platform-system
