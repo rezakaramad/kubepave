@@ -13,7 +13,7 @@ global:
 # ArgoCD is using Workload Identity and where therefore there are not secrets in the credentials.
 clusterCredentials:
   - name: gke-workload
-    server: https://gke-b650281a17fb459c8b3fcb181adebbd08b05-1048890523970.europe-west3.gke.goog
+    server: https://gke-cdf09cc89c6f43e8a86c0d3aa802e03e5372-1048890523970.europe-west3-a.gke.goog
     environmentPrefix: wl
 
 argocd:
