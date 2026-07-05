@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: tenant-platform-resources-plt-management
+  name: tenant-platform-resources-management
   namespace: argocd
 spec:
   project: platform-system

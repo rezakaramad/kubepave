@@ -18,7 +18,7 @@ spec:
             project: tenant-system
             source:
               repoURL: https://github.com/rezakaramad/kubepave
-              path: charts/gcp/tenant-platform-resources
+              path: charts/gcp/tenants/tenant-platform-resources
             destination:
               name: in-cluster
               namespace: tenant-platform-resources
@@ -42,7 +42,7 @@ spec:
             project: tenant-system
             source:
               repoURL: https://github.com/rezakaramad/kubepave
-              path: charts/gcp/tenant-namespace-resources
+              path: charts/gcp/tenants/tenant-namespace-resources
               helm:
                 valueFiles:
                   - 'values-{{index .metadata.labels "argocd.talktorubberduck.dev/environment"}}.yaml'
