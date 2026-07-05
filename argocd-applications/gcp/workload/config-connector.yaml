@@ -10,7 +10,7 @@ spec:
     targetRevision: HEAD
     path: charts/gcp/config-connector
   destination:
-    name: in-cluster
+    name: gke-workload
   syncPolicy:
     syncOptions:
     - ServerSideApply=true
