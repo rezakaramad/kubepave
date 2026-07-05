@@ -18,8 +18,15 @@ resource "google_organization_iam_member" "xpn_admin" {
 }
 
 #----------------------------------------------------------------
-# Organization-level custom IAM roles
+# Billing account IAM bindings
 #----------------------------------------------------------------
+
+# Allows tenant-provisioner to associate the billing account with new tenant GCP projects.
+resource "google_billing_account_iam_member" "tenant_provisioner_billing_user" {
+  billing_account_id = local.billing_account_id
+  role               = "roles/billing.user"
+  member             = "serviceAccount:tenant-provisioner@kara-mgmt.iam.gserviceaccount.com"
+}
 
 # Allows reading the IAM policy of a folder (resourcemanager.folders.getIamPolicy)
 resource "google_organization_iam_custom_role" "folder_iam_viewer" {

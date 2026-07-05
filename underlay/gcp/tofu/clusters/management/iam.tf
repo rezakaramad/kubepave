@@ -51,12 +51,12 @@ resource "google_service_account_iam_member" "tenant_provisioner_gcp_resources" 
   member             = "serviceAccount:${local.project_ids.platform_management}.svc.id.goog[cnrm-system/cnrm-controller-manager-tenant-gcp-resources]"
 }
 
-# Lets the Kubernetes service account 'cnrm-controller-manager-tenant-platform-system'
+# Lets the Kubernetes service account 'cnrm-controller-manager-tenant-platform-resouces'
 # act as the GCP 'tenant-provisioner' service account.
 resource "google_service_account_iam_member" "tenant_provisioner_platform_resources" {
   service_account_id = google_service_account.tenant_provisioner.id
   role               = "roles/iam.workloadIdentityUser"
-  member             = "serviceAccount:${local.project_ids.platform_management}.svc.id.goog[cnrm-system/cnrm-controller-manager-tenant-platform-system]"
+  member             = "serviceAccount:${local.project_ids.platform_management}.svc.id.goog[cnrm-system/cnrm-controller-manager-tenant-platform-resources]"
 }
 
 # 'tenant-provisioner' service account needs to be able to create service accounts in tenant projects.

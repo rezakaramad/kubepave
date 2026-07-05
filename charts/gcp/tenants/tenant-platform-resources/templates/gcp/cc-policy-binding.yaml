@@ -53,7 +53,7 @@ spec:
   bindings:
     - role: roles/iam.workloadIdentityUser
       members:
-        - member: "serviceAccount:{{ $.Values.gcp.platformManagementProjectId }}.svc.id.goog[cnrm-system/cnrm-controller-manager-{{ $tenant.name }}]"
+        - member: "serviceAccount:{{ $.Values.gcp.managementGoogleProjectID }}.svc.id.goog[cnrm-system/cnrm-controller-manager-{{ $tenant.name }}]"
 
 ---
 
@@ -73,7 +73,7 @@ spec:
   resourceRef:
     apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
     kind: Project
-    external: projects/{{ $.Values.gcp.platformManagementProjectId }}
+    external: projects/{{ $.Values.gcp.managementGoogleProjectID }}
   bindings:
     - role: roles/monitoring.metricWriter
       members:
