@@ -16,11 +16,17 @@ azureIdentity:
 # -------------------------------------------------------------------------------
 
 # Git source for all ArgoCD application manifests and Helm charts.
-repoURL: ''
+# This is the place where the platform-owned application folder will watch for ArgoCD Application manifests.
+repoURL: 'https://github.com/rezakaramad/kubepave'
 targetRevision: HEAD
 
+# This is used by the AppProject 'platform-system' to restrict which repos can be used as sources for Argo CD Applications.
+# In the basic setup, this is the same as the repoURL above, but in more advanced setups, you can allow multiple repos to be used for Argo CD Applications.
+platformSourceRepos:
+  -  https://github.com/rezakaramad/kubepave
+
 # App-of-apps folder ArgoCD recurses to discover Application manifests.
-applicationFolder:
+xapplicationFolder:
   path: argocd-applications/
 
 # Workload clusters ArgoCD must manage.

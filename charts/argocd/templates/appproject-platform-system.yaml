@@ -1,4 +1,5 @@
 {{- if .Capabilities.APIVersions.Has "argoproj.io/v1alpha1/AppProject" }}
+
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -7,7 +8,7 @@ metadata:
 spec:
   description: Project for resources provisioned for each cluster.
   sourceRepos:
-    - https://github.com/rezakaramad/kubepave
+    {{- toYaml .Values.platformSourceRepos | nindent 4 }}
   destinations:
   - namespace: '*'
     server: '*'
@@ -17,4 +18,5 @@ spec:
   namespaceResourceWhitelist:
   - group: '*'
     kind: '*'
+
 {{- end }}

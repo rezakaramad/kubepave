@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 
 # Absolute path to 'charts/'' directory
-CHARTS_DIR="$REPO_ROOT/charts/local"
+CHARTS_DIR="$REPO_ROOT/charts"
 
 # Cluster names (kind automatically prefixes contexts with "kind-",
 # so these become contexts "kind-management" and "kind-workload").

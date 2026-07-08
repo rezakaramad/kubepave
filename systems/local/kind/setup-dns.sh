@@ -9,7 +9,7 @@ source "$DIR/libs/common.sh"
 source "$DIR/libs/utils.sh"
 
 POWERDNS_NAMESPACE="powerdns"
-POWERDNS_CHART="$REPO_ROOT/charts/local/powerdns"
+POWERDNS_CHART="$REPO_ROOT/charts/powerdns"
 
 # Secrets file — generated on first run, never committed
 SECRETS_FILE="$REPO_ROOT/.powerdns.env"

@@ -42,7 +42,7 @@ ensure_reviewer_token() {
   kubectl --context "$context" -n kube-system \
     get sa vault-reviewer >/dev/null 2>&1 || {
     err "vault-reviewer ServiceAccount missing in $cluster"
-    err "Install workload-vault-seed first: helm install workload-vault-seed charts/local/workload-vault-seed ..."
+    err "Install workload-vault-seed first: helm install workload-vault-seed charts/workload-vault-seed ..."
     exit 1
   }
 
