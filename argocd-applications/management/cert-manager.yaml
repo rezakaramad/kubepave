@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cert-manager-mgmt
+  name: cert-manager-management
   namespace: argocd
 spec:
   project: platform-system
@@ -9,6 +9,10 @@ spec:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
     path: charts/cert-manager
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-local-management.yaml
   destination:
     name: in-cluster
     namespace: platform-system

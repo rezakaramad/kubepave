@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: external-dns-mgmt
+  name: external-dns-management
   namespace: argocd
 spec:
   project: platform-system
@@ -11,7 +11,9 @@ spec:
     path: charts/external-dns
     helm:
       valueFiles:
-        - values-mgmt.yaml
+        - values.yaml
+        - values-local.yaml
+        - values-local-management.yaml
   destination:
     name: in-cluster
     namespace: platform-system
