@@ -15,3 +15,7 @@ azureADProvider:
   secretStoreRef:
     name: vault-local
     kind: SecretStore
+
+secretStore: 
+  enabled: true
+  name: vault-local

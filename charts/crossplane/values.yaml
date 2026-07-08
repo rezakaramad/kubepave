@@ -17,5 +17,5 @@ azureADProvider:
   providerPackage: xpkg.upbound.io/upbound/provider-azuread:v2.2.1
 
 secretStore: 
-  enabled: true
+  enabled: false
   name: vault-local
