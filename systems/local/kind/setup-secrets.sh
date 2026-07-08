@@ -5,7 +5,8 @@ set -euo pipefail
 #
 # Differences from the minikube version:
 #   - No update_hosts (systemd-resolved handles DNS)
-#   - No Keycloak (not installed in the kind setup)
+#   - Keycloak secrets live under local/keycloak/* (minikube used
+#     local/management/keycloak/*)
 #   - All vault commands run inside the pod to avoid CLI/server version mismatch
 #   - register_clusters_argocd registers kind workload clusters (pull model,
 #     matching minikube) instead of the earlier `argocd cluster add` push model
@@ -203,6 +204,56 @@ create_crossplane_app_registration_azure() {
 
 
 # -----------------------------------------------------------------------------
+# Keycloak credentials
+# Pushed under local/keycloak/* so the keycloak chart's ExternalSecrets (role
+# `keycloak`) and the bootstrap Job (role `keycloak-bootstrap`) can read them.
+# -----------------------------------------------------------------------------
+
+# Returns 0 if a KV v2 secret already exists at the given path.
+vault_kv_exists() {
+  vault_exec "vault kv get '$1' >/dev/null 2>&1"
+}
+
+create_keycloak_secrets() {
+  log "Writing Keycloak secrets to Vault..."
+
+  # Entra ID app registration used by Keycloak for Azure SSO
+  local client_id tenant_id client_secret
+  client_id=$(pass show private/azure/entraid/apps/keycloak/client-id | head -n1)
+  tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
+  client_secret=$(pass show private/azure/entraid/apps/keycloak/client-secrets/keycloak/value | head -n1)
+
+  vault_kv_put "local/keycloak/azure/apps/keycloak" \
+    "client_id"     "$client_id" \
+    "tenant_id"     "$tenant_id" \
+    "client_secret" "$client_secret"
+
+  ok "Keycloak Entra ID client secret written"
+
+  # Bootstrap user — generated once, disabled by the bootstrap Job afterwards
+  if vault_kv_exists "local/keycloak/bootstrap"; then
+    log "Keycloak bootstrap secret already exists — skipping"
+  else
+    vault_kv_put "local/keycloak/bootstrap" \
+      "username" "admin" \
+      "password" "$(openssl rand -hex 16)" \
+      "disabled" "0"
+    ok "Keycloak bootstrap credentials written"
+  fi
+
+  # Administrator user — generated once
+  if vault_kv_exists "local/keycloak/administrator"; then
+    log "Keycloak administrator secret already exists — skipping"
+  else
+    vault_kv_put "local/keycloak/administrator" \
+      "username" "administrator" \
+      "password" "$(openssl rand -hex 16)"
+    ok "Keycloak administrator credentials written"
+  fi
+}
+
+
+# -----------------------------------------------------------------------------
 # Argo CD workload cluster credentials (pull model)
 # Creates an argocd-manager ServiceAccount with a long-lived token in each
 # workload cluster and stores server + token in Vault. The argocd chart's
@@ -335,6 +386,7 @@ main() {
   create_github_app_secret_crossplane
   create_argocd_app_registration_azure
   create_crossplane_app_registration_azure
+  create_keycloak_secrets
   create_nextinsight_credentials
   register_clusters_argocd
   create_powerdns_secrets
