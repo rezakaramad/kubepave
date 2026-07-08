@@ -12,6 +12,7 @@ spec:
     helm:
       valueFiles:
         - values.yaml
+        - values-local.yaml
         - values-local-workload.yaml
   destination:
     name: kind-workload
