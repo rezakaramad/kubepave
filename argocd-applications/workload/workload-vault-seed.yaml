@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/local/workload-vault-seed
+    path: charts/workload-vault-seed
   destination:
     name: kind-workload
   syncPolicy:

@@ -1,18 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: external-dns-wl
+  name: cert-manager-wl
   namespace: argocd
 spec:
   project: platform-system
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/local/external-dns
+    path: charts/cert-manager
     helm:
       valueFiles:
         - values.yaml
-        - values-local.yaml
         - values-local-workload.yaml
   destination:
     name: kind-workload
@@ -21,3 +20,4 @@ spec:
     syncOptions:
     - ServerSideApply=true
     - ApplyOutOfSyncOnly=true
+    - SkipDryRunOnMissingResource=true

@@ -20,9 +20,8 @@ repoURL: ''
 targetRevision: HEAD
 
 # App-of-apps folder ArgoCD recurses to discover Application manifests.
-# Override per environment in values-local.yaml / values-gcp.yaml
-applicationFolder: {}
-  # path: argocd-applications/
+applicationFolder:
+  path: argocd-applications/
 
 # Workload clusters ArgoCD must manage.
 # Credentials are pulled from Vault via ExternalSecret (clusters-credential.yaml).
