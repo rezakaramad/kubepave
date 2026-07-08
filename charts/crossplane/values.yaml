@@ -19,3 +19,5 @@ azureADProvider:
 secretStore: 
   enabled: false
   name: vault-local
+  namespace: crossplane-system
+  provider: {}

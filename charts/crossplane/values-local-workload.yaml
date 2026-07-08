@@ -16,6 +16,24 @@ azureADProvider:
     name: vault-local
     kind: SecretStore
 
-secretStore: 
+secretStore:
   enabled: true
   name: vault-local
+  namespace: crossplane-system
+  provider:
+    vault:
+      auth:
+        kubernetes:
+          mountPath: kubernetes-workload
+          role: external-secrets
+          serviceAccountRef:
+            name: external-secrets
+            namespace: platform-system
+      caProvider:
+        key: tls.crt
+        name: root-ca
+        namespace: platform-system
+        type: Secret
+      path: local/crossplane
+      server: https://vault.mgmt.rezakara.demo
+      version: v2
