@@ -1,6 +1,0 @@
-secretStore:
-  provider:
-    vault:
-      auth:
-        kubernetes:
-          mountPath: kubernetes-workload

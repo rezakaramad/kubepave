@@ -31,10 +31,10 @@ spec:
       sendClientIdOnLogout: "false"
 
     clientIdSecretRef:
-      name: azure-oidc-management
+      name: azuread
       key: client_id
     clientSecretSecretRef:
-      name: azure-oidc-management
+      name: azuread
       key: client_secret
 
   providerConfigRef:
