@@ -193,7 +193,7 @@ create_crossplane_app_registration_azure() {
   tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
   client_secret=$(pass show private/azure/entraid/apps/crossplane/client-secrets/crossplane/value | head -n1)
 
-  vault_kv_put "local/crossplane/azure-app" \
+  vault_kv_put "local/crossplane/azure" \
     "client_id"     "$client_id" \
     "tenant_id"     "$tenant_id" \
     "client_secret" "$client_secret"

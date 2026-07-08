@@ -15,7 +15,7 @@ spec:
     creationPolicy: Owner
     deletionPolicy: Retain
     template:
-      type: Opaque
+      type: kubernetes.io/tls
   data:
     - secretKey: ca.crt
       remoteRef:
