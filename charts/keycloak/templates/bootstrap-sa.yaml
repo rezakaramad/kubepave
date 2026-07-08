@@ -3,3 +3,11 @@ kind: ServiceAccount
 metadata:
   name: bootstrap
   namespace: keycloak
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: keycloak
+  namespace: keycloak
