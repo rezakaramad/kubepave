@@ -14,7 +14,7 @@ spec:
     name: root-ca
     creationPolicy: Owner
     template:
-      type: tls
+      type: kubernetes.io/tls
   data:
     - secretKey: ca.crt
       remoteRef:
