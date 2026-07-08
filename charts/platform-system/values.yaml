@@ -1,2 +1,7 @@
 vaultAuth:
   mountPath: ""
+
+# On management clusters, cert-manager owns root-ca (type: kubernetes.io/tls).
+# Enable this only on workload clusters where cert-manager does not run.
+rootCaExternalSecret:
+  enabled: false

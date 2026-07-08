@@ -1,2 +1,5 @@
 vaultAuth:
   mountPath: "kubernetes-management"
+
+rootCaExternalSecret:
+  enabled: false

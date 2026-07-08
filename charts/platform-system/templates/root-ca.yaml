@@ -1,4 +1,4 @@
-{{- if .Capabilities.APIVersions.Has "external-secrets.io/v1" }}
+{{- if and .Values.rootCaExternalSecret.enabled (.Capabilities.APIVersions.Has "external-secrets.io/v1") }}
 
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -13,8 +13,9 @@ spec:
   target:
     name: root-ca
     creationPolicy: Owner
+    deletionPolicy: Delete
     template:
-      type: kubernetes.io/tls
+      type: Opaque
   data:
     - secretKey: ca.crt
       remoteRef:
