@@ -107,12 +107,21 @@ configure_cluster() {
     kubernetes_ca_cert="$CA_CERT" \
     disable_iss_validation=true
 
-  echo "🔑 Creating ESO role..."
+  echo "🔑 Creating ESO shared role..."
 
-  vault write auth/"$AUTH_PATH"/role/external-secrets \
+  vault write auth/"$AUTH_PATH"/role/eso-shared \
     bound_service_account_names="external-secrets" \
     bound_service_account_namespaces="platform-system" \
-    policies="eso-policy" \
+    policies="eso-shared-policy" \
+    audience="https://kubernetes.default.svc.cluster.local" \
+    ttl="1h"
+
+  echo "🔑 Creating eso-platform-system role..."
+
+  vault write auth/"$AUTH_PATH"/role/eso-platform-system \
+    bound_service_account_names="external-secrets" \
+    bound_service_account_namespaces="platform-system" \
+    policies="eso-platform-system-policy" \
     audience="https://kubernetes.default.svc.cluster.local" \
     ttl="1h"
 

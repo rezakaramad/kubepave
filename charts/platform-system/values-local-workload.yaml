@@ -1,5 +1,2 @@
-provider:
-  vault:
-    auth:
-      kubernetes:
-        mountPath: "kubernetes-workload"
+vaultAuth:
+  mountPath: "kubernetes-workload"

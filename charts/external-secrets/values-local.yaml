@@ -1,11 +1,6 @@
-{{- if .Capabilities.APIVersions.Has "external-secrets.io/v1" }}
-
-apiVersion: external-secrets.io/v1
-kind: SecretStore
-metadata:
+clusterSecretStore:
+  enabled: true
   name: vault-local
-  namespace: platform-system
-spec:
   provider:
     vault:
       server: "https://vault.mgmt.rezakara.demo"
@@ -18,11 +13,8 @@ spec:
         namespace: platform-system
       auth:
         kubernetes:
-          mountPath: {{ .Values.vaultAuth.mountPath | quote }}
-          role: "eso-platform-system"
+          mountPath: ""  # overridden by values-local-management.yaml or values-local-workload.yaml
+          role: "eso-shared"
           serviceAccountRef:
             name: external-secrets
             namespace: platform-system
-
----
-{{- end }}

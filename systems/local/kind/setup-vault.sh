@@ -114,10 +114,17 @@ configure_cluster() {
     kubernetes_ca_cert=@/tmp/ca-${cluster}.crt \
     disable_iss_validation=true"
 
-  vault_exec "vault write auth/${auth_path}/role/external-secrets \
+  vault_exec "vault write auth/${auth_path}/role/eso-shared \
     bound_service_account_names=external-secrets \
     bound_service_account_namespaces=platform-system \
-    policies=eso-policy \
+    policies=eso-shared-policy \
+    audience=https://kubernetes.default.svc.cluster.local \
+    ttl=1h"
+
+  vault_exec "vault write auth/${auth_path}/role/eso-platform-system \
+    bound_service_account_names=external-secrets \
+    bound_service_account_namespaces=platform-system \
+    policies=eso-platform-system-policy \
     audience=https://kubernetes.default.svc.cluster.local \
     ttl=1h"
 
