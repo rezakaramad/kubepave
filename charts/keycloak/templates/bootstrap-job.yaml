@@ -25,7 +25,7 @@ spec:
               KEYCLOAK_URL=http://$KEYCLOAK_SERVICE_NAME:$KEYCLOAK_SERVICE_PORT
               CLIENT_ID="crossplane-admin"
               REALM="master"
-              VAULT_PATH="local/management/keycloak/crossplane"
+              VAULT_PATH="local/keycloak/crossplane"
 
               # verify Keycloak is reachable
               echo "🔌 Check Keycloak socket"
@@ -149,7 +149,7 @@ spec:
               echo "🔑 Authenticating with Kubernetes auth"
               LOGIN_OK=false
               for i in {1..10}; do
-                VAULT_TOKEN="$(vault write -field=token auth/kubernetes/login \
+                VAULT_TOKEN="$(vault write -field=token auth/kubernetes-management/login \
                   role=keycloak-bootstrap \
                   jwt=@"$SA_TOKEN_PATH" 2>/dev/null || true)"
 
@@ -170,7 +170,7 @@ spec:
               echo "✅ Vault authentication successful"
 
               echo "🧯 Disable bootstrap login in Vault"
-              vault kv patch local/management/keycloak/bootstrap disabled=1 >/dev/null
+              vault kv patch local/keycloak/bootstrap disabled=1 >/dev/null
 
               echo "🟢 Administrator user ready"
 

@@ -1,0 +1,19 @@
+secretStore:
+  name: vault-local
+  provider:
+    vault:
+      auth:
+        kubernetes:
+          mountPath: ''
+          role: keycloak
+          serviceAccountRef:
+            name: keycloak
+            namespace: keycloak
+      caProvider:
+        key: tls.crt
+        name: root-ca
+        namespace: keycloak
+        type: Secret
+      path: local
+      server: https://vault.mgmt.rezakara.demo
+      version: v2

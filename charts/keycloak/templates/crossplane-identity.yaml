@@ -1,17 +1,17 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: crossplane-keycloak-identity
+  name: crossplane
   namespace: keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "20"
 spec:
   refreshInterval: 20m
   secretStoreRef:
-    name: vault-local
-    kind: ClusterSecretStore
+    name: {{ .Values.secretStore.name }}
+    kind: SecretStore
   target:
-    name: crossplane-keycloak-identity
+    name: crossplane
     creationPolicy: Owner
     template:
       engineVersion: v2
@@ -28,9 +28,9 @@ spec:
   data:
     - secretKey: client_id
       remoteRef:
-        key: management/keycloak/crossplane
+        key: keycloak/crossplane
         property: client_id
     - secretKey: client_secret
       remoteRef:
-        key: management/keycloak/crossplane
+        key: keycloak/crossplane
         property: client_secret

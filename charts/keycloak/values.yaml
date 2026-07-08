@@ -2,3 +2,7 @@ bootstrap:
   image:
     repository: ghcr.io/rezakaramad/kubepave-bootstrap
     tag: sha-073d789
+
+secretStore: 
+  name: ''
+  provider: {}

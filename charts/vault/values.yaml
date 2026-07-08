@@ -89,14 +89,26 @@ vault:
         }
         EOF
 
+        echo "Writing Keycloak ESO policy..."
+
+        vault policy write keycloak-policy - <<'EOF'
+        path "local/data/keycloak/*" {
+          capabilities = ["read"]
+        }
+
+        path "local/metadata/keycloak/*" {
+          capabilities = ["read", "list"]
+        }
+        EOF
+
         echo "Writing Keycloak bootstrap policy..."
 
         vault policy write keycloak-bootstrap - <<'EOF'
-        path "local/data/management/keycloak/*" {
+        path "local/data/keycloak/*" {
           capabilities = ["read", "create", "update", "patch"]
         }
 
-        path "local/metadata/management/keycloak/*" {
+        path "local/metadata/keycloak/*" {
           capabilities = ["read", "list"]
         }
         EOF
@@ -163,6 +175,13 @@ vault:
           bound_service_account_namespaces=argocd \
           policies=eso-argocd-policy \
           ttl=1h \
+          audience="https://kubernetes.default.svc.cluster.local"
+
+        vault write auth/kubernetes-management/role/keycloak \
+          bound_service_account_names="keycloak" \
+          bound_service_account_namespaces="keycloak" \
+          policies="keycloak-policy" \
+          ttl="1h" \
           audience="https://kubernetes.default.svc.cluster.local"
 
         vault write auth/kubernetes-management/role/keycloak-bootstrap \

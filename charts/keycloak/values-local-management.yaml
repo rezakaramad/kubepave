@@ -1,0 +1,6 @@
+secretStore:
+  provider:
+    vault:
+      auth:
+        kubernetes:
+          mountPath: kubernetes-management
