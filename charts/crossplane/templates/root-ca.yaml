@@ -8,8 +8,8 @@ metadata:
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: {{ .Values.secretStore.name }}
-    kind: SecretStore
+    name: vault-local
+    kind: ClusterSecretStore
   target:
     name: root-ca
     creationPolicy: Owner
@@ -18,15 +18,15 @@ spec:
   data:
     - secretKey: ca.crt
       remoteRef:
-        key: shared/pki/root-ca
+        key: pki/root-ca
         property: ca.crt
     - secretKey: tls.crt
       remoteRef:
-        key: shared/pki/root-ca
+        key: pki/root-ca
         property: tls.crt
     - secretKey: tls.key
       remoteRef:
-        key: shared/pki/root-ca
+        key: pki/root-ca
         property: tls.key
 
 ---

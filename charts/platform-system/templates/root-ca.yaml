@@ -18,15 +18,15 @@ spec:
   data:
     - secretKey: ca.crt
       remoteRef:
-        key: shared/pki/root-ca
+        key: pki/root-ca
         property: ca.crt
     - secretKey: tls.crt
       remoteRef:
-        key: shared/pki/root-ca
+        key: pki/root-ca
         property: tls.crt
     - secretKey: tls.key
       remoteRef:
-        key: shared/pki/root-ca
+        key: pki/root-ca
         property: tls.key
 
 ---
