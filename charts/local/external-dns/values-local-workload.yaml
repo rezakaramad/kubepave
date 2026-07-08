@@ -1,0 +1,13 @@
+external-dns:
+  txtOwnerId: kind-workload
+  domainFilters:
+    - wl.rezakara.demo
+  # Reach the management PowerDNS API via its stable Traefik-exposed hostname.
+  # Avoids depending on the management node's runtime IP (portable across kind
+  # cluster recreation). TLS is skipped because the endpoint uses the local
+  # self-signed root CA — acceptable for local dev.
+  extraArgs:
+    - --pdns-server=https://powerdns.mgmt.rezakara.demo
+    - --pdns-api-key=$(PDNS_API_KEY)
+    - --pdns-skip-tls-verify
+    - --publish-internal-services

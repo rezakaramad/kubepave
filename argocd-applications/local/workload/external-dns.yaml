@@ -8,12 +8,14 @@ spec:
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/external-dns
+    path: charts/local/external-dns
     helm:
       valueFiles:
-        - values-wl.yaml
+        - values.yaml
+        - values-local.yaml
+        - values-local-workload.yaml
   destination:
-    name: minikube-workload
+    name: kind-workload
     namespace: platform-system
   syncPolicy:
     syncOptions:

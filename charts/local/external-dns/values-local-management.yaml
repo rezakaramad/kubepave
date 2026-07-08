@@ -1,0 +1,10 @@
+external-dns:
+  txtOwnerId: kind-management
+  domainFilters:
+    - mgmt.rezakara.demo
+    - rezakara.demo
+  # PowerDNS is in the same cluster — use the ClusterIP service directly
+  extraArgs:
+    - --pdns-server=http://powerdns-api.powerdns.svc.cluster.local:8081
+    - --pdns-api-key=$(PDNS_API_KEY)
+    - --publish-internal-services

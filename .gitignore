@@ -1,4 +1,5 @@
 .platform.env
+.powerdns.env
 .local
 .ideas
 *.key

@@ -1,0 +1,27 @@
+defaultGateway:
+  # The hostname for defeault gateway resource
+  hostname: ''
+  # In workload clusters, we don't allow tenants to send traffic
+  # to platform-owned default Gateway in 'platform-system' namespace.
+  allowedRoutes: {}
+
+# TLS — always enabled; cert-manager issues the certificate via the cluster-issuer annotation.
+tls:
+  clusterIssuer: root-ca
+
+traefik:
+  deployment:
+    replicas: 1
+
+  # Trust X-Forwarded-For headers from RFC 1918 private ranges only.
+  # Required so apps see the real client IP instead of the metallb LB address.
+  # insecure: false means only IPs in trustedIPs can set forwarded headers — anyone
+  # outside those ranges cannot spoof their source IP.
+  ports:
+    websecure:
+      forwardedHeaders:
+        insecure: false
+        trustedIPs:
+          - 10.0.0.0/8
+          - 172.16.0.0/12
+          - 192.168.0.0/16

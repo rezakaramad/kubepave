@@ -1,0 +1,8 @@
+apiVersion: v2
+name: workload-vault-seed
+description: >-
+  Bootstrap identity seed for the workload cluster. Creates the vault-reviewer
+  ServiceAccount and token-review RBAC that Vault (running on the management
+  cluster) uses to validate workload ServiceAccount tokens. Must exist before
+  setup-vault.sh configures the kubernetes-workload auth backend.
+version: 0.0.1

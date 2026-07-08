@@ -8,9 +8,13 @@ spec:
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/cert-manager
+    path: charts/local/cert-manager
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-local-workload.yaml
   destination:
-    name: minikube-workload
+    name: kind-workload
     namespace: platform-system
   syncPolicy:
     syncOptions:

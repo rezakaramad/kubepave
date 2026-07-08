@@ -1,0 +1,32 @@
+{{- if .Values.api.httproute.enabled }}
+# Exposes the PowerDNS API behind the management Traefik gateway at a stable
+# hostname so that external-dns in *other* clusters (e.g. workload) can reach it
+# without depending on the management node's runtime IP. This mirrors the cloud
+# model where external-dns talks to a DNS provider API over a stable endpoint.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: powerdns-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    external-dns-create: "true"
+spec:
+  hostnames:
+    - {{ .Values.api.httproute.hostname | quote }}
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .Values.api.httproute.gatewayName }}
+      namespace: {{ .Values.api.httproute.gatewayNamespace }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: powerdns-api
+          port: 8081
+          weight: 1
+{{- end }}

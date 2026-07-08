@@ -6,12 +6,34 @@ global:
     format: json
     level: warn
 
+# Azure AD identity for OIDC client secret via ExternalSecret.
+# Disable on environments without external-secrets installed (e.g. kind).
+azureIdentity:
+  enabled: true
+
+# -------------------------------------------------------------------------------
+# -- GitOps platform
+# -------------------------------------------------------------------------------
+
+# Git source for all ArgoCD application manifests and Helm charts.
+repoURL: ''
+targetRevision: HEAD
+
+# App-of-apps folder ArgoCD recurses to discover Application manifests.
+# Override per environment in values-local.yaml / values-gcp.yaml
+applicationFolder: {}
+  # path: argocd-applications/
+
+# Workload clusters ArgoCD must manage.
+# Credentials are pulled from Vault via ExternalSecret (clusters-credential.yaml).
+clusterCredentials: []
+
 # -------------------------------------------------------------------------------
 # -- Argo CD configs
 # -------------------------------------------------------------------------------
 
 argocd:
-  # Argo CD Commit server
+  # The Argo CD Commit Server provides push access to git repositories for hydrated manifests 
   commitServer:
     enabled: true
   
@@ -22,12 +44,11 @@ argocd:
       enabled: true
 
     # -- Enable HTTPRoute resource for Argo CD server (Gateway API)
+    # Hostnames are environment-specific — set in values-local.yaml / values-gcp.yaml
     httproute:
       enabled: true
       labels:
         external-dns-create: "true"
-      hostnames:
-        - argocd.mgmt.rezakara.demo
       parentRefs:
         - group: gateway.networking.k8s.io
           kind: Gateway
@@ -47,10 +68,10 @@ argocd:
       enabled: false
       labels:
         external-dns-create: "true"
-      hostnames:
-        - argocd.mgmt.rezakara.demo
       parentRefs:
-        - name: traefik-gateway
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: default-traefik
           namespace: platform-system
       rules:
         - backendRefs:
@@ -85,7 +106,8 @@ argocd:
       create: true
 
       # -- External Argo CD URL used by the UI, CLI, and notifications.
-      url: https://argocd.mgmt.rezakara.demo
+      # Set to the environment-specific hostname in values-local.yaml / values-gcp.yaml
+      url: ""
 
       # -- Disable built-in local 'admin' user
       admin.enabled: true

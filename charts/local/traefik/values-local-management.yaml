@@ -1,0 +1,6 @@
+defaultGateway:
+  hostname: '*.mgmt.rezakara.demo'
+  # In the management cluster, allow routes from any namespace
+  allowedRoutes:
+    namespaces:
+      from: All

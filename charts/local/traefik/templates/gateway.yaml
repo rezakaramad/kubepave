@@ -10,7 +10,7 @@ metadata:
   name: default-traefik
   namespace: platform-system
   annotations:
-    cert-manager.io/cluster-issuer: "root-ca"
+    cert-manager.io/cluster-issuer: {{ .Values.tls.clusterIssuer | quote }}
 spec:
   gatewayClassName: traefik
   listeners:

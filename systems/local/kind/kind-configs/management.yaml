@@ -1,0 +1,19 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+networking:
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.101.0.0/16"
+  # Disable default CNI so we can install our own (required for metallb L2 mode)
+  disableDefaultCNI: false
+
+nodes:
+  - role: control-plane
+    # Required for metallb L2 ARP — enable promiscuous mode on the kind network interface
+    extraPortMappings: []
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"

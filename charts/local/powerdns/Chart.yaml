@@ -1,0 +1,4 @@
+apiVersion: v2
+name: powerdns
+description: PowerDNS authoritative server for local development
+version: 1.0.0

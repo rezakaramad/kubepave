@@ -1,0 +1,36 @@
+image:
+  repository: powerdns/pdns-auth-51
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# API key for PowerDNS HTTP API — read from a Secret (see secret.yaml)
+apiKeySecret:
+  name: powerdns-api-key
+  key: key
+
+# PowerDNS HTTP API exposure
+api:
+  # Expose the API behind the management Traefik gateway at a stable hostname
+  # so external-dns in other clusters can reach it without a runtime IP.
+  httproute:
+    enabled: true
+    hostname: powerdns.mgmt.rezakara.demo
+    gatewayName: default-traefik
+    gatewayNamespace: platform-system
+
+postgres:
+  host: powerdns-db
+  port: 5432
+  database: pdns
+  user: pdns
+  # Password read from secret — see secret.yaml
+  passwordSecret:
+    name: powerdns-db-credentials
+    key: password
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 128Mi

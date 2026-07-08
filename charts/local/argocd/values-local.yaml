@@ -1,0 +1,30 @@
+argocd:
+  server:
+    httproute:
+      hostnames:
+        - argocd.mgmt.rezakara.demo
+
+    grpcroute:
+      hostnames:
+        - argocd.mgmt.rezakara.demo
+
+  configs:
+    cm:
+      url: https://argocd.mgmt.rezakara.demo
+
+# -------------------------------------------------------------------------------
+# -- GitOps platform
+# -------------------------------------------------------------------------------
+# Git source for all ArgoCD application manifests and Helm charts.
+repoURL: https://github.com/rezakaramad/kubepave
+
+# App-of-apps folder ArgoCD recurses to discover Application manifests.
+# Override per environment in values-local.yaml / values-gcp.yaml
+applicationFolder:
+  path: argocd-applications/local/workload/
+
+# Workload clusters ArgoCD must manage.
+# Credentials are pulled from Vault via ExternalSecret (clusters-credential.yaml).
+clusterCredentials:
+  - name: kind-workload
+    environmentPrefix: wl

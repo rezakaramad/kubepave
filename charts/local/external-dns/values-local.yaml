@@ -1,0 +1,9 @@
+external-dns:
+  provider: pdns
+
+  env:
+    - name: PDNS_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: powerdns-api-key
+          key: key

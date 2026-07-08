@@ -1,0 +1,4 @@
+apiVersion: v2
+name: platform-system
+description: Creates the platform-system namespace where platform core components are installed (cert-manager, external-secrets, etc.)
+version: 0.0.1

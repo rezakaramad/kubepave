@@ -1,3 +1,8 @@
+rootCA: {}
+  # enabled: true
+  # mint: true
+  # namespace: platform-system
+
 cert-manager:
   fullnameOverride: cert-manager
   replicaCount: 1

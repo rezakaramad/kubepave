@@ -1,0 +1,8 @@
+rootCA:
+  # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Venafi)
+  # and cert-manager should not own any ClusterIssuer resources.
+  enabled: true
+  # In workload clusters, we don't mint a root CA; we copy it from management via 'setup-trust.sh'.
+  mint: false
+  # Namespace where the root-ca Secret is stored
+  namespace: platform-system

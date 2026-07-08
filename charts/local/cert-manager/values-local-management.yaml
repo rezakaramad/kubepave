@@ -1,0 +1,8 @@
+rootCA:
+  # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Venafi)
+  # and cert-manager should not own any ClusterIssuer resources.
+  enabled: true
+  # Create the 'selfsigned' ClusterIssuer + 'root-ca' Certificate on management cluster
+  mint: true
+  # Namespace where the root-ca Secret is stored
+  namespace: platform-system

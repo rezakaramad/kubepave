@@ -1,16 +1,16 @@
 defaultGateway:
-  # The hostname for defeault gateway resource in management cluster
-  hostname: '*.mgmt.rezakara.demo'
-  # In tenant environments, we don't allow tenants to send traffic
+  # The hostname for defeault gateway resource
+  hostname: ''
+  # In workload clusters, we don't allow tenants to send traffic
   # to platform-owned default Gateway in 'platform-system' namespace.
-  allowedRoutes:
-    namespaces:
-      from: All
+  allowedRoutes: {}
+
+# cert-manager issues the certificate via the cluster-issuer annotation.
+tls:
+  clusterIssuer: ""
 
 traefik:
   deployment:
-    replicas: 1
-    
     # -- Additional deployment labels (e.g. for filtering deployment by custom labels)
     labels:
       app.kubernetes.io/component: gateway
@@ -26,7 +26,7 @@ traefik:
   gateway:
     enabled: false
 
-  # Enable the dashboard
+  # Disable the dashboard
   api:
     dashboard: false
 
@@ -58,12 +58,3 @@ traefik:
       # By default, the level is set to INFO.
       # Alternative logging levels are TRACE, DEBUG, INFO, WARN, ERROR, FATAL, and PANIC.
       level: "WARN"
-
-  ports:
-    websecure:
-      forwardedHeaders:
-        insecure: false
-        trustedIPs:
-          - 10.0.0.0/8
-          - 172.16.0.0/12
-          - 192.168.0.0/16

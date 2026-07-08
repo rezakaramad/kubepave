@@ -1,4 +1,0 @@
-apiVersion: v2
-name: baseline-workload
-description: Creates platform namespaces with default resources in workload clusters.
-version: 0.0.1

@@ -1,0 +1,175 @@
+# Local Kind Environment
+
+A reproducible, multi-cluster local platform running on [kind](https://kind.sigs.k8s.io/).
+It mirrors the cloud/minikube setup: a **management** cluster running the platform
+control plane (ArgoCD, Vault, PowerDNS, cert-manager, external-secrets, Traefik)
+and a **workload** cluster whose platform components are installed by ArgoCD via
+GitOps.
+
+> For the design rationale (why kind, why PowerDNS in-cluster, the TLS chain, the
+> GitOps model, and why `baseline-workload` is bootstrapped imperatively) see
+> [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
+## Prerequisites
+
+Install and have on `PATH`:
+
+| Tool | Purpose |
+|------|---------|
+| `docker` | container runtime for kind nodes |
+| `kind` | cluster runtime |
+| `kubectl` | cluster access |
+| `helm` | chart installs |
+| `argocd` CLI | ArgoCD interaction |
+| `openssl`, `keytool`, `certutil` | trust store management |
+| `dig` | DNS verification |
+| `python3` | metallb pool / JSON helpers |
+| `pass` | source of GitHub App + Azure AD secrets |
+| `sudo` | systemd-resolved drop-in + system trust store |
+
+You also need the `pass` password store populated with the GitHub App and Azure AD
+credentials referenced by `setup-secrets.sh`.
+
+---
+
+## Bootstrap order
+
+Run from `systems/local/kind/`. Each step is idempotent.
+
+```bash
+./setup-clusters.sh start     # 1. create kind clusters, patch CoreDNS stub
+./setup-metallb.sh install    # 2. metallb LoadBalancer pools (both clusters)
+./install-gateway-api.sh      # 3. Gateway API CRDs (both clusters) — required by setup-dns.sh
+./setup-dns.sh start          # 4. PowerDNS (hostNetwork) + systemd-resolved drop-in
+./install-charts.sh           # 5. management stack + ArgoCD + workload seed
+./setup-vault.sh              # 6. configure Vault k8s auth for the workload cluster
+./setup-secrets.sh            # 7. push secrets to Vault + register workload with ArgoCD
+./setup-trust.sh              # 8. distribute root CA to workload + local trust stores
+```
+
+### What each step does
+
+1. **`setup-clusters.sh start`** — creates the `management` and `workload` kind
+   clusters, enables promiscuous mode, and patches CoreDNS in both to forward
+   `rezakara.demo` to PowerDNS. `destroy` tears them down; `status` shows state.
+2. **`setup-metallb.sh install`** — installs metallb and configures an
+   `IPAddressPool` + `L2Advertisement` per cluster, carved from the upper end of
+   the kind Docker bridge CIDR.
+3. **`install-gateway-api.sh`** — installs Gateway API CRDs (`v1.4.1`) on both
+   clusters. Idempotent. Required before `setup-dns.sh` (PowerDNS HTTPRoute) and
+   `install-charts.sh` (Traefik Gateway).
+4. **`setup-dns.sh start`** — generates `.powerdns.env` (gitignored), deploys the
+   PowerDNS chart with `hostNetwork: true` in the management cluster, and writes a
+   systemd-resolved drop-in so the host resolves `*.rezakara.demo` via PowerDNS.
+   `reset` reverts the host DNS change.
+5. **`install-charts.sh`** — the main bootstrap. Installs cert-manager,
+   external-secrets, Vault, Traefik (TLS), external-dns (management), the
+   `workload-vault-seed` identity seed, and ArgoCD (OIDC + App-of-Apps).
+6. **`setup-vault.sh`** — configures the Vault Kubernetes auth backend for the
+   workload cluster so its external-secrets can authenticate to Vault.
+7. **`setup-secrets.sh`** — reads secrets from `pass` and writes them to Vault
+   (GitHub Apps, Azure AD, PowerDNS, Next Insight) and registers the workload
+   cluster with ArgoCD (pull model) by storing its API server + token in Vault.
+8. **`setup-trust.sh`** — copies the root CA Secret from the management cluster
+   to the workload cluster, verifies it, and installs it into the Java / browser
+   (NSS) / system trust stores.
+
+After step 6, ArgoCD materialises the workload cluster Secret and the App-of-Apps
+begins syncing `argocd-applications/local/workload/` — installing cert-manager,
+external-secrets, Traefik, and external-dns on the workload cluster.
+
+> **Note:** ArgoCD pulls charts and Application manifests from Git
+> (`github.com/rezakaramad/kubepave` at `HEAD`). Any local chart changes must be
+> committed and pushed before ArgoCD can see them.
+
+---
+
+## Endpoints
+
+Once bootstrapped, these resolve via PowerDNS and terminate TLS at Traefik using
+the local root CA (trusted after `setup-trust.sh`):
+
+| Service | URL |
+|---------|-----|
+| ArgoCD | `https://argocd.mgmt.rezakara.demo` |
+| Vault | `https://vault.mgmt.rezakara.demo` |
+| PowerDNS API | `https://powerdns.mgmt.rezakara.demo` |
+
+ArgoCD supports both Azure AD SSO and the local `admin` account. Retrieve the
+admin password with:
+
+```bash
+./setup-argocd.sh password
+```
+
+---
+
+## Verification
+
+```bash
+# DNS resolves from the host
+dig +short vault.mgmt.rezakara.demo
+
+# Management platform pods
+kubectl --context kind-management -n platform-system get pods
+
+# ArgoCD Applications
+kubectl --context kind-management -n argocd get applications
+
+# Workload platform pods (installed by ArgoCD)
+kubectl --context kind-workload -n platform-system get pods
+
+# HTTPS endpoints
+curl -s -o /dev/null -w '%{http_code}\n' https://argocd.mgmt.rezakara.demo/
+curl -s -o /dev/null -w '%{http_code}\n' https://vault.mgmt.rezakara.demo/v1/sys/health
+```
+
+`dns-test.yaml` is a sample HTTPRoute for testing the external-dns → PowerDNS flow:
+
+```bash
+kubectl --context kind-management apply -f dns-test.yaml
+dig +short test.mgmt.rezakara.demo
+```
+
+---
+
+## Teardown
+
+```bash
+./setup-dns.sh reset          # remove the systemd-resolved drop-in
+./setup-clusters.sh destroy   # delete both kind clusters
+```
+
+The system trust store entry installed by `setup-trust.sh` can be removed with:
+
+```bash
+sudo rm /usr/local/share/ca-certificates/rezakara-demo.crt
+sudo update-ca-certificates --fresh
+```
+
+---
+
+## Directory layout
+
+```
+systems/local/kind/
+├── README.md              # this file
+├── ARCHITECTURE.md        # design decisions
+├── libs/
+│   ├── common.sh          # shared constants + log helpers
+│   └── utils.sh           # kind/metallb/context helpers
+├── kind-configs/
+│   ├── management.yaml    # kind config for the management cluster
+│   └── workload.yaml      # kind config for the workload cluster
+├── setup-clusters.sh      # create/destroy clusters, patch CoreDNS
+├── setup-metallb.sh       # metallb pools
+├── setup-dns.sh           # PowerDNS + systemd-resolved
+├── install-charts.sh      # management stack + ArgoCD + gitops-platform
+├── setup-vault.sh         # Vault k8s auth for workload
+├── setup-secrets.sh       # secrets to Vault + workload registration
+├── setup-trust.sh         # root CA trust distribution
+├── setup-argocd.sh        # ArgoCD credentials helper
+└── dns-test.yaml          # sample HTTPRoute for DNS testing
+```
