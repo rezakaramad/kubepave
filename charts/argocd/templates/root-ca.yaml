@@ -13,7 +13,7 @@ spec:
   target:
     name: root-ca
     creationPolicy: Owner
-    deletionPolicy: Delete
+    deletionPolicy: Retain
     template:
       type: Opaque
   data:
