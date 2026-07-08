@@ -28,7 +28,7 @@ spec:
     source: Secret
     secretRef:
       namespace: crossplane-system
-      name: crossplane-github-identity-rezakaramad
+      name: github-org-rezakaramad
       key: credentials
 
 {{- end }}

@@ -1,0 +1,19 @@
+secretStore:
+  name: vault-local
+  provider:
+    vault:
+      auth:
+        kubernetes:
+          mountPath: ''
+          role: crossplane
+          serviceAccountRef:
+            name: crossplane
+            namespace: crossplane-system
+      caProvider:
+        key: tls.crt
+        name: root-ca
+        namespace: crossplane-system
+        type: Secret
+      path: local/crossplane
+      server: https://vault.mgmt.rezakara.demo
+      version: v2
