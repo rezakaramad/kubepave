@@ -47,7 +47,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: crossplane-github-identity-rezakaramad
-  namespace: crossplane
+  namespace: crossplane-system
 spec:
   refreshInterval: 20m
   secretStoreRef:

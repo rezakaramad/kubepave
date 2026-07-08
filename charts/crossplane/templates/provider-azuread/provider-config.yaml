@@ -12,7 +12,7 @@ spec:
   credentials:
     source: Secret
     secretRef:
-      namespace: crossplane
+      namespace: crossplane-system
       name: crossplane-azure-identity
       key: credentials
 
