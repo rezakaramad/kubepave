@@ -148,13 +148,29 @@ configure_cluster() {
 }
 
 
+wait_for_vault_bootstrap() {
+  log "Waiting for Vault postStart bootstrap to complete (KV mount 'local')..."
+  for i in $(seq 1 60); do
+    if vault_exec "vault secrets list" 2>/dev/null | grep -q '^local/'; then
+      ok "Vault bootstrap complete"
+      return 0
+    fi
+    sleep 3
+  done
+  err "Vault bootstrap did not complete within 3 minutes"
+  exit 1
+}
+
+
 main() {
-  log "Waiting for Vault to be ready..."
+  log "Waiting for Vault pod to be ready..."
   kubectl --context "$(kind_context management)" \
     -n "$VAULT_NAMESPACE" \
     wait pod vault-0 \
     --for=condition=Ready \
     --timeout=120s
+
+  wait_for_vault_bootstrap
 
   get_kind_tenant_clusters | while read -r cluster; do
     configure_cluster "$cluster"
