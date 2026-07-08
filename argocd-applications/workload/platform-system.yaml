@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-secrets-management
+  namespace: argocd
+spec:
+  project: platform-system
+  source:
+    repoURL: https://github.com/rezakaramad/kubepave
+    targetRevision: HEAD
+    path: charts/platform-system
+  destination:
+    name: kind-workload
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true
+    - ApplyOutOfSyncOnly=true
