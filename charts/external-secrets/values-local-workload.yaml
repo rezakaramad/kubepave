@@ -1,5 +1,6 @@
-provider:
-  vault:
-    auth:
-      kubernetes:
-        mountPath: "kubernetes-workload"
+clusterSecretStore:
+  provider:
+    vault:
+      auth:
+        kubernetes:
+          mountPath: "kubernetes-workload"

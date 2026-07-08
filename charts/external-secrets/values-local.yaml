@@ -13,7 +13,7 @@ clusterSecretStore:
         namespace: platform-system
       auth:
         kubernetes:
-          mountPath: ""  # overridden by values-local-management.yaml or values-local-workload.yaml
+          mountPath: ""
           role: "eso-shared"
           serviceAccountRef:
             name: external-secrets

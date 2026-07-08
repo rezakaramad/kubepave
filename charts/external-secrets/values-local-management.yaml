@@ -1,5 +1,6 @@
-provider:
-  vault:
-    auth:
-      kubernetes:
-        mountPath: "kubernetes-management"
+clusterSecretStore:
+  provider:
+    vault:
+      auth:
+        kubernetes:
+          mountPath: "kubernetes-management"
