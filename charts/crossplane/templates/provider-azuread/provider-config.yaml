@@ -13,7 +13,7 @@ spec:
     source: Secret
     secretRef:
       namespace: crossplane-system
-      name: azure
+      name: azuread
       key: credentials
 
 ---
