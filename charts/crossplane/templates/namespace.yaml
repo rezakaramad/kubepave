@@ -4,3 +4,6 @@ metadata:
   name: crossplane-system
   annotations:
     helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-wave: "-1"
+
+---
