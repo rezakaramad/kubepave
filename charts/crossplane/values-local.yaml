@@ -14,6 +14,6 @@ secretStore:
         name: root-ca
         namespace: crossplane-system
         type: Secret
-      path: local/crossplane
+      path: local
       server: https://vault.mgmt.rezakara.demo
       version: v2
