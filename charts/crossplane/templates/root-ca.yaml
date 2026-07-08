@@ -1,0 +1,32 @@
+{{- if and .Values.secretStore.enabled (.Capabilities.APIVersions.Has "external-secrets.io/v1") }}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: root-ca
+  namespace: {{ .Values.secretStore.namespace }}
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: {{ .Values.secretStore.name }}
+    kind: SecretStore
+  target:
+    name: root-ca
+    creationPolicy: Owner
+    template:
+      type: Opaque
+  data:
+    - secretKey: ca.crt
+      remoteRef:
+        key: pki/root-ca
+        property: ca.crt
+    - secretKey: tls.crt
+      remoteRef:
+        key: pki/root-ca
+        property: tls.crt
+    - secretKey: tls.key
+      remoteRef:
+        key: pki/root-ca
+        property: tls.key
+
+---
+{{- end }}

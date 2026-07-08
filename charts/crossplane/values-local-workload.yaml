@@ -32,7 +32,7 @@ secretStore:
       caProvider:
         key: tls.crt
         name: root-ca
-        namespace: platform-system
+        namespace: crossplane-system
         type: Secret
       path: local/crossplane
       server: https://vault.mgmt.rezakara.demo

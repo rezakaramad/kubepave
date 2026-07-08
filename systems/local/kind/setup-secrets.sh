@@ -71,6 +71,32 @@ vault_exec() {
 
 
 # -----------------------------------------------------------------------------
+# Root CA — push to Vault so any namespace can pull it via ExternalSecret
+# -----------------------------------------------------------------------------
+push_root_ca_to_vault() {
+  log "Pushing root-ca into Vault..."
+
+  local ca_crt tls_crt tls_key
+  ca_crt=$(kubectl --context "$(kind_context management)" \
+    -n "$PLATFORM_NAMESPACE" get secret root-ca \
+    -o jsonpath='{.data.ca\.crt}' | base64 -d)
+  tls_crt=$(kubectl --context "$(kind_context management)" \
+    -n "$PLATFORM_NAMESPACE" get secret root-ca \
+    -o jsonpath='{.data.tls\.crt}' | base64 -d)
+  tls_key=$(kubectl --context "$(kind_context management)" \
+    -n "$PLATFORM_NAMESPACE" get secret root-ca \
+    -o jsonpath='{.data.tls\.key}' | base64 -d)
+
+  vault_kv_put "local/pki/root-ca" \
+    "ca.crt"  "$ca_crt" \
+    "tls.crt" "$tls_crt" \
+    "tls.key" "$tls_key"
+
+  ok "root-ca pushed to Vault at local/pki/root-ca"
+}
+
+
+# -----------------------------------------------------------------------------
 # GitHub App secret for Argo CD
 # -----------------------------------------------------------------------------
 create_github_app_secret_argocd() {
@@ -304,6 +330,7 @@ main() {
     --for=condition=Ready \
     --timeout=60s
 
+  push_root_ca_to_vault
   create_github_app_secret_argocd
   create_github_app_secret_crossplane
   create_argocd_app_registration_azure

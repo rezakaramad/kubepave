@@ -95,6 +95,14 @@ vault:
         path "local/metadata/crossplane/*" {
           capabilities = ["read", "list"]
         }
+
+        path "local/data/pki/root-ca" {
+          capabilities = ["read"]
+        }
+
+        path "local/metadata/pki/root-ca" {
+          capabilities = ["read"]
+        }
         EOF
 
         echo "Creating ESO role..."
