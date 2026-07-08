@@ -9,8 +9,8 @@ metadata:
 spec:
   refreshInterval: 20m
   secretStoreRef:
-    name: vault-local
-    kind: ClusterSecretStore
+    name: {{ .Values.githubProvider.secretStoreRef.name }}
+    kind: {{ .Values.githubProvider.secretStoreRef.kind }}
   target:
     name: crossplane-github-identity-fluxdojo
     creationPolicy: Owner
@@ -51,8 +51,8 @@ metadata:
 spec:
   refreshInterval: 20m
   secretStoreRef:
-    name: vault-local
-    kind: ClusterSecretStore
+    name: {{ .Values.githubProvider.secretStoreRef.name }}
+    kind: {{ .Values.githubProvider.secretStoreRef.kind }}
   target:
     name: crossplane-github-identity-rezakaramad
     creationPolicy: Owner

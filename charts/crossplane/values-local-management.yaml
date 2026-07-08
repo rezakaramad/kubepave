@@ -1,5 +1,11 @@
 githubProvider:
   enabled: true
+  # Crossplane needs to be able to read the GitHub app credentials from a secret store.
+  # The secret store can be a ClusterSecretStore or a SecretStore depending on the cluster where Crossplane is deployed.
+  # In management cluster, the store is cluster-scoped (ClusterSecretStore).
+  secretStoreRef:
+    name: vault-local
+    kind: ClusterSecretStore
 
 keycloakProvider:
   enabled: true

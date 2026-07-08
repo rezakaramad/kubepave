@@ -4,6 +4,9 @@ githubProvider:
   activatedResources:
   - repositories.repo.github.m.upbound.io
   - repositoryfiles.repo.github.m.upbound.io
+  secretStoreRef:
+    name: vault-local
+    kind: ClusterSecretStore
 
 keycloakProvider:
   enabled: false
