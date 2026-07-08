@@ -26,7 +26,7 @@ platformSourceRepos:
   -  https://github.com/rezakaramad/kubepave
 
 # App-of-apps folder ArgoCD recurses to discover Application manifests.
-xapplicationFolder:
+applicationFolder:
   path: argocd-applications/
 
 # Workload clusters ArgoCD must manage.

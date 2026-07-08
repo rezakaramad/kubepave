@@ -41,6 +41,33 @@ tasks:
     cmds:
       - ./local/minikube/setup-minikube.sh destroy
       - ./local/minikube/setup-dns.sh reset
+  kind:up:
+    desc: "Bootstrap the full kind-based local environment"
+    silent: true
+    cmds:
+      - |
+        set -euo pipefail
+        cd systems/local/kind
+
+        start=$(date +%s)
+
+        bash setup-clusters.sh start
+        bash setup-metallb.sh install
+        bash install-gateway-api.sh
+        bash setup-dns.sh start
+        bash install-charts.sh
+        bash setup-vault.sh
+        bash setup-secrets.sh
+        bash setup-trust.sh
+
+        end=$(date +%s)
+        echo ""
+        echo "⏱️  Total time: $((end - start)) seconds"
+  kind:down:
+    desc: "Tear down the kind clusters and reset local DNS"
+    cmds:
+      - cd systems/local/kind && bash setup-clusters.sh destroy
+      - cd systems/local/kind && bash setup-dns.sh reset
   azure:local:up:
     desc: "Bootstrap Azure Entra ID for kubepave"
     cmds:
