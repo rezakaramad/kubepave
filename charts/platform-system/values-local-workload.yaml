@@ -1,5 +1,2 @@
 vaultAuth:
   mountPath: "kubernetes-workload"
-
-rootCaExternalSecret:
-  enabled: true
