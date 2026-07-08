@@ -134,6 +134,15 @@ configure_cluster() {
     audience="https://kubernetes.default.svc.cluster.local" \
     ttl="1h"
 
+  echo "🔑 Creating ArgoCD role..."
+
+  vault write auth/"$AUTH_PATH"/role/eso-argocd \
+    bound_service_account_names="argocd-server" \
+    bound_service_account_namespaces="argocd" \
+    policies="eso-argocd-policy" \
+    audience="https://kubernetes.default.svc.cluster.local" \
+    ttl="1h"
+
   echo "✅ Vault auth configured for $profile"
 }
 

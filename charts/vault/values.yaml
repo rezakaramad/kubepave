@@ -121,6 +121,18 @@ vault:
         }
         EOF
 
+        echo "Writing ArgoCD policy..."
+
+        vault policy write eso-argocd-policy - <<EOF
+        path "local/metadata/argocd/*" {
+          capabilities = ["read", "list"]
+        }
+
+        path "local/data/argocd/*" {
+          capabilities = ["read"]
+        }
+        EOF
+
         echo "Creating ESO shared role..."
 
         vault write auth/kubernetes-management/role/eso-shared \
@@ -143,6 +155,13 @@ vault:
           bound_service_account_names=crossplane \
           bound_service_account_namespaces=crossplane-system \
           policies=crossplane-policy \
+          ttl=1h \
+          audience="https://kubernetes.default.svc.cluster.local"
+
+        vault write auth/kubernetes-management/role/eso-argocd \
+          bound_service_account_names=argocd-server \
+          bound_service_account_namespaces=argocd \
+          policies=eso-argocd-policy \
           ttl=1h \
           audience="https://kubernetes.default.svc.cluster.local"
 

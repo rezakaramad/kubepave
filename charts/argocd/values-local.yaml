@@ -1,3 +1,6 @@
+vaultAuth:
+  mountPath: "kubernetes-management"
+
 argocd:
   server:
     httproute:

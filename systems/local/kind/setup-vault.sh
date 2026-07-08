@@ -135,6 +135,13 @@ configure_cluster() {
     audience=https://kubernetes.default.svc.cluster.local \
     ttl=1h"
 
+  vault_exec "vault write auth/${auth_path}/role/eso-argocd \
+    bound_service_account_names=argocd-server \
+    bound_service_account_namespaces=argocd \
+    policies=eso-argocd-policy \
+    audience=https://kubernetes.default.svc.cluster.local \
+    ttl=1h"
+
   vault_exec "rm -f /tmp/ca-${cluster}.crt"
 
   ok "Vault auth configured for $cluster"

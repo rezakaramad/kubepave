@@ -108,7 +108,7 @@ create_github_app_secret_argocd() {
   installation_id=$(pass show private/github/apps/rezakaramad-argocd/installation-id | head -n1)
   private_key=$(pass show private/github/apps/rezakaramad-argocd/private-key)
 
-  vault_kv_put "local/management/github/apps/argocd/rezakaramad" \
+  vault_kv_put "local/argocd/github/apps/rezakaramad" \
     "app-id"          "$app_id" \
     "installation-id" "$installation_id" \
     "private-key"     "$private_key"
@@ -120,7 +120,7 @@ create_github_app_secret_argocd() {
   installation_id=$(pass show private/github/apps/fluxdojo-argocd/installation-id | head -n1)
   private_key=$(pass show private/github/apps/fluxdojo-argocd/private-key)
 
-  vault_kv_put "local/management/github/apps/argocd/fluxdojo" \
+  vault_kv_put "local/argocd/github/apps/fluxdojo" \
     "app-id"          "$app_id" \
     "installation-id" "$installation_id" \
     "private-key"     "$private_key"
@@ -173,7 +173,7 @@ create_argocd_app_registration_azure() {
   tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
   client_secret=$(pass show private/azure/entraid/apps/argocd/client-secrets/argocd/value | head -n1)
 
-  vault_kv_put "local/management/argocd/azure/apps/argocd" \
+  vault_kv_put "local/argocd/azure/apps/argocd" \
     "client_id"     "$client_id" \
     "tenant_id"     "$tenant_id" \
     "client_secret" "$client_secret"
@@ -264,7 +264,7 @@ EOF
 
     log "  server: $server"
 
-    vault_kv_put "local/management/argocd/clusters/${name}" \
+    vault_kv_put "local/argocd/clusters/${name}" \
       "server" "$server" \
       "token"  "$token"
 

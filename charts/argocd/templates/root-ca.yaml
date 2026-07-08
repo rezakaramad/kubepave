@@ -1,0 +1,34 @@
+{{- if .Capabilities.APIVersions.Has "external-secrets.io/v1" }}
+
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: root-ca
+  namespace: argocd
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-local
+    kind: ClusterSecretStore
+  target:
+    name: root-ca
+    creationPolicy: Owner
+    deletionPolicy: Delete
+    template:
+      type: Opaque
+  data:
+    - secretKey: ca.crt
+      remoteRef:
+        key: shared/pki/root-ca
+        property: ca.crt
+    - secretKey: tls.crt
+      remoteRef:
+        key: shared/pki/root-ca
+        property: tls.crt
+    - secretKey: tls.key
+      remoteRef:
+        key: shared/pki/root-ca
+        property: tls.key
+
+---
+{{- end }}
