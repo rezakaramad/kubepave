@@ -11,7 +11,7 @@ spec:
     path: charts/cloudnative-postgres
   destination:
     name: in-cluster
-    namespace: postgres
+    namespace: cnpg-system
   syncPolicy:
     syncOptions:
     - ServerSideApply=true
