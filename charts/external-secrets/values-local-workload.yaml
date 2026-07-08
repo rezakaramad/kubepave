@@ -1,9 +1,5 @@
-# On the workload cluster the store is namespaced (SecretStore in 'platform-system')
-# and authenticates against the dedicated Vault auth mount.
-secretStore:
-  scope: namespace
-  provider:
-    vault:
-      auth:
-        kubernetes:
-          mountPath: "kubernetes-workload"
+provider:
+  vault:
+    auth:
+      kubernetes:
+        mountPath: "kubernetes-workload"

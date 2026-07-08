@@ -96,12 +96,12 @@ vault:
           capabilities = ["read", "list"]
         }
 
-        path "local/data/pki/root-ca" {
+        path "local/data/shared/*" {
           capabilities = ["read"]
         }
 
-        path "local/metadata/pki/root-ca" {
-          capabilities = ["read"]
+        path "local/metadata/shared/*" {
+          capabilities = ["read", "list"]
         }
         EOF
 

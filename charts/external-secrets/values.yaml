@@ -1,11 +1,3 @@
-
-# secretStore is fully defined in environment-specific values files (values-local.yaml etc.)
-# because the provider block differs entirely between local (Vault) and cloud (GCP SM, ASM, etc.)
-secretStore:
-  scope: "" # cluster | namespace
-  name: "" 
-  provider: {}
-
 external-secrets:
   # If set, install and upgrade CRDs through helm chart.
   installCRDs: false

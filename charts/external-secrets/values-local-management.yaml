@@ -1,9 +1,5 @@
-# On the management cluster the store is cluster-scoped (ClusterSecretStore)
-# and authenticates against the dedicated Vault auth mount.
-secretStore:
-  scope: cluster
-  provider:
-    vault:
-      auth:
-        kubernetes:
-          mountPath: "kubernetes-management"
+provider:
+  vault:
+    auth:
+      kubernetes:
+        mountPath: "kubernetes-management"

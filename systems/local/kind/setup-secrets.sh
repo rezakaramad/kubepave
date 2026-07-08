@@ -87,12 +87,12 @@ push_root_ca_to_vault() {
     -n "$PLATFORM_NAMESPACE" get secret root-ca \
     -o jsonpath='{.data.tls\.key}' | base64 -d)
 
-  vault_kv_put "local/pki/root-ca" \
+  vault_kv_put "local/shared/pki/root-ca" \
     "ca.crt"  "$ca_crt" \
     "tls.crt" "$tls_crt" \
     "tls.key" "$tls_key"
 
-  ok "root-ca pushed to Vault at local/pki/root-ca"
+  ok "root-ca pushed to Vault at local/shared/pki/root-ca"
 }
 
 
