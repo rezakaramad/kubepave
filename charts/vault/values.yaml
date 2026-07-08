@@ -87,6 +87,16 @@ vault:
         }
         EOF
 
+        vault policy write crossplane-policy - <<'EOF'
+        path "local/data/crossplane/*" {
+          capabilities = ["read"]
+        }
+
+        path "local/metadata/crossplane/*" {
+          capabilities = ["read", "list"]
+        }
+        EOF
+
         echo "Creating ESO role..."
 
         vault write auth/kubernetes-management/role/external-secrets \

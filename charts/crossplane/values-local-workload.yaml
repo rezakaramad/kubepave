@@ -25,10 +25,10 @@ secretStore:
       auth:
         kubernetes:
           mountPath: kubernetes-workload
-          role: external-secrets
+          role: crossplane
           serviceAccountRef:
-            name: external-secrets
-            namespace: platform-system
+            name: crossplane
+            namespace: crossplane-system
       caProvider:
         key: tls.crt
         name: root-ca

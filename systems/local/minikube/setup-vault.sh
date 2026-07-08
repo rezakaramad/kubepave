@@ -116,6 +116,15 @@ configure_cluster() {
     audience="https://kubernetes.default.svc.cluster.local" \
     ttl="1h"
 
+  echo "🔑 Creating Crossplane role..."
+
+  vault write auth/"$AUTH_PATH"/role/crossplane \
+    bound_service_account_names="crossplane" \
+    bound_service_account_namespaces="crossplane-system" \
+    policies="crossplane-policy" \
+    audience="https://kubernetes.default.svc.cluster.local" \
+    ttl="1h"
+
   echo "✅ Vault auth configured for $profile"
 }
 

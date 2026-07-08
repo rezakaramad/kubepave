@@ -121,6 +121,13 @@ configure_cluster() {
     audience=https://kubernetes.default.svc.cluster.local \
     ttl=1h"
 
+  vault_exec "vault write auth/${auth_path}/role/crossplane \
+    bound_service_account_names=crossplane \
+    bound_service_account_namespaces=crossplane-system \
+    policies=crossplane-policy \
+    audience=https://kubernetes.default.svc.cluster.local \
+    ttl=1h"
+
   vault_exec "rm -f /tmp/ca-${cluster}.crt"
 
   ok "Vault auth configured for $cluster"
