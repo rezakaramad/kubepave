@@ -7,6 +7,10 @@ global:
     level: warn
 
 # Azure AD identity for OIDC client secret via ExternalSecret.
+secretStore:
+  enabled: false
+  provider: {}
+
 azureIdentity:
   enabled: true
 

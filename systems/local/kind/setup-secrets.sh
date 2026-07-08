@@ -173,7 +173,7 @@ create_argocd_app_registration_azure() {
   tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
   client_secret=$(pass show private/azure/entraid/apps/argocd/client-secrets/argocd/value | head -n1)
 
-  vault_kv_put "local/argocd/azure/apps/argocd" \
+  vault_kv_put "local/argocd/azure/sso" \
     "client_id"     "$client_id" \
     "tenant_id"     "$tenant_id" \
     "client_secret" "$client_secret"

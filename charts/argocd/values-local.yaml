@@ -1,5 +1,22 @@
-vaultAuth:
-  mountPath: "kubernetes-management"
+secretStore:
+  enabled: true
+  provider:
+    vault:
+      server: "https://vault.mgmt.rezakara.demo"
+      path: "local"
+      version: "v2"
+      caProvider:
+        type: Secret
+        name: root-ca
+        key: tls.crt
+        namespace: argocd
+      auth:
+        kubernetes:
+          mountPath: "kubernetes-management"
+          role: "eso-argocd"
+          serviceAccountRef:
+            name: argocd-server
+            namespace: argocd
 
 argocd:
   server:
