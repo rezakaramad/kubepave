@@ -14,7 +14,7 @@ spec:
     name: root-ca
     creationPolicy: Owner
     template:
-      type: Opaque
+      type: tls
   data:
     - secretKey: ca.crt
       remoteRef:
