@@ -115,7 +115,7 @@ create_github_app_secret_crossplane() {
   installation_id=$(pass show private/github/apps/rezakaramad-crossplane/installation-id | head -n1)
   private_key=$(pass show private/github/apps/rezakaramad-crossplane/private-key)
 
-  vault_kv_put "local/management/github/apps/crossplane/rezakaramad" \
+  vault_kv_put "local/crossplane/github/apps/org-rezakaramad" \
     "app-id"          "$app_id" \
     "installation-id" "$installation_id" \
     "private-key"     "$private_key"
@@ -127,7 +127,7 @@ create_github_app_secret_crossplane() {
   installation_id=$(pass show private/github/apps/fluxdojo-crossplane/installation-id | head -n1)
   private_key=$(pass show private/github/apps/fluxdojo-crossplane/private-key)
 
-  vault_kv_put "local/management/github/apps/crossplane/fluxdojo" \
+  vault_kv_put "local/crossplane/github/apps/org-fluxdojo" \
     "app-id"          "$app_id" \
     "installation-id" "$installation_id" \
     "private-key"     "$private_key"
@@ -167,7 +167,7 @@ create_crossplane_app_registration_azure() {
   tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
   client_secret=$(pass show private/azure/entraid/apps/crossplane/client-secrets/crossplane/value | head -n1)
 
-  vault_kv_put "local/management/crossplane/azure/apps/crossplane" \
+  vault_kv_put "local/crossplane/azure/apps/crossplane" \
     "client_id"     "$client_id" \
     "tenant_id"     "$tenant_id" \
     "client_secret" "$client_secret"
