@@ -10,8 +10,8 @@ metadata:
 spec:
   refreshInterval: 20m
   secretStoreRef:
-    name: vault-local
-    kind: ClusterSecretStore
+    name: {{ .Values.azureADProvider.secretStoreRef.name }}
+    kind: {{ .Values.azureADProvider.secretStoreRef.kind }}
   target:
     name: crossplane-azure-identity
     creationPolicy: Owner
