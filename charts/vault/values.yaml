@@ -139,6 +139,13 @@ vault:
           ttl=1h \
           audience="https://kubernetes.default.svc.cluster.local"
 
+        vault write auth/kubernetes-management/role/crossplane \
+          bound_service_account_names=crossplane \
+          bound_service_account_namespaces=crossplane-system \
+          policies=crossplane-policy \
+          ttl=1h \
+          audience="https://kubernetes.default.svc.cluster.local"
+
         vault write auth/kubernetes-management/role/keycloak-bootstrap \
           bound_service_account_names="bootstrap" \
           bound_service_account_namespaces="keycloak" \
