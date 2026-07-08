@@ -241,6 +241,15 @@ install_argocd() {
     --for=condition=Available \
     --timeout=120s
 
+  # The vault-local SecretStore must be Valid/Ready before ArgoCD's
+  # ExternalSecrets (OIDC client secret, cluster creds, GitHub apps) can sync.
+  log "Waiting for vault-local SecretStore to be ready in $ARGOCD_NAMESPACE..."
+  kubectl --context "$context" \
+    -n "$ARGOCD_NAMESPACE" \
+    wait secretstore vault-local \
+    --for=condition=Ready \
+    --timeout=120s
+
   log "Applying ArgoCD gitops resources (AppProjects, App-of-Apps)..."
   helm_install argocd "$CHARTS_DIR/argocd" \
     "$ARGOCD_NAMESPACE" "$context" \
