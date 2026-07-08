@@ -164,6 +164,53 @@ argocd:
         hs.message = "Waiting for operator"
         return hs
 
+      # Gate dependent ExternalSecrets on the store being genuinely Ready.
+      # Without this, ArgoCD marks a (Cluster)SecretStore Healthy the instant it
+      # is created — before it has authenticated to Vault — so later sync-wave
+      # ExternalSecrets fire too early and report SecretSyncedError until they
+      # self-heal. Reporting Progressing until Ready=True removes that window.
+      resource.customizations.health.external-secrets.io_SecretStore: |
+        hs = {}
+        if obj.status ~= nil and obj.status.conditions ~= nil then
+          for i, condition in ipairs(obj.status.conditions) do
+            if condition.type == "Ready" then
+              if condition.status == "True" then
+                hs.status = "Healthy"
+                hs.message = condition.message
+                return hs
+              else
+                hs.status = "Degraded"
+                hs.message = condition.message
+                return hs
+              end
+            end
+          end
+        end
+        hs.status = "Progressing"
+        hs.message = "Waiting for SecretStore to become Ready"
+        return hs
+
+      resource.customizations.health.external-secrets.io_ClusterSecretStore: |
+        hs = {}
+        if obj.status ~= nil and obj.status.conditions ~= nil then
+          for i, condition in ipairs(obj.status.conditions) do
+            if condition.type == "Ready" then
+              if condition.status == "True" then
+                hs.status = "Healthy"
+                hs.message = condition.message
+                return hs
+              else
+                hs.status = "Degraded"
+                hs.message = condition.message
+                return hs
+              end
+            end
+          end
+        end
+        hs.status = "Progressing"
+        hs.message = "Waiting for ClusterSecretStore to become Ready"
+        return hs
+
     rbac:
       # -- Default role for authenticated users when no explicit RBAC rule matches.
       # -- Leave empty to give no permissions by default (recommended with SSO).
