@@ -15,4 +15,7 @@ keycloakProvider:
 azureADProvider:
   enabled: false
   providerPackage: xpkg.upbound.io/upbound/provider-azuread:v2.2.1
----
+
+secretStore: 
+  enabled: true
+  name: vault-local
