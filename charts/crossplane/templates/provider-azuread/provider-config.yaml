@@ -4,7 +4,7 @@ apiVersion: azuread.m.upbound.io/v1beta1
 kind: ProviderConfig
 metadata:
   name: azuread
-  namespace: crossplane
+  namespace: crossplane-system
   annotations:
     argocd.argoproj.io/sync-wave: "5"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true

@@ -5,7 +5,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: crossplane-github-identity-fluxdojo
-  namespace: crossplane
+  namespace: crossplane-system
 spec:
   refreshInterval: 20m
   secretStoreRef:

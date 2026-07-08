@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: crossplane-management
+  name: crossplane-workload
   namespace: argocd
 spec:
   project: platform-system
@@ -12,7 +12,7 @@ spec:
     helm:
       valueFiles:
         - values.yaml
-        - values-local-management.yaml
+        - values-local-workload.yaml
   destination:
     name: in-cluster
     namespace: crossplane-system

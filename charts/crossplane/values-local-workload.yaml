@@ -1,0 +1,8 @@
+githubProvider:
+  enabled: true
+
+keycloakProvider:
+  enabled: true
+
+azureADProvider:
+  enabled: true
