@@ -1,7 +1,7 @@
 bootstrap:
   image:
     repository: ghcr.io/rezakaramad/kubepave-bootstrap
-    tag: sha-073d789
+    tag: sha-dd7c871
 
 secretStore: 
   name: ''
