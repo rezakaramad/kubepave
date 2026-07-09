@@ -1,3 +1,11 @@
+entraId:
+  tenantId: c6ba6fd6-0fdd-4458-ad98-0c292dd79188
+  syncMode: IMPORT
+  groupMappings:
+    - name: azure-platform-admins
+      aadGroupId: 9b207afe-3824-482f-8985-e2337a7f7e9b
+      keycloakGroup: /platform-admins
+
 secretStore:
   name: vault-local
   provider:

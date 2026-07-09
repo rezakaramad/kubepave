@@ -165,46 +165,24 @@ create_keycloak_app_registration_azure() {
 }
 
 
-create_keycloak_bootstrap_secret() {
-  BOOTSTRAP_USERNAME="admin"
-  echo "🔐 Generating Keycloak $BOOTSTRAP_USERNAME credentials..."
+create_keycloak_admin_secret() {
+  ADMIN_USERNAME="admin"
+  echo "🔐 Generating Keycloak $ADMIN_USERNAME credentials..."
 
-  VAULT_PATH="local/management/keycloak/bootstrap"
+  VAULT_PATH="local/management/keycloak/admin"
 
   if vault kv get "$VAULT_PATH" >/dev/null 2>&1; then
-    echo "⚠️  Bootstrap user already exists. Skipping."
+    echo "⚠️  Admin user already exists. Skipping."
     return
   fi
 
-  BOOTSTRAP_PASSWORD="$(openssl rand -hex 16)"
+  ADMIN_PASSWORD="$(openssl rand -hex 16)"
 
   vault kv put "$VAULT_PATH" \
-    username="$BOOTSTRAP_USERNAME" \
-    password="$BOOTSTRAP_PASSWORD" \
-    disabled=0 > /dev/null
+    username="$ADMIN_USERNAME" \
+    password="$ADMIN_PASSWORD" > /dev/null
 
-  echo "✅ Keycloak bootstrap credentials stored in Vault"
-}
-
-
-create_keycloak_administrator_secret() {
-  ADMINISTRATOR_USERNAME="administrator"
-  echo "🔐 Generating Keycloak $ADMINISTRATOR_USERNAME credentials..."
-
-  VAULT_PATH="local/management/keycloak/administrator"
-
-  if vault kv get "$VAULT_PATH" >/dev/null 2>&1; then
-    echo "⚠️  Administrator user already exists. Skipping."
-    return
-  fi
-
-  ADMINISTRATOR_PASSWORD="$(openssl rand -hex 16)"
-
-  vault kv put "$VAULT_PATH" \
-    username="$ADMINISTRATOR_USERNAME" \
-    password="$ADMINISTRATOR_PASSWORD" > /dev/null
-
-  echo "✅ Keycloak administrator credentials stored in Vault"
+  echo "✅ Keycloak admin credentials stored in Vault"
 }
 
 
@@ -328,8 +306,7 @@ main() {
   register_clusters_argocd
   create_argocd_app_registration_azure
   create_keycloak_app_registration_azure
-  create_keycloak_bootstrap_secret
-  create_keycloak_administrator_secret
+  create_keycloak_admin_secret
   create_crossplane_app_registration_azure
   create_github_app_secret_crossplane
   create_nextinsight_credentials

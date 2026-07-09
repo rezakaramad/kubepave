@@ -6,3 +6,8 @@ bootstrap:
 secretStore: 
   name: ''
   provider: {}
+
+entraId:
+  tenantId: ''
+  syncMode: IMPORT
+  groupMappings: []

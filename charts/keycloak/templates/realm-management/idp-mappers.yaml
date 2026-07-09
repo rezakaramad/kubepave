@@ -40,7 +40,7 @@ spec:
     identityProviderMapper: oidc-user-attribute-idp-mapper
 
     extraConfig:
-      syncMode: INHERIT
+      syncMode: FORCE
       claim: preferred_username
       user.attribute: username
 
@@ -65,7 +65,7 @@ spec:
     identityProviderMapper: oidc-user-attribute-idp-mapper
 
     extraConfig:
-      syncMode: INHERIT
+      syncMode: FORCE
       claim: given_name
       user.attribute: firstName
 
@@ -90,7 +90,7 @@ spec:
     identityProviderMapper: oidc-user-attribute-idp-mapper
 
     extraConfig:
-      syncMode: INHERIT
+      syncMode: FORCE
       claim: family_name
       user.attribute: lastName
 
@@ -100,10 +100,11 @@ spec:
 
 ---
 
+{{- range .Values.entraId.groupMappings }}
 apiVersion: identityprovider.keycloak.m.crossplane.io/v1alpha1
 kind: IdentityProviderMapper
 metadata:
-  name: azure-platform-admins
+  name: {{ .name }}
   namespace: keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "50"
@@ -111,18 +112,19 @@ spec:
   forProvider:
     realm: management
     identityProviderAlias: azure
-    name: platform-admins
+    name: {{ .name }}
     identityProviderMapper: oidc-advanced-group-idp-mapper
 
     extraConfig:
-      syncMode: INHERIT
+      syncMode: FORCE
       claim: groups
-      claim.value: 9b207afe-3824-482f-8985-e2337a7f7e9b
-      group: /platform-admins
+      claim.value: {{ .aadGroupId }}
+      group: {{ .keycloakGroup }}
 
   providerConfigRef:
     kind: ProviderConfig
     name: keycloak
 
 ---
+{{- end }}
 {{- end }}

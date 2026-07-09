@@ -15,15 +15,15 @@ spec:
     enabled: true
     trustEmail: true
 
-    authorizationUrl: https://login.microsoftonline.com/c6ba6fd6-0fdd-4458-ad98-0c292dd79188/oauth2/v2.0/authorize
-    tokenUrl: https://login.microsoftonline.com/c6ba6fd6-0fdd-4458-ad98-0c292dd79188/oauth2/v2.0/token
+    authorizationUrl: https://login.microsoftonline.com/{{ .Values.entraId.tenantId }}/oauth2/v2.0/authorize
+    tokenUrl: https://login.microsoftonline.com/{{ .Values.entraId.tenantId }}/oauth2/v2.0/token
     userInfoUrl: https://graph.microsoft.com/oidc/userinfo
-    jwksUrl: https://login.microsoftonline.com/c6ba6fd6-0fdd-4458-ad98-0c292dd79188/discovery/v2.0/keys
-    issuer: https://login.microsoftonline.com/c6ba6fd6-0fdd-4458-ad98-0c292dd79188/v2.0
-    logoutUrl: https://login.microsoftonline.com/c6ba6fd6-0fdd-4458-ad98-0c292dd79188/oauth2/v2.0/logout
+    jwksUrl: https://login.microsoftonline.com/{{ .Values.entraId.tenantId }}/discovery/v2.0/keys
+    issuer: https://login.microsoftonline.com/{{ .Values.entraId.tenantId }}/v2.0
+    logoutUrl: https://login.microsoftonline.com/{{ .Values.entraId.tenantId }}/oauth2/v2.0/logout
 
     defaultScopes: "openid profile email"
-    syncMode: IMPORT
+    syncMode: {{ .Values.entraId.syncMode }}
 
     extraConfig:
       clientAuthMethod: "client_secret_post"

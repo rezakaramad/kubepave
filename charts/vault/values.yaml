@@ -93,18 +93,6 @@ vault:
 
         vault policy write keycloak-policy - <<'EOF'
         path "local/data/keycloak/*" {
-          capabilities = ["read"]
-        }
-
-        path "local/metadata/keycloak/*" {
-          capabilities = ["read", "list"]
-        }
-        EOF
-
-        echo "Writing Keycloak bootstrap policy..."
-
-        vault policy write keycloak-bootstrap - <<'EOF'
-        path "local/data/keycloak/*" {
           capabilities = ["read", "create", "update", "patch"]
         }
 
@@ -181,13 +169,6 @@ vault:
           bound_service_account_names="keycloak" \
           bound_service_account_namespaces="keycloak" \
           policies="keycloak-policy" \
-          ttl="1h" \
-          audience="https://kubernetes.default.svc.cluster.local"
-
-        vault write auth/kubernetes-management/role/keycloak-bootstrap \
-          bound_service_account_names="bootstrap" \
-          bound_service_account_namespaces="keycloak" \
-          policies="keycloak-bootstrap" \
           ttl="1h" \
           audience="https://kubernetes.default.svc.cluster.local"
 

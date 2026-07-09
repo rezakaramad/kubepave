@@ -205,8 +205,8 @@ create_crossplane_app_registration_azure() {
 
 # -----------------------------------------------------------------------------
 # Keycloak credentials
-# Pushed under local/keycloak/* so the keycloak chart's ExternalSecrets (role
-# `keycloak`) and the bootstrap Job (role `keycloak-bootstrap`) can read them.
+# Pushed under local/keycloak/* so the keycloak chart's ExternalSecrets and
+# the bootstrap Job (both using the `keycloak` SA, role `keycloak`) can read them.
 # -----------------------------------------------------------------------------
 
 # Returns 0 if a KV v2 secret already exists at the given path.
@@ -230,25 +230,14 @@ create_keycloak_secrets() {
 
   ok "Keycloak Entra ID client secret written"
 
-  # Bootstrap user — generated once, disabled by the bootstrap Job afterwards
-  if vault_kv_exists "local/keycloak/bootstrap"; then
-    log "Keycloak bootstrap secret already exists — skipping"
+  # Admin user — generated once
+  if vault_kv_exists "local/keycloak/admin"; then
+    log "Keycloak admin secret already exists — skipping"
   else
-    vault_kv_put "local/keycloak/bootstrap" \
+    vault_kv_put "local/keycloak/admin" \
       "username" "admin" \
-      "password" "$(openssl rand -hex 16)" \
-      "disabled" "0"
-    ok "Keycloak bootstrap credentials written"
-  fi
-
-  # Administrator user — generated once
-  if vault_kv_exists "local/keycloak/administrator"; then
-    log "Keycloak administrator secret already exists — skipping"
-  else
-    vault_kv_put "local/keycloak/administrator" \
-      "username" "administrator" \
       "password" "$(openssl rand -hex 16)"
-    ok "Keycloak administrator credentials written"
+    ok "Keycloak admin credentials written"
   fi
 }
 
