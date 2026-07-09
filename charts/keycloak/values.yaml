@@ -1,6 +1,6 @@
 bootstrap:
   image:
-    repository: ghcr.io/rezakaramad/kubepave-bootstrap
+    repository: ghcr.io/rezakaramad/keycloak-bootstrap
     tag: sha-dd7c871
 
 secretStore: 
