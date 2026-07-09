@@ -47,7 +47,7 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        cd systems/local/kind
+        cd infra/local/kind
 
         start=$(date +%s)
 
@@ -66,8 +66,8 @@ tasks:
   kind:down:
     desc: "Tear down the kind clusters and reset local DNS"
     cmds:
-      - cd systems/local/kind && bash setup-clusters.sh destroy
-      - cd systems/local/kind && bash setup-dns.sh reset
+      - cd infra/local/kind && bash setup-clusters.sh destroy
+      - cd infra/local/kind && bash setup-dns.sh reset
   azure:local:up:
     desc: "Bootstrap Azure Entra ID for kubepave"
     cmds:
