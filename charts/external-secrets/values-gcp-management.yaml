@@ -1,3 +1,1 @@
 createIamServiceAccount: true
-
-clusterSecretStore: true

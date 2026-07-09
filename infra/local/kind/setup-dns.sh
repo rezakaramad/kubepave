@@ -161,7 +161,6 @@ EOF
   fi
 
   log "Writing systemd-resolved drop-in → $RESOLVED_DROPIN"
-  log "sudo required to write $RESOLVED_DROPIN and restart systemd-resolved"
   sudo mkdir -p "$RESOLVED_DROPIN_DIR"
   printf "%s\n" "$expected" | sudo tee "$RESOLVED_DROPIN" >/dev/null
   sudo systemctl restart systemd-resolved

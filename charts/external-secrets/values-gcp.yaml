@@ -1,0 +1,21 @@
+# The GCP project ID where the GKE cluster runs.
+# Used to construct the Workload Identity pool name (<project>.svc.id.goog) in the
+# IAMPartialPolicy that allows the 'external-secrets' Kubernetes SA to impersonate the GCP SA.
+managementGoogleProjectID: kara-mgmt
+
+# The Kubernetes namespace where external-secrets is installed.
+# Used to construct the Workload Identity member: <project>.svc.id.goog[<namespace>/external-secrets]
+workloadIdentityNamespace: platform-system
+
+# Only one Google service account (GSA) should be create for cert-manager.
+# Using workload identity all cert-manager instances use the same GSA.
+createIamServiceAccount: false
+
+external-secrets:
+  # Each ExternalSecrets instance in every environment uses its own Google service account
+  # to provide stronger isolation for sensitive data.
+  # The Kubernetes service account must be annotated to assume the corresponding
+  # Google service account. Update this value for each environment.
+  serviceAccount:
+    annotations:
+      iam.gke.io/gcp-service-account: external-secrets@kara-mgmt.iam.gserviceaccount.com

@@ -189,6 +189,7 @@ install_cert_manager() {
   helm_install cert-manager "$CHARTS_DIR/cert-manager" \
     "$PLATFORM_NAMESPACE" "$(kind_context "$cluster")" \
     -f "$CHARTS_DIR/cert-manager/values.yaml" \
+    -f "$CHARTS_DIR/cert-manager/values-local.yaml" \
     -f "$CHARTS_DIR/cert-manager/values-local-management.yaml"
 
   # Wait for webhook to be ready before anything tries to create cert-manager resources

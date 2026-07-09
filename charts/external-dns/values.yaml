@@ -13,7 +13,11 @@ external-dns:
   policy: sync
 
   sources:
-    - gateway-httproute
+    - gateway-httproute  # Automatic DNS from HTTPRoute resources
+    - crd                # DNSEndpoint CRDs for explicit DNS records
+
+  # Limit possible target zones by domain suffixes.
+  domainFilters: []
 
   provider: ""
 

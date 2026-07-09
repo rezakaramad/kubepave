@@ -5,3 +5,4 @@ external-dns:
 
 domainFilters:
     - gcp.talktorubberduck.dev
+    - mgmt.gcp.talktorubberduck.dev

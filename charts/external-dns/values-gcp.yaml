@@ -15,29 +15,7 @@ workloadIdentityNamespace: platform-system
 createIamServiceAccount: false
 
 external-dns:
-  fullnameOverride: external-dns
-
-  logLevel: warning
-  logFormat: json
-
-  # Interval for DNS updates.
-  interval: 1m
-  
-  # Controls what ExternalDNS is allowed to do with DNS records it manages
-  # - create-only: only ever creates new records, never touches existing ones
-  # - upsert-only: creates and updates records, but never deletes them
-  # - sync: full ownership: creates, updates, and deletes records 
-  #       when the corresponding Kubernetes resource (HTTPRoute, DNSEndpoint) is removed
-  policy: sync
-
-  # Kubernetes resources to monitor for DNS entries.
-  sources:
-    - gateway-httproute  # Automatic DNS from HTTPRoute resources
-    - crd                # DNSEndpoint CRDs for explicit DNS records
-
-  # Unique identifier written into TXT ownership records; ExternalDNS only manages records it owns.
-  # MUST be stable and unique per cluster.
-  txtOwnerId: ""
+  txtPrefix: "externaldns"
 
   # Limit possible target zones by domain suffixes.
   domainFilters: []
