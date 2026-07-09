@@ -3,6 +3,10 @@ clusterSecretStore:
   name: ''
   provider: {}
 
+secretStore:
+  name: ''
+  provider: {}
+
 external-secrets:
   # If set, install and upgrade CRDs through helm chart.
   installCRDs: false
