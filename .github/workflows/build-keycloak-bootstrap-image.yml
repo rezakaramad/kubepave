@@ -3,12 +3,12 @@ name: Build and publish bootstrap image
 on:
   push:
     paths:
-      - "src/bootstrap/minikube/Dockerfile"
+      - "infra/keycloak-bootstrap-image/Dockerfile"
     branches: [ main ]
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: kubepave-bootstrap
+  IMAGE_NAME: keycloak-bootstrap
   REGISTRY: ghcr.io
 
 jobs:
@@ -49,8 +49,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: src/bootstrap/minikube
-          file: src/bootstrap/minikube/Dockerfile
+          context: infra/keycloak-bootstrap-image
+          file: infra/keycloak-bootstrap-image/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
