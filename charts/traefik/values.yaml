@@ -11,6 +11,8 @@ tls:
 
 traefik:
   deployment:
+    replicas: 1
+
     # -- Additional deployment labels (e.g. for filtering deployment by custom labels)
     labels:
       app.kubernetes.io/component: gateway

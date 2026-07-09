@@ -4,5 +4,3 @@ rootCA:
   enabled: true
   # Create the 'selfsigned' ClusterIssuer + 'root-ca' Certificate on management cluster
   mint: true
-  # Namespace where the root-ca Secret is stored
-  namespace: platform-system

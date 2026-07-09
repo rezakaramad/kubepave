@@ -1,4 +1,4 @@
-{{- if lookup "core.cnrm.cloud.google.com/v1beta1" "ConfigConnectorContext" "" "" }}
+{{- if and ( .Values.configConnector.enabled ) ( lookup "core.cnrm.cloud.google.com/v1beta1" "ConfigConnectorContext" "" "" ) }}
 # lookup <apiVersion> <kind> <namespace> <name>
 
 apiVersion: core.cnrm.cloud.google.com/v1beta1
