@@ -1,9 +1,0 @@
-apiVersion: v2
-name: argocd
-description: Deploys Argo CD.
-version: 0.0.1
-dependencies:
-  - name: argo-cd
-    alias: argocd
-    version: 10.0.1
-    repository: https://argoproj.github.io/argo-helm

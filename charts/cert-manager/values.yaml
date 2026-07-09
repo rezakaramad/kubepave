@@ -3,13 +3,4 @@ rootCA: {}
   # mint: true
   # namespace: platform-system
 
-cert-manager:
-  fullnameOverride: cert-manager
-  replicaCount: 1
-  crds:
-    enabled: false
-    keep: true
-  config:
-    apiVersion: controller.config.cert-manager.io/v1alpha1
-    kind: ControllerConfiguration
-    enableGatewayAPI: true
+cert-manager: {}

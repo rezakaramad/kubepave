@@ -161,6 +161,7 @@ EOF
   fi
 
   log "Writing systemd-resolved drop-in → $RESOLVED_DROPIN"
+  log "sudo required to write $RESOLVED_DROPIN and restart systemd-resolved"
   sudo mkdir -p "$RESOLVED_DROPIN_DIR"
   printf "%s\n" "$expected" | sudo tee "$RESOLVED_DROPIN" >/dev/null
   sudo systemctl restart systemd-resolved
@@ -175,6 +176,7 @@ EOF
 remove_resolved() {
   if sudo test -f "$RESOLVED_DROPIN"; then
     log "Removing systemd-resolved drop-in..."
+    log "sudo required to remove $RESOLVED_DROPIN and restart systemd-resolved"
     sudo rm -f "$RESOLVED_DROPIN"
     sudo systemctl restart systemd-resolved
     ok "systemd-resolved restored"

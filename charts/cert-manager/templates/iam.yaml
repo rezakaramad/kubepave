@@ -39,6 +39,6 @@ spec:
         - memberFrom:
             serviceAccountRef:
               name: cert-manager
----
 
+---
 {{- end }}

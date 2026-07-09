@@ -1,0 +1,10 @@
+rootCA:
+  # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Venafi)
+  # and cert-manager should not own any ClusterIssuer resources.
+  enabled: false
+
+# Only one Google service account (GSA) should be create for cert-manager.
+# Using workload identity all cert-manager instances use the same GSA.
+createIamServiceAccount: true
+
+hostedZoneName: mgmt.gcp.talktorubberduck.dev
