@@ -12,6 +12,7 @@ spec:
     helm:
       valueFiles:
         - values.yaml
+        - values-local.yaml
         - values-local-management.yaml
   destination:
     name: in-cluster

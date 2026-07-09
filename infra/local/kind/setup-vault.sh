@@ -162,6 +162,28 @@ wait_for_vault_bootstrap() {
 }
 
 
+save_credentials() {
+  local vault_token
+  vault_token="$(kubectl --context "$(kind_context management)" \
+    -n "$VAULT_NAMESPACE" \
+    exec vault-0 -- \
+    sh -c "grep 'Initial Root Token:' /vault/data/init.txt | awk '{print \$4}'")"
+
+  local creds_file="$REPO_ROOT/.platform.env"
+
+  # Preserve existing entries (e.g. ARGOCD_ADMIN_PASSWORD written by setup-argocd.sh)
+  # and add/update VAULT_ROOT_TOKEN
+  if grep -q 'VAULT_ROOT_TOKEN' "$creds_file" 2>/dev/null; then
+    sed -i "s|^export VAULT_ROOT_TOKEN=.*|export VAULT_ROOT_TOKEN=\"${vault_token}\"|" "$creds_file"
+  else
+    echo "export VAULT_ROOT_TOKEN=\"${vault_token}\"" >> "$creds_file"
+  fi
+
+  chmod 600 "$creds_file"
+  ok "VAULT_ROOT_TOKEN saved to $creds_file"
+}
+
+
 main() {
   log "Waiting for Vault pod to be ready..."
   kubectl --context "$(kind_context management)" \
@@ -176,6 +198,8 @@ main() {
     configure_cluster "$cluster"
     echo "--------------------------------"
   done
+
+  save_credentials
 
   echo ""
   ok "Vault Kubernetes auth configured for all workload clusters"
