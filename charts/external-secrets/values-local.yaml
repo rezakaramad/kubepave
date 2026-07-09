@@ -18,3 +18,23 @@ clusterSecretStore:
           serviceAccountRef:
             name: external-secrets
             namespace: platform-system
+
+secretStore:
+  name: vault-local
+  provider:
+    vault:
+      server: "https://vault.mgmt.rezakara.demo"
+      path: "local"
+      version: "v2"
+      caProvider:
+        type: Secret
+        name: root-ca
+        key: tls.crt
+        namespace: platform-system
+      auth:
+        kubernetes:
+          mountPath: ""
+          role: "eso-shared"
+          serviceAccountRef:
+            name: external-secrets
+            namespace: platform-system

@@ -4,3 +4,10 @@ clusterSecretStore:
       auth:
         kubernetes:
           mountPath: "kubernetes-workload"
+
+secretStore:
+  provider:
+    vault:
+      auth:
+        kubernetes:
+          mountPath: "kubernetes-workload"

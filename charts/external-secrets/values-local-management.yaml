@@ -4,3 +4,10 @@ clusterSecretStore:
       auth:
         kubernetes:
           mountPath: "kubernetes-management"
+
+secretStore:
+  provider:
+    vault:
+      auth:
+        kubernetes:
+          mountPath: "kubernetes-management"
