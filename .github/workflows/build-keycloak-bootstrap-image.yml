@@ -3,7 +3,7 @@ name: Build and publish keycloak bootstrap image
 on:
   push:
     paths:
-      - "infra/keycloak-bootstrap-image/Dockerfile"
+      - "infra/local/keycloak-bootstrap-image/Dockerfile"
     branches: [ main ]
   workflow_dispatch:
 
@@ -49,8 +49,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: infra/keycloak-bootstrap-image
-          file: infra/keycloak-bootstrap-image/Dockerfile
+          context: infra/local/keycloak-bootstrap-image
+          file: infra/local/keycloak-bootstrap-image/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
