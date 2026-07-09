@@ -1,4 +1,4 @@
-name: Build and publish bootstrap image
+name: Build and publish keycloak bootstrap image
 
 on:
   push:
