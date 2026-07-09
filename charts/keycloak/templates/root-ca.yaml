@@ -6,7 +6,7 @@ metadata:
   name: root-ca
   namespace: keycloak
   annotations:
-    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/sync-wave: "-15"
 spec:
   refreshInterval: 1h
   secretStoreRef:

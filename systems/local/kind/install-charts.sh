@@ -231,6 +231,14 @@ install_argocd() {
     -f "$CHARTS_DIR/argocd/values.yaml" \
     -f "$CHARTS_DIR/argocd/values-local.yaml"
 
+  # Copy root-ca into argocd namespace immediately after the namespace is created
+  # so the vault-local SecretStore finds it on its first reconcile and becomes Ready.
+  log "Copying root-ca secret into $ARGOCD_NAMESPACE..."
+  kubectl --context "$context" \
+    get secret root-ca -n "$PLATFORM_NAMESPACE" -o json \
+    | jq 'del(.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.ownerReferences,.metadata.annotations,.metadata.managedFields) | .metadata.namespace = "'"$ARGOCD_NAMESPACE"'"' \
+    | kubectl --context "$context" apply -f -
+
   # Wait for argocd-server so its CRDs (AppProject, Application) are registered,
   # then upgrade again to apply the gitops resources (AppProjects, App-of-Apps)
   # that were skipped on first install due to missing CRDs.
@@ -239,15 +247,6 @@ install_argocd() {
     -n "$ARGOCD_NAMESPACE" \
     wait deployment argocd-server \
     --for=condition=Available \
-    --timeout=120s
-
-  # The vault-local SecretStore must be Valid/Ready before ArgoCD's
-  # ExternalSecrets (OIDC client secret, cluster creds, GitHub apps) can sync.
-  log "Waiting for vault-local SecretStore to be ready in $ARGOCD_NAMESPACE..."
-  kubectl --context "$context" \
-    -n "$ARGOCD_NAMESPACE" \
-    wait secretstore vault-local \
-    --for=condition=Ready \
     --timeout=120s
 
   log "Applying ArgoCD gitops resources (AppProjects, App-of-Apps)..."

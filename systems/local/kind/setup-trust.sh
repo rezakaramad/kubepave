@@ -174,11 +174,12 @@ trust_self_signed_ca_certificate() {
     log "Bootstrapping trust into $cluster..."
 
     kubectl --context "$context" -n "$PLATFORM_NAMESPACE" \
-      create secret generic root-ca \
-      --from-file=ca.crt="$CA_FILE" \
-      --from-file=tls.crt="$CERT_FILE" \
-      --from-file=tls.key="$KEY_FILE" \
-      --dry-run=client -o yaml \
+      create secret tls root-ca \
+      --cert="$CERT_FILE" \
+      --key="$KEY_FILE" \
+      --dry-run=client -o json \
+      | jq '.data."ca.crt" = $ca | .type = "kubernetes.io/tls"' \
+        --arg ca "$(base64 -w0 "$CA_FILE")" \
       | kubectl --context "$context" apply -f -
   done
 
