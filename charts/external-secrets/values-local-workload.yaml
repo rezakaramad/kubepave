@@ -1,6 +1,6 @@
 # Shared secrets are stored in a cluster-wide store.
-# JWT auth: Vault validates the ESO pod's SA token via the oidc-proxy OIDC endpoint.
-# No long-lived reviewer token needed.
+# JWT auth: Vault validates the ESO pod's SA token against this cluster's API
+# server OIDC endpoint. No long-lived reviewer token needed.
 clusterSecretStore:
   provider:
     vault:

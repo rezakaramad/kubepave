@@ -1,22 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Configures Vault JWT auth for the clusters using each cluster's JWKS endpoint
-# (served by the oidc-proxy chart via Traefik). Vault validates pod JWTs
-# cryptographically — no long-lived reviewer token needed.
+# Configures Vault JWT auth for ALL clusters (management + workloads).
 #
-# Usage:
-#   setup-vault.sh [management]   Configure jwt-management (default).
-#   setup-vault.sh workload       Configure jwt-<tenant> for each workload cluster.
+# Vault validates pod JWTs cryptographically by fetching each cluster's public
+# signing keys (JWKS) DIRECTLY from that cluster's API server:
 #
-# The two are split because the management platform (Traefik/oidc-proxy) is up
-# right after install-charts.sh, but each WORKLOAD platform only comes up once
-# ArgoCD syncs it — which happens after setup-secrets.sh registers the cluster.
-# So the workload JWT config must run at the very end of the bring-up.
+#   https://<cluster-api-server>/openid/v1/jwks
 #
-# JWT auth is configured here (not in the Vault postStart hook) because it depends
-# on oidc-proxy being reachable. Doing network waits in postStart would block the
-# vault-0 pod from ever becoming Ready. postStart only handles init/unseal/policies.
+# This is the standard hub-and-spoke pattern: a central Vault reaches each
+# cluster's API server directly (the same way ArgoCD reaches spoke clusters at
+# https://<node-ip>:6443). It deliberately does NOT route through the cluster's
+# own Traefik ingress — doing so creates a bootstrap cycle on workload clusters
+# (Gateway needs a cert → cert needs ESO SecretStore → SecretStore needs Vault
+# JWT auth → JWT auth needs the ingress that isn't up yet).
+#
+# Because the fetch only needs the API server (up as soon as the kind cluster
+# exists), both management and workload auth are configured in a single run —
+# no dependency on ArgoCD, Traefik, cert-manager or DNS.
+#
+# JWT auth is configured here (not in the Vault postStart hook) so the vault-0
+# pod never blocks on network waits. postStart only handles init/unseal/policies.
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -24,6 +28,12 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$DIR/libs/common.sh"
 # shellcheck source=libs/utils.sh
 source "$DIR/libs/utils.sh"
+
+# ClusterRole (built into every cluster) that grants GET on the two OIDC
+# discovery paths and nothing else.
+OIDC_DISCOVERY_CLUSTERROLE="system:service-account-issuer-discovery"
+# ClusterRoleBinding we create to allow anonymous callers to read those paths.
+OIDC_DISCOVERY_CRB="vault-anonymous-oidc-discovery"
 
 
 # Run a vault command inside the vault pod.
@@ -40,20 +50,29 @@ vault_exec() {
 }
 
 
-# Returns the JWKS URL for a given cluster's oidc-proxy.
-#
-# We use jwks_url (not oidc_discovery_url) because Vault's discovery path requires
-# the OIDC document's "issuer" to equal the discovery URL. The Kubernetes issuer is
-# https://kubernetes.default.svc.cluster.local, but we fetch through the proxy host
-# (oidc.<cluster>.<domain>), so those never match. jwks_url skips that check and
-# fetches the signing keys directly; bound_issuer still pins the expected issuer.
-cluster_jwks_url() {
+# Returns the API server URL reachable from the Vault pod for a given cluster.
+# Uses the node's InternalIP:6443 — reachable across the shared kind Docker
+# network, exactly like the ArgoCD hub→spoke connection.
+cluster_api_url() {
   local cluster=$1
-  case "$cluster" in
-    management) echo "https://oidc.mgmt.${DNS_DOMAIN}/openid/v1/jwks" ;;
-    workload)   echo "https://oidc.wl.${DNS_DOMAIN}/openid/v1/jwks" ;;
-    *) err "No JWKS URL configured for cluster: $cluster"; exit 1 ;;
-  esac
+  local node_ip
+  node_ip=$(kubectl --context "$(kind_context "$cluster")" get node \
+    -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+  echo "https://${node_ip}:6443"
+}
+
+
+# Allow anonymous callers to read the OIDC discovery endpoints on a cluster.
+# Vault fetches the JWKS without credentials, so without this the API server
+# returns 403. The binding is idempotent.
+grant_anonymous_oidc_discovery() {
+  local cluster=$1
+  kubectl --context "$(kind_context "$cluster")" \
+    create clusterrolebinding "$OIDC_DISCOVERY_CRB" \
+    --clusterrole="$OIDC_DISCOVERY_CLUSTERROLE" \
+    --group=system:unauthenticated \
+    --dry-run=client -o yaml \
+    | kubectl --context "$(kind_context "$cluster")" apply -f - >/dev/null
 }
 
 
@@ -62,36 +81,37 @@ cluster_jwks_url() {
 # -----------------------------------------------------
 configure_cluster_jwt() {
   local cluster=$1
-  local max_retries="${2:-30}"
   local auth_path="jwt-${cluster}"
-  local jwks_url
-  jwks_url="$(cluster_jwks_url "$cluster")"
+  local api_url jwks_url
+  api_url="$(cluster_api_url "$cluster")"
+  jwks_url="${api_url}/openid/v1/jwks"
 
   log "Configuring JWT auth for $cluster (path: $auth_path, JWKS: $jwks_url)..."
 
-  # Fetch the root CA from the management cluster so Vault trusts the oidc-proxy TLS cert.
-  local root_ca
-  root_ca=$(kubectl --context "$(kind_context management)" \
-    -n platform-system \
-    get secret root-ca \
-    -o jsonpath='{.data.tls\.crt}' | base64 -d)
+  # Let Vault read the discovery endpoints anonymously.
+  grant_anonymous_oidc_discovery "$cluster"
 
-  # Copy CA into the vault pod to pass it to the vault write command.
+  # Copy the target cluster's API server CA into the vault pod so Vault trusts
+  # the API server's TLS cert when fetching the JWKS.
+  local api_ca
+  api_ca=$(kubectl --context "$(kind_context "$cluster")" \
+    config view --raw --minify \
+    -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d)
+
   kubectl --context "$(kind_context management)" \
     -n "$VAULT_NAMESPACE" \
-    exec -i vault-0 -- sh -c "cat > /tmp/root-ca-${cluster}.crt" <<< "$root_ca"
+    exec -i vault-0 -- sh -c "cat > /tmp/api-ca-${cluster}.crt" <<< "$api_ca"
 
   vault_exec "vault auth enable -path=${auth_path} jwt 2>/dev/null || true"
 
-  # Retry the config write until oidc-proxy is reachable — Vault fetches the JWKS
-  # at config time to validate it. Workload platforms are synced by ArgoCD after
-  # cluster registration, so this can take a few minutes to come up.
-  log "Configuring $auth_path backend (waiting for oidc-proxy, up to $((max_retries * 3))s)..."
+  # Retry briefly to absorb transient API server unreadiness. No long wait is
+  # needed — the API server is up as soon as the kind cluster exists.
+  log "Configuring $auth_path backend..."
   local ok=false
-  for i in $(seq 1 "$max_retries"); do
+  for i in $(seq 1 20); do
     if vault_exec "vault write auth/${auth_path}/config \
         jwks_url='${jwks_url}' \
-        jwks_ca_pem=@/tmp/root-ca-${cluster}.crt \
+        jwks_ca_pem=@/tmp/api-ca-${cluster}.crt \
         bound_issuer='https://kubernetes.default.svc.cluster.local'" >/dev/null 2>&1; then
       ok=true
       break
@@ -99,7 +119,7 @@ configure_cluster_jwt() {
     sleep 3
   done
   if [ "$ok" != "true" ]; then
-    err "Failed to configure $auth_path — oidc-proxy not reachable at $jwks_url"
+    err "Failed to configure $auth_path — API server not reachable at $jwks_url"
     exit 1
   fi
 
@@ -146,7 +166,7 @@ configure_cluster_jwt() {
       ttl=1h"
   fi
 
-  vault_exec "rm -f /tmp/root-ca-${cluster}.crt"
+  vault_exec "rm -f /tmp/api-ca-${cluster}.crt"
 
   ok "JWT auth configured for $cluster"
 }
@@ -189,48 +209,29 @@ save_credentials() {
 
 
 main() {
-  local target="${1:-management}"
+  log "Waiting for Vault pod to be ready..."
+  kubectl --context "$(kind_context management)" \
+    -n "$VAULT_NAMESPACE" \
+    wait pod vault-0 \
+    --for=condition=Ready \
+    --timeout=120s
 
-  case "$target" in
-    management)
-      log "Waiting for Vault pod to be ready..."
-      kubectl --context "$(kind_context management)" \
-        -n "$VAULT_NAMESPACE" \
-        wait pod vault-0 \
-        --for=condition=Ready \
-        --timeout=120s
+  wait_for_vault_bootstrap
 
-      wait_for_vault_bootstrap
+  # Configure the management cluster first, then each workload cluster. Both are
+  # reachable directly at their API server, so no ordering dependency on ArgoCD.
+  configure_cluster_jwt management
+  echo "--------------------------------"
 
-      configure_cluster_jwt management 30
-      save_credentials
+  get_kind_tenant_clusters | while read -r cluster; do
+    configure_cluster_jwt "$cluster"
+    echo "--------------------------------"
+  done
 
-      echo ""
-      ok "Vault JWT auth configured for management"
-      echo ""
-      echo "Workload JWT auth is configured later (after ArgoCD syncs each"
-      echo "workload platform) via: setup-vault.sh workload"
-      ;;
+  save_credentials
 
-    workload|workloads)
-      # Vault + management are already up. Each workload platform (Traefik,
-      # oidc-proxy, external-dns) is synced by ArgoCD after the cluster is
-      # registered in setup-secrets.sh, so the oidc-proxy endpoint can take a
-      # few minutes to become reachable — use a generous retry budget.
-      get_kind_tenant_clusters | while read -r cluster; do
-        configure_cluster_jwt "$cluster" 120
-        echo "--------------------------------"
-      done
-
-      echo ""
-      ok "Vault JWT auth configured for workload clusters"
-      ;;
-
-    *)
-      err "Unknown target: $target (expected 'management' or 'workload')"
-      exit 1
-      ;;
-  esac
+  echo ""
+  ok "Vault JWT auth configured for all clusters"
 }
 
 main "$@"
