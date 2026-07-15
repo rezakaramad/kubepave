@@ -1,0 +1,14 @@
+githubProvider:
+  enabled: true
+  providerPackage: xpkg.upbound.io/crossplane-contrib/provider-upjet-github:v0.19.0  
+  activatedResources:
+    - repositories.repo.github.m.upbound.io
+    - repositoryfiles.repo.github.m.upbound.io
+
+# Entra ID (Azure AD)
+entraIdProvider:
+  enabled: true
+  providerPackage: xpkg.upbound.io/upbound/provider-azuread:v2.2.1
+  clientID: # Add your Azure AD app client ID here
+
+compositeResources: {}

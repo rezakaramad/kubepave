@@ -12,7 +12,7 @@ spec:
     source: Secret
     secretRef:
       namespace: crossplane
-      name: crossplane-github-identity-fluxdojo
+      name: github-app-fluxdojo-org
       key: credentials
 
 ---
@@ -28,7 +28,7 @@ spec:
     source: Secret
     secretRef:
       namespace: crossplane-system
-      name: github-org-rezakaramad
+      name: github-app-rezakaramad-org
       key: credentials
 
 {{- end }}

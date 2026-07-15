@@ -11,12 +11,15 @@ secretStore:
   provider:
     vault:
       auth:
-        kubernetes:
-          mountPath: kubernetes-management
+        jwt:
+          path: jwt-management
           role: keycloak
-          serviceAccountRef:
-            name: keycloak
-            namespace: keycloak
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: keycloak
+              namespace: keycloak
+            audiences:
+              - https://kubernetes.default.svc.cluster.local
       caProvider:
         key: tls.crt
         name: root-ca

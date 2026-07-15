@@ -1,3 +1,18 @@
+# Baseline read-only RBAC for all tenants, regardless of permission profile.
+#
+# Two ClusterRoles are defined here:
+#
+#   tenant-default-aggregated-role  — An aggregated ClusterRole that collects all
+#     ClusterRoles labelled with aggregate-to-tenant-default-role=true. This is the
+#     role bound to tenant subjects; it automatically picks up any additional roles
+#     added by other templates (e.g. rbac-permissive.yaml when profile=permissive).
+#
+#   tenant-base-defaults  — The concrete read-only rules (get/list/watch) covering
+#     core workloads, batch jobs, autoscaling, Gateway API, cert-manager, external-secrets,
+#     and GCP Config Connector resources. Always active for every tenant.
+#
+#   namespace-viewer  — Grants tenants visibility into their own namespace object.
+
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:

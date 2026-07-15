@@ -1,3 +1,5 @@
+# In local setup, we use PowerDNS as the external DNS provider.
+# The API key is stored in a Kubernetes secret
 external-dns:
   provider: pdns
 

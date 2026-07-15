@@ -1,4 +1,6 @@
-{{- if and (not .Values.rootCA.enabled) (.Capabilities.APIVersions.Has "cert-manager.io/v1/ClusterIssuer") }}
+{{- if and (not .Values.selfSignedRootCA.enabled) (.Capabilities.APIVersions.Has "cert-manager.io/v1/ClusterIssuer") }}
+
+# A ClusterIssuer with a Let's Encrypt ACME issuer in GCP setup.
 
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -19,6 +21,33 @@ spec:
     - dns01:
         cloudDNS:
           project: {{ .Values.dnsGoogleProjectID }}
+
+---
+{{- else }}
+
+# A ClusterIssuer with a self-signed root CA in local setup.
+
+{{/*
+Step 3/3 — both management and workload (selfSignedRootCA.enabled: true)
+
+Creates a ClusterIssuer from the 'root-ca' Secret, allowing cert-manager to sign
+certificates for services in any namespace (for example, Traefik's wildcard TLS certificate).
+At this point, the 'root-ca' Secret already exists:
+- On management clusters: created locally in step 2.
+- On workload clusters: copied from the management cluster by setup-trust.sh.
+*/}}
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: root-ca
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "3"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  ca:
+    secretName: root-ca
 
 ---
 {{- end }}

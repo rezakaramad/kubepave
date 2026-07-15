@@ -1,6 +1,5 @@
-rootCA:
-  # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Venafi)
-  # and cert-manager should not own any ClusterIssuer resources.
+selfSignedRootCA:
+  # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Let's Encrypt, etc.)
   enabled: false
 
 # Only one Google service account (GSA) should be create for cert-manager.

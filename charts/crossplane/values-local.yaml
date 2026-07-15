@@ -1,10 +1,14 @@
+selfSignedRootCA:
+  # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Let's Encrypt, etc.).
+  enabled: true
+
 secretStore:
   name: vault-local
   provider:
     vault:
       auth:
         kubernetes:
-          mountPath: ''
+          mountPath: <upsert-in-env-values-file>
           role: crossplane
           serviceAccountRef:
             name: crossplane

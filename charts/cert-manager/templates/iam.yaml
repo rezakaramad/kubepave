@@ -1,4 +1,10 @@
 {{- if .Values.createIamServiceAccount }}
+
+# In GCP, we create a service account for cert-manager to use with Workload Identity.
+# This service account is granted the roles/iam.workloadIdentityUser role on the GCP project where 
+# the cluster is running. This allows cert-manager to impersonate the GCP service account when 
+# requesting certificates.
+
 apiVersion: iam.cnrm.cloud.google.com/v1beta1
 kind: IAMServiceAccount
 metadata:

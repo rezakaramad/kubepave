@@ -6,11 +6,12 @@ global:
     format: json
     level: warn
 
-# Azure AD identity for OIDC client secret via ExternalSecret.
+# SecretStore to pull secrets via ExternalSecret
 secretStore:
-  name: ''
+  name:  <upsert-in-env-values-file>
   provider: {}
 
+# Azure AD identity for OIDC client secret via ExternalSecret.
 azureIdentity:
   enabled: true
 
@@ -101,13 +102,16 @@ argocd:
       server.insecure: "true"
 
       # -- Allow Argo CD to discover and reconcile Application resources in argocd and all argocd-* namespaces
-      application.namespaces: argocd, gitops-*
+      application.namespaces: argocd, argocd-*
 
       # -- Allow Argo CD to discover and reconcile ApplicationSet resources in argocd and all argocd-* namespaces
-      applicationsetcontroller.namespaces: argocd, gitops-*
+      applicationsetcontroller.namespaces: argocd, argocd-*
 
       # -- # Required when ApplicationSets are watched outside the argocd namespace
       applicationsetcontroller.allowed.scm.providers: github
+
+      # -- Enable server-side diff for Argo CD controller
+      controller.diff.server.side: true
 
     cm:
       # -- Create 'argocd-cm' ConfigMap for core Argo CD configuration

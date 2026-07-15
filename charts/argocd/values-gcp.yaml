@@ -1,30 +1,37 @@
-# -------------------------------------------------------------------------------
-# Global configs
-# -------------------------------------------------------------------------------
-global:
-  logging:
-    format: json
-    level: warn
+secretStore:
+  name: gcloud-secret-manager
+  provider:
+    gcpsm:
+      projectID: kara-mgmt
+      auth:
+        workloadIdentity:
+          serviceAccountRef:
+            name: external-secrets
+            namespace: platform-system
 
-# -------------------------------------------------------------------------------
-# Argo CD configs
-# -------------------------------------------------------------------------------
-# Below is a list of Clusters that ArgoCD needs access for to manage.
+# ------------------------------------------------------------------------------
+# -- Argo CD managed clusters
+# ------------------------------------------------------------------------------
 # ArgoCD is using Workload Identity and where therefore there are not secrets in the credentials.
 clusterCredentials:
   - name: gke-workload
     server: "" # Put here the GKE cluster API server URL (e.g. https://<IP_ADDRESS>)
     environmentPrefix: wl
 
+# ------------------------------------------------------------------------------
+# -- Argo CD main configs
+# ------------------------------------------------------------------------------
 argocd:
-  # The Argo CD Commit Server provides push access to git repositories for hydrated manifests 
-  commitServer:
-    enabled: true
-
   # Argo CD server
   server:
-    # Below volume, volumeMount and environment variable is used for Workload Identity.
-    # Argo CD uses token exchange to authenticate to Azure.
+    httproute:
+      hostnames:
+        - argocd.gcp.talktorubberduck.dev
+
+    grpcroute:
+      hostnames:
+        - argocd.gcp.talktorubberduck.dev
+
     volumeMounts:
       - name: azure-token
         mountPath: "/var/run/secrets/tokens/"
@@ -47,42 +54,6 @@ argocd:
     metrics:
       enabled: true
 
-    # Enable HTTPRoute resource for Argo CD server (Gateway API)
-    httproute:
-      enabled: true
-      labels:
-        external-dns-create: "true"
-      hostnames:
-        - argocd.gcp.talktorubberduck.dev
-      parentRefs:
-        - group: gateway.networking.k8s.io
-          kind: Gateway
-          name: default-traefik
-          namespace: platform-system
-      rules:
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /
-          backendRefs:
-            - name: argocd-server
-              port: 80
-
-    # -- Enable GRPCRoute resource for Argo CD server (Gateway API)
-    grpcroute:
-      enabled: false
-      labels:
-        external-dns-create: "true"
-      hostnames:
-        - argocd.gcp.talktorubberduck.dev
-      parentRefs:
-        - name: traefik-gateway
-          namespace: platform-system
-      rules:
-        - backendRefs:
-            - name: argocd-server
-              port: 80
-
     # GCP Workload Identity binding for the argocd-server service account
     # Used when adding and managing GKE clusters in Argo CD
     serviceAccount:
@@ -104,140 +75,15 @@ argocd:
   # General Argo CD configuration
   # Any values you put under `.configs.cm` are passed to argocd-cm ConfigMap.
   configs:
-    params:
-      # Create the argocd-cmd-params-cm configmap
-      create: true
-
-      #  Run Argo CD server in insecure mode: Gateway ⇆ (HTTP) ⇆ Argo CD Server
-      server.insecure: "true"
-
-      # Allow Argo CD to discover and reconcile Application resources in argocd and all argocd-* namespaces
-      application.namespaces: argocd,argocd-*
-
-      # Allow Argo CD to discover and reconcile ApplicationSet resources in argocd and all argocd-* namespaces
-      applicationsetcontroller.namespaces: argocd,argocd-*
-
-      # -- # Required when ApplicationSets are watched outside the argocd namespace
-      applicationsetcontroller.allowed.scm.providers: github
-
-      # -- Enables service side diff
-      controller.diff.server.side: true
-
     cm:
-      # Create 'argocd-cm' ConfigMap for core Argo CD configuration
-      create: true
-
-      # External Argo CD URL used by the UI, CLI, and notifications.
       url: https://argocd.gcp.talktorubberduck.dev
 
-      # Disable built-in local 'admin' user
-      admin.enabled: false
 
-      # Disable exec into application pods from the Argo CD UI/CLI for security.
-      exec.enabled: false
+# -------------------------------------------------------------------------------
+# -- GitOps platform
+# -------------------------------------------------------------------------------
+# Git source for all ArgoCD application manifests and Helm charts.
+repoURL: https://github.com/rezakaramad/kubepave
 
-      # Track resources via annotations instead of labels to avoid label collisions.
-      application.resourceTrackingMethod: annotation
-
-      # OIDC configuration for Azure AD
-      oidc.config: |
-        name: Azure
-        issuer: https://login.microsoftonline.com/c6ba6fd6-0fdd-4458-ad98-0c292dd79188/v2.0
-        clientID: 22b73e2b-5f94-48d7-8e0d-b81b8b95be1f
-        clientSecret: $oidc.azure.clientSecret
-        enablePKCEAuthentication: true
-        requestedIDTokenClaims:
-          roles:
-            essential: true
-        requestedScopes:
-          - openid
-          - profile
-          - email
-
-      # Custom health check for Crossplanes ManagedResourceDefinition.
-      # The default Crossplane health check does not support InactiveManagedResource.
-      resource.customizations.health.apiextensions.crossplane.io_ManagedResourceDefinition:
-        |
-        health_status = {
-          status = "Progressing",
-          message = "Provisioning ..."
-        }
-
-        if obj.status == nil or next(obj.status) == nil or obj.status.conditions == nil then
-          return health_status
-        end
-
-        for i, condition in ipairs(obj.status.conditions) do
-          if condition.type == "Established" then
-            if condition.status == "False" and condition.reason == "InactiveManagedResource" then
-              health_status.status = "Suspended"
-              health_status.message = condition.message
-              return health_status
-            end
-            if condition.status == "True" and condition.reason == "EstablishedManagedResource" then
-              health_status.status = "Healthy"
-              health_status.message = "Resource is established and up-to-date."
-              return health_status
-            end
-          end
-
-          if condition.type == "LastAsyncOperation" then
-            if condition.status == "False" then
-              health_status.status = "Degraded"
-              health_status.message = condition.message
-              return health_status
-            end
-          end
-
-          if condition.type == "Synced" then
-            if condition.status == "False" then
-              health_status.status = "Degraded"
-              health_status.message = condition.message
-              return health_status
-            end
-          end
-        end
-
-        return health_status
-
-      resource.customizations: |
-        platform.talktorubberduck.dev/*:
-          health.lua: |
-            health_status = {
-              status = "Progressing",
-              message = "Provisioning ..."
-            }
-            if obj.status == nil or next(obj.status) == nil or obj.status.conditions == nil then
-              return health_status
-            end
-            for i, condition in ipairs(obj.status.conditions) do
-              if condition.type == "Synced" then
-                if condition.status == "False" then
-                  health_status.status = "Degraded"
-                  health_status.message = condition.message
-                  return health_status
-                end
-              end
-              if condition.type == "Ready" then
-                if condition.status == "True" then
-                  health_status.status = "Healthy"
-                  health_status.message = "Resource is up-to-date."
-                end
-              end
-            end
-            return health_status
-
-    rbac:
-      # Default role for authenticated users when no explicit RBAC rule matches.
-      # Leave empty to give no permissions by default (recommended with SSO).
-      policy.default: ""
-      # Additional RBAC policies and group-to-role mappings in Casbin CSV format.
-      # p, <subject>, <resource>, <action>, <object>, <effect>
-      # g, EntraID Group ID, role: ArgoCD Role
-      # 'policy.csv' lives in argocd-rbac-cm
-      policy.csv: |
-        g, "admin", role:admin
-
-      # OIDC scopes to examine during rbac enforcement (in addition to `sub` scope).
-      # The scope value can be a string, or a list of strings.
-      scopes: "[roles]"
+applicationFolder:
+  path: argocd-applications/gcp

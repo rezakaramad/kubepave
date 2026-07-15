@@ -1,5 +1,4 @@
 clusterSecretStore:
-  enabled: true
   name: vault-local
   provider:
     vault:
@@ -11,13 +10,6 @@ clusterSecretStore:
         name: root-ca
         key: tls.crt
         namespace: platform-system
-      auth:
-        kubernetes:
-          mountPath: ""
-          role: "eso-shared"
-          serviceAccountRef:
-            name: external-secrets
-            namespace: platform-system
 
 secretStore:
   name: vault-local
@@ -31,10 +23,3 @@ secretStore:
         name: root-ca
         key: tls.crt
         namespace: platform-system
-      auth:
-        kubernetes:
-          mountPath: ""
-          role: "eso-shared"
-          serviceAccountRef:
-            name: external-secrets
-            namespace: platform-system

@@ -1,13 +1,31 @@
+# Shared secrets are stored in a cluster-wide store.
+# JWT auth: Vault validates the ESO pod's SA token via the oidc-proxy OIDC endpoint.
+# No long-lived reviewer token needed.
 clusterSecretStore:
   provider:
     vault:
       auth:
-        kubernetes:
-          mountPath: "kubernetes-workload"
+        jwt:
+          path: "jwt-workload"
+          role: "eso-shared"
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: external-secrets
+              namespace: platform-system
+            audiences:
+              - https://kubernetes.default.svc.cluster.local
 
+# platform-system secrets are stored in a namespace-specific store.
 secretStore:
   provider:
     vault:
       auth:
-        kubernetes:
-          mountPath: "kubernetes-workload"
+        jwt:
+          path: "jwt-workload"
+          role: "eso-platform-system"
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: external-secrets
+              namespace: platform-system
+            audiences:
+              - https://kubernetes.default.svc.cluster.local

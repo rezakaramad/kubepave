@@ -1,0 +1,3 @@
+# FQDN at which this cluster's OIDC discovery is exposed.
+# Must be set per environment (e.g. oidc.mgmt.rezakara.demo / oidc.wl.rezakara.demo).
+hostname: <upsert-in-env-values-file>

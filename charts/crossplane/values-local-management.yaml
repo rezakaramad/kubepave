@@ -1,15 +1,18 @@
 githubProvider:
   enabled: true
+  providerPackage: xpkg.upbound.io/crossplane-contrib/provider-upjet-github:v0.19.0  
 
 keycloakProvider:
   enabled: true
+  providerPackage: xpkg.upbound.io/crossplane-contrib/provider-keycloak:v2.7.2
 
-azureADProvider:
+entraIdProvider:
   enabled: true
+  providerPackage: xpkg.upbound.io/upbound/provider-azuread:v2.2.1
 
 secretStore:
   provider:
     vault:
       auth:
-        kubernetes:
-          mountPath: kubernetes-management
+        jwt:
+          path: jwt-management

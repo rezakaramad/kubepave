@@ -1,9 +1,16 @@
+
+# Allows Vault to validate Kubernetes service account tokens from this cluster.
+# Vault calls the TokenReview API when a pod authenticates via the Kubernetes auth method;
+# system:auth-delegator grants the vault-reviewer SA the permission to make those calls.
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: vault-reviewer
   namespace: kube-system
+
 ---
+
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:

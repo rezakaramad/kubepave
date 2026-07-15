@@ -1,11 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Configures Vault Kubernetes auth for the workload cluster so that
-# external-secrets running there can authenticate to Vault and read secrets.
+# Configures Vault JWT auth for the clusters using each cluster's JWKS endpoint
+# (served by the oidc-proxy chart via Traefik). Vault validates pod JWTs
+# cryptographically — no long-lived reviewer token needed.
 #
-# The management cluster auth backend is already configured by Vault's
-# postStart hook in the Helm chart — this script only handles workload clusters.
+# Usage:
+#   setup-vault.sh [management]   Configure jwt-management (default).
+#   setup-vault.sh workload       Configure jwt-<tenant> for each workload cluster.
+#
+# The two are split because the management platform (Traefik/oidc-proxy) is up
+# right after install-charts.sh, but each WORKLOAD platform only comes up once
+# ArgoCD syncs it — which happens after setup-secrets.sh registers the cluster.
+# So the workload JWT config must run at the very end of the bring-up.
+#
+# JWT auth is configured here (not in the Vault postStart hook) because it depends
+# on oidc-proxy being reachable. Doing network waits in postStart would block the
+# vault-0 pod from ever becoming Ready. postStart only handles init/unseal/policies.
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -29,122 +40,115 @@ vault_exec() {
 }
 
 
-# -----------------------------------------------------
-# Ensure vault-reviewer ServiceAccount token exists
-# -----------------------------------------------------
-ensure_reviewer_token() {
+# Returns the JWKS URL for a given cluster's oidc-proxy.
+#
+# We use jwks_url (not oidc_discovery_url) because Vault's discovery path requires
+# the OIDC document's "issuer" to equal the discovery URL. The Kubernetes issuer is
+# https://kubernetes.default.svc.cluster.local, but we fetch through the proxy host
+# (oidc.<cluster>.<domain>), so those never match. jwks_url skips that check and
+# fetches the signing keys directly; bound_issuer still pins the expected issuer.
+cluster_jwks_url() {
   local cluster=$1
-  local context
-  context="$(kind_context "$cluster")"
-
-  log "Ensuring vault-reviewer token in $cluster..."
-
-  kubectl --context "$context" -n kube-system \
-    get sa vault-reviewer >/dev/null 2>&1 || {
-    err "vault-reviewer ServiceAccount missing in $cluster"
-    err "Install workload-vault-seed first: helm install workload-vault-seed charts/workload-vault-seed ..."
-    exit 1
-  }
-
-  if ! kubectl --context "$context" -n kube-system \
-      get secret vault-reviewer-token >/dev/null 2>&1; then
-
-    log "Creating long-lived reviewer token..."
-
-    kubectl --context "$context" apply -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: vault-reviewer-token
-  namespace: kube-system
-  annotations:
-    kubernetes.io/service-account.name: vault-reviewer
-type: kubernetes.io/service-account-token
-EOF
-
-    for _ in {1..10}; do
-      kubectl --context "$context" -n kube-system \
-        get secret vault-reviewer-token \
-        -o jsonpath='{.data.token}' 2>/dev/null | grep -q . && break
-      sleep 1
-    done
-  fi
-
-  ok "vault-reviewer token ready in $cluster"
+  case "$cluster" in
+    management) echo "https://oidc.mgmt.${DNS_DOMAIN}/openid/v1/jwks" ;;
+    workload)   echo "https://oidc.wl.${DNS_DOMAIN}/openid/v1/jwks" ;;
+    *) err "No JWKS URL configured for cluster: $cluster"; exit 1 ;;
+  esac
 }
 
 
 # -----------------------------------------------------
-# Configure Kubernetes auth backend for a cluster
+# Configure JWT auth backend for a cluster
 # -----------------------------------------------------
-configure_cluster() {
+configure_cluster_jwt() {
   local cluster=$1
-  local context
-  context="$(kind_context "$cluster")"
-  local auth_path="kubernetes-${cluster}"
+  local max_retries="${2:-30}"
+  local auth_path="jwt-${cluster}"
+  local jwks_url
+  jwks_url="$(cluster_jwks_url "$cluster")"
 
-  log "Configuring Vault auth for $cluster (path: $auth_path)..."
+  log "Configuring JWT auth for $cluster (path: $auth_path, JWKS: $jwks_url)..."
 
-  ensure_reviewer_token "$cluster"
+  # Fetch the root CA from the management cluster so Vault trusts the oidc-proxy TLS cert.
+  local root_ca
+  root_ca=$(kubectl --context "$(kind_context management)" \
+    -n platform-system \
+    get secret root-ca \
+    -o jsonpath='{.data.tls\.crt}' | base64 -d)
 
-  local node_ip reviewer_jwt ca_cert
-  node_ip=$(kubectl --context "$context" get node \
-    -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-
-  reviewer_jwt=$(kubectl --context "$context" \
-    -n kube-system get secret vault-reviewer-token \
-    -o jsonpath='{.data.token}' | base64 -d)
-
-  ca_cert=$(kubectl --context "$context" \
-    -n kube-system get secret vault-reviewer-token \
-    -o jsonpath='{.data.ca\.crt}' | base64 -d)
-
-  log "API server: https://${node_ip}:6443"
-
-  # Copy CA cert into the pod via stdin to avoid heredoc quoting issues
+  # Copy CA into the vault pod to pass it to the vault write command.
   kubectl --context "$(kind_context management)" \
     -n "$VAULT_NAMESPACE" \
-    exec -i vault-0 -- sh -c "cat > /tmp/ca-${cluster}.crt" <<< "$ca_cert"
+    exec -i vault-0 -- sh -c "cat > /tmp/root-ca-${cluster}.crt" <<< "$root_ca"
 
-  vault_exec "vault auth enable -path=${auth_path} kubernetes 2>/dev/null || true"
+  vault_exec "vault auth enable -path=${auth_path} jwt 2>/dev/null || true"
 
-  vault_exec "vault write auth/${auth_path}/config \
-    token_reviewer_jwt='${reviewer_jwt}' \
-    kubernetes_host='https://${node_ip}:6443' \
-    kubernetes_ca_cert=@/tmp/ca-${cluster}.crt \
-    disable_iss_validation=true"
+  # Retry the config write until oidc-proxy is reachable — Vault fetches the JWKS
+  # at config time to validate it. Workload platforms are synced by ArgoCD after
+  # cluster registration, so this can take a few minutes to come up.
+  log "Configuring $auth_path backend (waiting for oidc-proxy, up to $((max_retries * 3))s)..."
+  local ok=false
+  for i in $(seq 1 "$max_retries"); do
+    if vault_exec "vault write auth/${auth_path}/config \
+        jwks_url='${jwks_url}' \
+        jwks_ca_pem=@/tmp/root-ca-${cluster}.crt \
+        bound_issuer='https://kubernetes.default.svc.cluster.local'" >/dev/null 2>&1; then
+      ok=true
+      break
+    fi
+    sleep 3
+  done
+  if [ "$ok" != "true" ]; then
+    err "Failed to configure $auth_path — oidc-proxy not reachable at $jwks_url"
+    exit 1
+  fi
 
   vault_exec "vault write auth/${auth_path}/role/eso-shared \
-    bound_service_account_names=external-secrets \
-    bound_service_account_namespaces=platform-system \
+    role_type=jwt \
+    bound_audiences='https://kubernetes.default.svc.cluster.local' \
+    user_claim=sub \
+    bound_subject='system:serviceaccount:platform-system:external-secrets' \
     policies=eso-shared-policy \
-    audience=https://kubernetes.default.svc.cluster.local \
     ttl=1h"
 
   vault_exec "vault write auth/${auth_path}/role/eso-platform-system \
-    bound_service_account_names=external-secrets \
-    bound_service_account_namespaces=platform-system \
+    role_type=jwt \
+    bound_audiences='https://kubernetes.default.svc.cluster.local' \
+    user_claim=sub \
+    bound_subject='system:serviceaccount:platform-system:external-secrets' \
     policies=eso-platform-system-policy \
-    audience=https://kubernetes.default.svc.cluster.local \
     ttl=1h"
 
   vault_exec "vault write auth/${auth_path}/role/crossplane \
-    bound_service_account_names=crossplane \
-    bound_service_account_namespaces=crossplane-system \
+    role_type=jwt \
+    bound_audiences='https://kubernetes.default.svc.cluster.local' \
+    user_claim=sub \
+    bound_subject='system:serviceaccount:crossplane-system:crossplane' \
     policies=crossplane-policy \
-    audience=https://kubernetes.default.svc.cluster.local \
     ttl=1h"
 
   vault_exec "vault write auth/${auth_path}/role/eso-argocd \
-    bound_service_account_names=argocd-server \
-    bound_service_account_namespaces=argocd \
+    role_type=jwt \
+    bound_audiences='https://kubernetes.default.svc.cluster.local' \
+    user_claim=sub \
+    bound_subject='system:serviceaccount:argocd:argocd-server' \
     policies=eso-argocd-policy \
-    audience=https://kubernetes.default.svc.cluster.local \
     ttl=1h"
 
-  vault_exec "rm -f /tmp/ca-${cluster}.crt"
+  # keycloak only runs on the management cluster.
+  if [ "$cluster" = "management" ]; then
+    vault_exec "vault write auth/${auth_path}/role/keycloak \
+      role_type=jwt \
+      bound_audiences='https://kubernetes.default.svc.cluster.local' \
+      user_claim=sub \
+      bound_subject='system:serviceaccount:keycloak:keycloak' \
+      policies=keycloak-policy \
+      ttl=1h"
+  fi
 
-  ok "Vault auth configured for $cluster"
+  vault_exec "rm -f /tmp/root-ca-${cluster}.crt"
+
+  ok "JWT auth configured for $cluster"
 }
 
 
@@ -185,24 +189,48 @@ save_credentials() {
 
 
 main() {
-  log "Waiting for Vault pod to be ready..."
-  kubectl --context "$(kind_context management)" \
-    -n "$VAULT_NAMESPACE" \
-    wait pod vault-0 \
-    --for=condition=Ready \
-    --timeout=120s
+  local target="${1:-management}"
 
-  wait_for_vault_bootstrap
+  case "$target" in
+    management)
+      log "Waiting for Vault pod to be ready..."
+      kubectl --context "$(kind_context management)" \
+        -n "$VAULT_NAMESPACE" \
+        wait pod vault-0 \
+        --for=condition=Ready \
+        --timeout=120s
 
-  get_kind_tenant_clusters | while read -r cluster; do
-    configure_cluster "$cluster"
-    echo "--------------------------------"
-  done
+      wait_for_vault_bootstrap
 
-  save_credentials
+      configure_cluster_jwt management 30
+      save_credentials
 
-  echo ""
-  ok "Vault Kubernetes auth configured for all workload clusters"
+      echo ""
+      ok "Vault JWT auth configured for management"
+      echo ""
+      echo "Workload JWT auth is configured later (after ArgoCD syncs each"
+      echo "workload platform) via: setup-vault.sh workload"
+      ;;
+
+    workload|workloads)
+      # Vault + management are already up. Each workload platform (Traefik,
+      # oidc-proxy, external-dns) is synced by ArgoCD after the cluster is
+      # registered in setup-secrets.sh, so the oidc-proxy endpoint can take a
+      # few minutes to become reachable — use a generous retry budget.
+      get_kind_tenant_clusters | while read -r cluster; do
+        configure_cluster_jwt "$cluster" 120
+        echo "--------------------------------"
+      done
+
+      echo ""
+      ok "Vault JWT auth configured for workload clusters"
+      ;;
+
+    *)
+      err "Unknown target: $target (expected 'management' or 'workload')"
+      exit 1
+      ;;
+  esac
 }
 
 main "$@"

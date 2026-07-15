@@ -1,0 +1,17 @@
+# Allows the oidc-proxy HTTPRoute in platform-system to reference the built-in
+# "kubernetes" Service in the default namespace as a backend. Gateway API requires
+# an explicit ReferenceGrant for any cross-namespace backendRef.
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: oidc-proxy-to-kubernetes
+  namespace: default
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: platform-system
+  to:
+    - group: ""
+      kind: Service
+      name: kubernetes

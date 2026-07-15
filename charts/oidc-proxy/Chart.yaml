@@ -1,0 +1,10 @@
+apiVersion: v2
+name: oidc-proxy
+description: >-
+  Exposes the Kubernetes API server's OIDC discovery endpoints
+  (/.well-known/openid-configuration and /openid/v1/jwks) via Traefik so that
+  Vault can validate pod JWTs without a long-lived reviewer token.
+  Routes traffic directly to the API server via an ExternalName Service +
+  BackendTLSPolicy — no proxy pod required.
+  Deployed to every cluster that Vault needs to authenticate against.
+version: 0.1.0

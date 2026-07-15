@@ -2,9 +2,13 @@ external-dns:
   txtOwnerId: kind-management
   domainFilters:
     - mgmt.rezakara.demo
-    - rezakara.demo
+    - rezakara.demo # We allow management to manage the root domain.
   # PowerDNS is in the same cluster — use the ClusterIP service directly
   extraArgs:
     - --pdns-server=http://powerdns-api.powerdns.svc.cluster.local:8081
     - --pdns-api-key=$(PDNS_API_KEY)
+    # kind has no cloud load balancer, so LoadBalancer services receive private IPs instead
+    # of real external ones. Without this flag, external-dns would skip them entirely because
+    # it considers them to have no publishable address. With it, any assigned IP is treated as
+    # publishable, so DNS records are actually created.
     - --publish-internal-services

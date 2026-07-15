@@ -1,4 +1,4 @@
-rootCA: {}
+selfSignedRootCA: {}
 
 cert-manager:
   fullnameOverride: cert-manager

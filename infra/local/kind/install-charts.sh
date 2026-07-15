@@ -285,23 +285,33 @@ main() {
   echo "-------- external-secrets --------"
   install_external_secrets management
 
+  echo "-------- Traefik (management) ----"
+  install_traefik management
+
+  echo "-------- oidc-proxy (management) -"
+  # Exposes the management cluster's JWKS endpoint via Traefik so setup-vault.sh
+  # can configure the jwt-management auth backend. Must be up before setup-vault.sh.
+  helm_install oidc-proxy "$CHARTS_DIR/oidc-proxy" \
+    "$PLATFORM_NAMESPACE" "$(kind_context management)" \
+    -f "$CHARTS_DIR/oidc-proxy/values.yaml" \
+    -f "$CHARTS_DIR/oidc-proxy/values-local-management.yaml"
+
   echo "-------- Vault -------------------"
   helm_install vault "$CHARTS_DIR/vault" \
     "$VAULT_NAMESPACE" "$(kind_context management)" \
     -f "$CHARTS_DIR/vault/values.yaml"
 
-  echo "-------- Traefik (management) ----"
-  install_traefik management
-
   echo "-------- external-dns (mgmt) -----"
   install_external_dns management
 
-  echo "-------- workload seed -----------"
-  # workload-vault-seed provisions the vault-reviewer ServiceAccount + token-review
-  # RBAC on the workload cluster. It MUST exist before setup-vault.sh configures
-  # the kubernetes-workload auth backend, so it is installed imperatively here.
-  helm_install workload-vault-seed "$CHARTS_DIR/workload-vault-seed" \
-    "default" "$(kind_context workload)"
+  echo "-------- oidc-proxy (workload) ---"
+  # oidc-proxy exposes the workload cluster's OIDC discovery endpoint via Traefik
+  # so Vault can validate pod JWTs without a long-lived reviewer token.
+  # Must exist before setup-vault.sh configures the jwt-workload auth backend.
+  helm_install oidc-proxy "$CHARTS_DIR/oidc-proxy" \
+    "$PLATFORM_NAMESPACE" "$(kind_context workload)" \
+    -f "$CHARTS_DIR/oidc-proxy/values.yaml" \
+    -f "$CHARTS_DIR/oidc-proxy/values-local-workload.yaml"
 
   echo "-------- ArgoCD ------------------"
   install_argocd
@@ -312,9 +322,9 @@ main() {
   echo "Workload platform components (cert-manager, external-secrets, traefik,"
   echo "external-dns) are installed by ArgoCD once the workload cluster is"
   echo "registered. Run in order:"
-  echo "  ./setup-vault.sh      # configure Vault auth for workload"
-  echo "  ./setup-secrets.sh    # push secrets + register workload with ArgoCD"
-  echo "  ./setup-trust.sh      # distribute root CA to workload + local trust"
+  echo "  ./setup-secrets.sh      # push secrets + register workload with ArgoCD"
+  echo "  ./setup-trust.sh        # distribute root CA to workload + local trust"
+  echo "  ./setup-vault.sh workload  # configure Vault jwt-workload (after ArgoCD sync)"
   echo ""
   echo "Verify:"
   echo "  kubectl --context kind-management -n $ARGOCD_NAMESPACE get applications"

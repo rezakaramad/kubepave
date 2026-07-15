@@ -1,10 +1,9 @@
 clusterSecretStore:
-  enabled: false
-  name: ''
+  name: <upsert-in-env-values-file>
   provider: {}
 
 secretStore:
-  name: ''
+  name: <upsert-in-env-values-file>
   provider: {}
 
 external-secrets:

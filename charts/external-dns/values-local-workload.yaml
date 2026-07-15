@@ -4,10 +4,14 @@ external-dns:
     - wl.rezakara.demo
   # Reach the management PowerDNS API via its stable Traefik-exposed hostname.
   # Avoids depending on the management node's runtime IP (portable across kind
-  # cluster recreation). TLS is skipped because the endpoint uses the local
-  # self-signed root CA — acceptable for local dev.
+  # cluster recreation). TLS verification is skipped because the endpoint uses the local
+  # self-signed root CA and is acceptable for local setup.
   extraArgs:
     - --pdns-server=https://powerdns.mgmt.rezakara.demo
     - --pdns-api-key=$(PDNS_API_KEY)
     - --pdns-skip-tls-verify
+    # kind has no cloud load balancer, so LoadBalancer services receive private IPs instead
+    # of real external ones. Without this flag, external-dns would skip them entirely because
+    # it considers them to have no publishable address. With it, any assigned IP is treated as
+    # publishable, so DNS records are actually created.
     - --publish-internal-services

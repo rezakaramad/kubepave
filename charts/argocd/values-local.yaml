@@ -11,13 +11,31 @@ secretStore:
         key: tls.crt
         namespace: argocd
       auth:
-        kubernetes:
-          mountPath: "kubernetes-management"
+        jwt:
+          path: "jwt-management"
           role: "eso-argocd"
-          serviceAccountRef:
-            name: argocd-server
-            namespace: argocd
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: argocd-server
+              namespace: argocd
+            audiences:
+              - https://kubernetes.default.svc.cluster.local
 
+selfSignedRootCA:
+  # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Let's Encrypt, etc.).
+  enabled: false
+
+# ------------------------------------------------------------------------------
+# -- Argo CD managed clusters
+# ------------------------------------------------------------------------------
+# Credentials are pulled from Vault via ExternalSecret (clusters-credential.yaml).
+clusterCredentials:
+  - name: kind-workload
+    environmentPrefix: wl
+
+# ------------------------------------------------------------------------------
+# -- Argo CD main configs
+# ------------------------------------------------------------------------------
 argocd:
   server:
     httproute:
@@ -41,10 +59,4 @@ repoURL: https://github.com/rezakaramad/kubepave
 # App-of-apps folder ArgoCD recurses to discover Application manifests.
 # Override per environment in values-local.yaml / values-gcp.yaml
 applicationFolder:
-  path: argocd-applications/
-
-# Workload clusters ArgoCD must manage.
-# Credentials are pulled from Vault via ExternalSecret (clusters-credential.yaml).
-clusterCredentials:
-  - name: kind-workload
-    environmentPrefix: wl
+  path: argocd-applications/local

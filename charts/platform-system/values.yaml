@@ -1,1 +1,2 @@
-configConnector: {}
+configConnector:
+  enabled: false

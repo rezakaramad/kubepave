@@ -1,4 +1,0 @@
-apiVersion: v2
-name: tenant-platform-resources
-description: Namespace for all tenant platform resources.
-version: 1.0.0

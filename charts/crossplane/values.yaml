@@ -1,18 +1,35 @@
 githubProvider:
   enabled: false
-  providerPackage: xpkg.upbound.io/crossplane-contrib/provider-upjet-github:v0.19.0
+  providerPackage: <upsert-in-env-values-file>
   activatedResources:
   - repositories.repo.github.m.upbound.io
   - repositoryfiles.repo.github.m.upbound.io
 
 keycloakProvider:
   enabled: false
-  providerPackage: xpkg.upbound.io/crossplane-contrib/provider-keycloak:v2.7.2
+  providerPackage: <upsert-in-env-values-file>
 
-azureADProvider:
+entraIdProvider:
   enabled: false
-  providerPackage: xpkg.upbound.io/upbound/provider-azuread:v2.2.1
+  providerPackage: <upsert-in-env-values-file>
+  activatedResources: []
+  # auth.method controls how the provider authenticates to Azure AD.
+  # "secret" = Vault-backed ExternalSecret (local/non-GCP clusters)
+  # "oidc"   = GKE Workload Identity token file (GCP clusters)
+  auth:
+    method: secret
+    # You need to set the below values when method=oidc (GCP Workload Identity)
+    tenantID: <upsert-in-env-values-file>
+    clientID: <upsert-in-env-values-file>
+
+selfSignedRootCA:
+  # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Let's Encrypt, etc.).
+  enabled: false
 
 secretStore: 
-  name: ''
+  name: <upsert-in-env-values-file>
   provider: {}
+
+configConnectorContext:
+  enabled: false
+  googleServiceAccount: <upsert-in-env-values-file>

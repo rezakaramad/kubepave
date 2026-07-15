@@ -62,10 +62,10 @@ spec:
               fi
 
               # Authenticate (retry because auth backend may not be ready yet)
-              echo "🔑 Authenticating with Kubernetes auth"
+              echo "🔑 Authenticating with Vault JWT auth"
               LOGIN_OK=false
               for i in {1..10}; do
-                VAULT_TOKEN="$(vault write -field=token auth/kubernetes-management/login \
+                VAULT_TOKEN="$(vault write -field=token auth/jwt-management/login \
                   role=keycloak \
                   jwt=@"$SA_TOKEN_PATH" 2>/dev/null || true)"
 

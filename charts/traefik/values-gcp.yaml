@@ -1,6 +1,6 @@
 defaulGateway:
   # The hostname for defeault gateway resource in management cluster
-  hostname: ''
+  hostname: <upsert-in-env-values-file>
   # In workload clusters, we don't allow tenants to send traffic
   # to platform-owned default Gateway in 'platform-system' namespace.
   allowedRoutes: {}

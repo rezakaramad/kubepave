@@ -1,4 +1,0 @@
-apiVersion: v2
-name: tenant-namespace-resources
-description: Deploys kubernetes resources for a tenant.
-version: 0.0.1

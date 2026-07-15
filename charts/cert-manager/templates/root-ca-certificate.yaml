@@ -1,5 +1,5 @@
 {{/*
-Step 2/3 — management only (rootCA.mint: true)
+Step 2/3 — management only (selfSignedRootCA.mint: true)
 
 Asks the 'selfsigned' ClusterIssuer (step 1) to produce a self-signed CA certificate
 and store it in the Secret named 'root-ca' in 'platform-system'. That Secret contains
@@ -7,7 +7,7 @@ and store it in the Secret named 'root-ca' in 'platform-system'. That Secret con
 to workload clusters.
 */}}
 
-{{- if and .Values.rootCA.enabled .Values.rootCA.mint (.Capabilities.APIVersions.Has "cert-manager.io/v1/Certificate") }}
+{{- if and .Values.selfSignedRootCA.enabled .Values.selfSignedRootCA.mint (.Capabilities.APIVersions.Has "cert-manager.io/v1/Certificate") }}
 
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -22,7 +22,7 @@ spec:
   commonName: root-ca
   secretName: root-ca
   issuerRef:
-    name: selfsigned
+    name: self-signed
     kind: ClusterIssuer
   privateKey:
     rotationPolicy: Always

@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: oidc-proxy-workload
+  namespace: argocd
+spec:
+  project: platform-system
+  source:
+    repoURL: https://github.com/rezakaramad/kubepave
+    targetRevision: HEAD
+    path: charts/oidc-proxy
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-local-workload.yaml
+  destination:
+    name: kind-workload
+    namespace: platform-system
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true
+    - ApplyOutOfSyncOnly=true

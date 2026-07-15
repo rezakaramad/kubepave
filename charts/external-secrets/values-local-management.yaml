@@ -1,13 +1,29 @@
+# Shared secrets — cluster-wide store using JWT auth (consistent with workload cluster).
 clusterSecretStore:
   provider:
     vault:
       auth:
-        kubernetes:
-          mountPath: "kubernetes-management"
+        jwt:
+          path: "jwt-management"
+          role: "eso-shared"
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: external-secrets
+              namespace: platform-system
+            audiences:
+              - https://kubernetes.default.svc.cluster.local
 
+# platform-system secrets — namespace-scoped store using JWT auth.
 secretStore:
   provider:
     vault:
       auth:
-        kubernetes:
-          mountPath: "kubernetes-management"
+        jwt:
+          path: "jwt-management"
+          role: "eso-platform-system"
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: external-secrets
+              namespace: platform-system
+            audiences:
+              - https://kubernetes.default.svc.cluster.local

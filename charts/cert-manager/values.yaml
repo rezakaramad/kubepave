@@ -1,6 +1,7 @@
-rootCA: {}
-  # enabled: true
-  # mint: true
-  # namespace: platform-system
+# Required for local setup.
+selfSignedRootCA:
+  enabled: false
+  mint: false
+  namespace: platform-system
 
 cert-manager: {}
