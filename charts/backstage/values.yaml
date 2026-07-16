@@ -5,6 +5,14 @@ backstage:
       repository: rezakaramad/backstage
       tag: latest
 
+    # Pass both config files, matching the Dockerfile CMD exactly.
+    # Without this the Helm chart only loads app-config.yaml (no auth/db config).
+    args:
+      - "--config"
+      - "app-config.yaml"
+      - "--config"
+      - "app-config.production.yaml"
+
     extraEnvVars:
       - name: POSTGRES_HOST
         valueFrom:

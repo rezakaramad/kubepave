@@ -68,12 +68,5 @@ backstage:
       - name: APP_CONFIG_auth_environment
         value: production
 
-    # Mount app-config.production.yaml from ConfigMap and pass it as a second --config arg.
-    # This is needed because the Helm chart overrides the Dockerfile CMD and does not
-    # automatically load app-config.production.yaml.
-    extraAppConfig:
-      - filename: app-config.production.yaml
-        configMapRef: backstage-app-config-production
-
 httpRoute:
   hostname: backstage.mgmt.rezakara.demo
