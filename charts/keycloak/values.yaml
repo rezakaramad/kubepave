@@ -4,10 +4,10 @@ bootstrap:
     tag: sha-dd7c871
 
 secretStore: 
-  name: ''
+  name: <upsert-in-env-values-file>
   provider: {}
 
 entraId:
-  tenantId: ''
+  tenantId: <upsert-in-env-values-file>
   syncMode: IMPORT
   groupMappings: []

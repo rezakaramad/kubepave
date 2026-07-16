@@ -11,7 +11,7 @@ set -euo pipefail
 # This is the standard hub-and-spoke pattern: a central Vault reaches each
 # cluster's API server directly (the same way ArgoCD reaches spoke clusters at
 # https://<node-ip>:6443). It deliberately does NOT route through the cluster's
-# own Traefik ingress — doing so creates a bootstrap cycle on workload clusters
+# own Traefik ingress, doing so creates a bootstrap cycle on workload clusters
 # (Gateway needs a cert → cert needs ESO SecretStore → SecretStore needs Vault
 # JWT auth → JWT auth needs the ingress that isn't up yet).
 #

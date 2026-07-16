@@ -14,19 +14,6 @@ LB_POOL_CRD="ciliumloadbalancerippools.cilium.io"
 L2_POLICY_CRD="ciliuml2announcementpolicies.cilium.io"
 
 
-# -----------------------------------------------------------------------------
-# Install Cilium (CNI + L2 load-balancer) and configure the LoadBalancer IP pool.
-#
-# Two passes are required because Cilium registers the CiliumLoadBalancerIPPool /
-# CiliumL2AnnouncementPolicy CRDs at runtime (they are not shipped as static CRDs):
-#   1. install the CNI so nodes become Ready and the operator registers the CRDs
-#   2. once both CRDs exist, apply the IP pool + L2 announcement policy
-#
-# The pool range is static and committed in values-local-{management,workload}.yaml
-# (pinned to the pre-created kind Docker network 192.168.211.64/27).
-# On real on-prem clusters the networking team provides a static range in the
-# same values files. After bootstrap, ArgoCD adopts the Cilium release.
-# -----------------------------------------------------------------------------
 install_cilium() {
   local cluster=$1
   local context api_ip values_file
@@ -38,7 +25,8 @@ install_cilium() {
   # for the API server since it can't resolve the in-cluster kubernetes Service yet.
   api_ip="$(get_control_plane_ip "$cluster")"
 
-  # Pass 1 — CNI only (no pool; its CRDs don't exist yet).
+  # Install Cilium via Helm, with the cluster-specific values file and the
+  # computed API server IP. The LB pool is injected via the values file.
   log "Installing Cilium in $cluster (CNI)..."
   helm upgrade --install cilium "$CILIUM_CHART" \
     --kube-context "$context" \
@@ -53,7 +41,6 @@ install_cilium() {
   log "Waiting for nodes to become Ready in $cluster..."
   kubectl --context "$context" wait --for=condition=Ready nodes --all --timeout=120s
 
-  # Pass 2 — apply the LoadBalancer IP pool now that its CRDs are registered.
   log "Waiting for Cilium LB CRDs in $cluster..."
   for crd in "$LB_POOL_CRD" "$L2_POLICY_CRD"; do
     for _ in $(seq 1 30); do
@@ -64,6 +51,9 @@ install_cilium() {
       "crd/$crd" --timeout=60s
   done
 
+  # Install the LB pool and L2 announcement policy for this cluster. The pool
+  # range is computed at runtime from the kind Docker network CIDR and injected
+  # via the values file, so it is always correct even if the kind network changes.
   log "Configuring Cilium LB pool in $cluster..."
   helm upgrade cilium "$CILIUM_CHART" \
     --kube-context "$context" \
