@@ -1,0 +1,68 @@
+backstage:
+  backstage:
+    image:
+      registry: ghcr.io
+      repository: backstage/backstage
+      tag: latest
+
+    # app-config.yaml overrides via ConfigMap
+    appConfig:
+      app:
+        title: Backstage
+        baseUrl: <upsert-in-env-values-file>
+      backend:
+        baseUrl: <upsert-in-env-values-file>
+        cors:
+          origin: <upsert-in-env-values-file>
+        database:
+          client: pg
+          connection:
+            host: ${POSTGRES_HOST}
+            port: ${POSTGRES_PORT}
+            user: ${POSTGRES_USER}
+            password: ${POSTGRES_PASSWORD}
+
+    extraEnvVars:
+      - name: POSTGRES_HOST
+        valueFrom:
+          secretKeyRef:
+            name: postgres-app
+            key: host
+      - name: POSTGRES_PORT
+        valueFrom:
+          secretKeyRef:
+            name: postgres-app
+            key: port
+      - name: POSTGRES_USER
+        valueFrom:
+          secretKeyRef:
+            name: postgres-app
+            key: username
+      - name: POSTGRES_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres-app
+            key: password
+
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 512Mi
+
+  serviceAccount:
+    create: true
+
+  # Use CloudNativePG instead of the bundled postgresql subchart
+  postgresql:
+    enabled: false
+
+  service:
+    type: ClusterIP
+
+# HTTPRoute hostname and gateway — overridden per environment
+httpRoute:
+  hostname: <upsert-in-env-values-file>
+

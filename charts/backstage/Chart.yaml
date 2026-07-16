@@ -1,0 +1,10 @@
+apiVersion: v2
+name: backstage
+description: Backstage - An open platform for building developer portals.
+type: application
+version: 0.0.1
+appVersion: "1.0.0"
+dependencies:
+  - name: backstage
+    version: 2.8.2
+    repository: https://backstage.github.io/charts

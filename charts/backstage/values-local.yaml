@@ -1,0 +1,13 @@
+backstage:
+  backstage:
+    appConfig:
+      app:
+        title: Backstage (Local)
+        baseUrl: https://backstage.mgmt.rezakara.demo
+      backend:
+        baseUrl: https://backstage.mgmt.rezakara.demo
+        cors:
+          origin: https://backstage.mgmt.rezakara.demo
+
+httpRoute:
+  hostname: backstage.mgmt.rezakara.demo

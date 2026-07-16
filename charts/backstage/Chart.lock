@@ -1,0 +1,6 @@
+dependencies:
+- name: backstage
+  repository: https://backstage.github.io/charts
+  version: 2.8.2
+digest: sha256:676720fad9428e5ed259f3da6fee163b2f6d1cc5676f165ccad15932db907a5c
+generated: "2026-07-16T16:18:15.489656262+02:00"
