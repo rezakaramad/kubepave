@@ -5,7 +5,7 @@
 data "azuread_client_config" "current" {}
 
 data "azuread_user" "reza" {
-  user_principal_name = "r.karamad_gmail.com#EXT#@rkaramadgmail.onmicrosoft.com"
+  user_principal_name = azuread_user.reza.user_principal_name
 }
 
 # Microsoft Graph API service principal
