@@ -27,19 +27,11 @@ selfSignedRootCA:
 
 backstage:
   backstage:
-    appConfig:
-      app:
-        title: Backstage (Local)
-        baseUrl: https://backstage.mgmt.rezakara.demo
-      backend:
-        baseUrl: https://backstage.mgmt.rezakara.demo
-        cors:
-          origin: https://backstage.mgmt.rezakara.demo
-      auth:
-        providers:
-          microsoft:
-            production:
-              tenantId: c6ba6fd6-0fdd-4458-ad98-0c292dd79188
+    extraEnvVars:
+      - name: APP_BASE_URL
+        value: https://backstage.mgmt.rezakara.demo
+      - name: AUTH_MICROSOFT_TENANT_ID
+        value: c6ba6fd6-0fdd-4458-ad98-0c292dd79188
 
 httpRoute:
   hostname: backstage.mgmt.rezakara.demo

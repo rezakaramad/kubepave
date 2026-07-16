@@ -66,4 +66,11 @@ store "keycloak/client-id" "keycloak_client_id"
 store "keycloak/client-secrets/keycloak/value" "keycloak_client_secret_value"
 store "keycloak/client-secrets/keycloak/id" "keycloak_client_secret_id"
 
+# -------------------------------
+# Backstage
+# -------------------------------
+store "backstage/client-id" "backstage_client_id"
+store "backstage/client-secrets/backstage/value" "backstage_client_secret_value"
+store "backstage/client-secrets/backstage/id" "backstage_client_secret_id"
+
 echo "✅ Secrets stored in pass"

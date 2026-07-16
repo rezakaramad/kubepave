@@ -2,36 +2,8 @@ backstage:
   backstage:
     image:
       registry: ghcr.io
-      repository: backstage/backstage
+      repository: rezakaramad/backstage
       tag: latest
-
-    # app-config.yaml overrides via ConfigMap
-    appConfig:
-      app:
-        title: Backstage
-        baseUrl: <upsert-in-env-values-file>
-      backend:
-        baseUrl: <upsert-in-env-values-file>
-        cors:
-          origin: <upsert-in-env-values-file>
-        database:
-          client: pg
-          connection:
-            host: ${POSTGRES_HOST}
-            port: ${POSTGRES_PORT}
-            user: ${POSTGRES_USER}
-            password: ${POSTGRES_PASSWORD}
-      auth:
-        environment: production
-        providers:
-          microsoft:
-            production:
-              clientId: ${AUTH_MICROSOFT_CLIENT_ID}
-              clientSecret: ${AUTH_MICROSOFT_CLIENT_SECRET}
-              tenantId: <upsert-in-env-values-file>
-              signIn:
-                resolvers:
-                  - resolver: emailMatchingUserEntityProfileEmail
 
     extraEnvVars:
       - name: POSTGRES_HOST
@@ -54,8 +26,10 @@ backstage:
           secretKeyRef:
             name: postgres-app
             key: password
-      - name: APP_CONFIG_auth_environment
-        value: production
+      - name: APP_BASE_URL
+        value: <upsert-in-env-values-file>
+      - name: AUTH_MICROSOFT_TENANT_ID
+        value: <upsert-in-env-values-file>
 
     extraEnvVarsSecrets:
       - backstage-secrets
