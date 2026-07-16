@@ -11,6 +11,10 @@ spec:
     initdb:
       database: backstage
       owner: backstage
+      postInitSQL:
+        # Backstage creates a separate database per plugin (e.g. backstage_plugin_catalog)
+        # at startup, so the app user needs CREATEDB privilege.
+        - ALTER USER backstage CREATEDB
   resources:
     requests:
       cpu: 100m
