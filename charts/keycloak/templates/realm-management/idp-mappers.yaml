@@ -1,5 +1,3 @@
-{{- if .Capabilities.APIVersions.Has "identityprovider.keycloak.m.crossplane.io/v1alpha1/IdentityProviderMapper" }}
-
 apiVersion: identityprovider.keycloak.m.crossplane.io/v1alpha1
 kind: IdentityProviderMapper
 metadata:
@@ -126,5 +124,3 @@ spec:
     name: keycloak
 
 ---
-{{- end }}
-{{- end }}

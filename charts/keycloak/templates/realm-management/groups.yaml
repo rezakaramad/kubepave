@@ -1,6 +1,3 @@
-
-{{- if .Capabilities.APIVersions.Has "group.keycloak.m.crossplane.io/v1alpha1/Group" }}
-
 apiVersion: group.keycloak.m.crossplane.io/v1alpha1
 kind: Group
 metadata:
@@ -18,4 +15,3 @@ spec:
     name: keycloak
 
 ---
-{{- end }}

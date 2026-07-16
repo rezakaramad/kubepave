@@ -1,4 +1,3 @@
-{{- if .Capabilities.APIVersions.Has "openidclient.keycloak.m.crossplane.io/v1alpha1/Client" }}
 
 apiVersion: openidclient.keycloak.m.crossplane.io/v1alpha1
 kind: Client
@@ -17,4 +16,3 @@ spec:
     name: keycloak
 
 ---
-{{- end }}
