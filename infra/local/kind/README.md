@@ -7,7 +7,7 @@ and a **workload** cluster whose platform components are installed by ArgoCD via
 GitOps.
 
 > For the design rationale (why kind, why PowerDNS in-cluster, the TLS chain, the
-> GitOps model, and why `baseline-workload` is bootstrapped imperatively) see
+> GitOps model, and why the workload cluster needs no identity seed) see
 > [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
@@ -44,7 +44,7 @@ Run from `systems/local/kind/`. Each step is idempotent.
 ./install-gateway-api.sh      # 3. Gateway API CRDs (both clusters) — required by setup-dns.sh
 ./setup-dns.sh start          # 4. PowerDNS (hostNetwork) + systemd-resolved drop-in
 ./install-charts.sh           # 5. management stack + ArgoCD + workload seed
-./setup-vault.sh              # 6. configure Vault k8s auth for the workload cluster
+./setup-vault.sh              # 6. configure Vault JWT auth for all clusters
 ./setup-secrets.sh            # 7. push secrets to Vault + register workload with ArgoCD
 ./setup-trust.sh              # 8. distribute root CA to workload + local trust stores
 ```
@@ -65,10 +65,11 @@ Run from `systems/local/kind/`. Each step is idempotent.
    systemd-resolved drop-in so the host resolves `*.rezakara.demo` via PowerDNS.
    `reset` reverts the host DNS change.
 5. **`install-charts.sh`** — the main bootstrap. Installs cert-manager,
-   external-secrets, Vault, Traefik (TLS), external-dns (management), the
-   `workload-vault-seed` identity seed, and ArgoCD (OIDC + App-of-Apps).
-6. **`setup-vault.sh`** — configures the Vault Kubernetes auth backend for the
-   workload cluster so its external-secrets can authenticate to Vault.
+   external-secrets, Vault, Traefik (TLS), external-dns (management), and ArgoCD
+   (OIDC + App-of-Apps).
+6. **`setup-vault.sh`** — configures a Vault JWT auth backend per cluster,
+   fetching each cluster's JWKS directly from its API server, so external-secrets
+   can authenticate to Vault.
 7. **`setup-secrets.sh`** — reads secrets from `pass` and writes them to Vault
    (GitHub Apps, Azure AD, PowerDNS, Next Insight) and registers the workload
    cluster with ArgoCD (pull model) by storing its API server + token in Vault.
@@ -167,7 +168,7 @@ systems/local/kind/
 ├── setup-metallb.sh       # metallb pools
 ├── setup-dns.sh           # PowerDNS + systemd-resolved
 ├── install-charts.sh      # management stack + ArgoCD + gitops-platform
-├── setup-vault.sh         # Vault k8s auth for workload
+├── setup-vault.sh         # Vault JWT auth (all clusters)
 ├── setup-secrets.sh       # secrets to Vault + workload registration
 ├── setup-trust.sh         # root CA trust distribution
 ├── setup-argocd.sh        # ArgoCD credentials helper

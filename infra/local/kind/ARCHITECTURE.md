@@ -35,7 +35,7 @@ flowchart TB
         eso_w["external-secrets"]
         edns_w["external-dns"]
         cm_w["cert-manager"]
-        seed["baseline-workload<br/>(identity seed)"]
+        api_w["API server<br/>OIDC / JWKS"]
     end
 
     host -->|DNS| pdns
@@ -43,7 +43,8 @@ flowchart TB
     coredns_w -->|forward| pdns
     argocd -->|GitOps sync| wl
     edns_w -->|"API @ powerdns.mgmt.rezakara.demo"| traefik_m --> pdns
-    eso_w -->|k8s auth| vault
+    eso_w -->|JWT auth| vault
+    vault -->|"fetch JWKS @ :6443"| api_w
     eso_m --> vault
     cm_m --> traefik_m
 ```
@@ -119,9 +120,14 @@ scripts write secrets from `pass`; external-secrets materialises them into
 Kubernetes as needed.
 
 - The **management** cluster uses a `ClusterSecretStore` (`vault-local`) that
-  reaches Vault over its HTTPS route and authenticates via Kubernetes auth.
-- The **workload** cluster uses a `SecretStore` and a dedicated Vault auth backend
-  (`kubernetes-workload`) configured by `setup-vault.sh`.
+  reaches Vault over its HTTPS route and authenticates via JWT auth.
+- The **workload** cluster uses a `SecretStore` and its own Vault JWT auth backend
+  (`jwt-workload`) configured by `setup-vault.sh`.
+
+Vault validates each pod's ServiceAccount token cryptographically: it fetches the
+cluster's public signing keys (JWKS) directly from that cluster's API server
+(`https://<node-ip>:6443/openid/v1/jwks`) — the same hub→spoke path ArgoCD uses.
+No long-lived reviewer token is needed.
 
 > **Operational note:** the local `vault` CLI version may differ from the server.
 > All bootstrap scripts run `vault` commands *inside* the `vault-0` pod
@@ -148,23 +154,28 @@ The flow:
 Because ArgoCD reads from **Git**, chart and Application changes must be committed
 and pushed before they take effect.
 
-### Why `baseline-workload` is bootstrapped imperatively
+### Why the workload cluster needs no identity seed
 
-Everything on the workload cluster could be GitOps-managed *except* its identity
-seed. `baseline-workload` creates the `vault-reviewer` ServiceAccount (bound to
-`system:auth-delegator`), the `SecretStore`, and the `root-ca` issuer.
+Vault authenticates workload pods with JWT auth, fetching the workload cluster's
+JWKS **directly from its API server** (`https://<node-ip>:6443`). Because the API
+server is up the moment the kind cluster exists, `setup-vault.sh` can configure
+`jwt-workload` immediately — nothing has to be pre-seeded on the workload cluster.
 
-The dependency cycle that forces it to exist first:
+This deliberately avoids the bootstrap cycle that arises if you instead expose the
+JWKS through the workload's own Traefik ingress:
 
 ```
-vault-reviewer SA must exist
-  → setup-vault.sh can configure Vault's kubernetes-workload auth
-    → workload external-secrets can authenticate to Vault
-      → ArgoCD-managed apps that need secrets actually work
+Traefik Gateway needs a TLS cert
+  → cert comes from external-secrets (SecretStore)
+    → SecretStore needs Vault jwt-workload auth
+      → jwt-workload needs the JWKS endpoint behind Traefik
+        → back to the Gateway that isn't up yet
 ```
 
-You cannot GitOps your way *into* a cluster that GitOps does not yet have
-credentials for. The identity seed is planted by hand; everything else is GitOps.
+Fetching the JWKS from the API server sits *below* that stack, so the whole
+workload platform can be pure GitOps with no hand-planted identity seed. The only
+thing bootstrapped imperatively is `setup-secrets.sh` registering the workload
+cluster with ArgoCD (storing its API server + token in Vault).
 
 ### PowerDNS API at a stable hostname
 
