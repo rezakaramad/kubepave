@@ -105,8 +105,11 @@ secretStore:
 httpRoute:
   hostname: <upsert-in-env-values-file>
 
-
 # SecretStore to pull secrets via ExternalSecret
 secretStore:
   name:  <upsert-in-env-values-file>
   provider: {}
+
+# Azure AD identity for OIDC client secret via ExternalSecret.
+azureIdentity:
+  enabled: true
