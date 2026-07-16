@@ -28,7 +28,7 @@ backstage:
             production:
               clientId: ${AUTH_MICROSOFT_CLIENT_ID}
               clientSecret: ${AUTH_MICROSOFT_CLIENT_SECRET}
-              tenantId: ${AUTH_MICROSOFT_TENANT_ID}
+              tenantId: <upsert-in-env-values-file>
               signIn:
                 resolvers:
                   - resolver: emailMatchingUserEntityProfileEmail
@@ -54,8 +54,6 @@ backstage:
           secretKeyRef:
             name: postgres-app
             key: password
-      - name: AUTH_MICROSOFT_TENANT_ID
-        value: <upsert-in-env-values-file>
 
     extraEnvVarsSecrets:
       - backstage-secrets
