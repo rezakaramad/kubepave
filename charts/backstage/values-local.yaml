@@ -1,3 +1,30 @@
+secretStore:
+  name: vault-local
+  provider:
+    vault:
+      server: "https://vault.mgmt.rezakara.demo"
+      path: "local"
+      version: "v2"
+      caProvider:
+        type: Secret
+        name: root-ca
+        key: tls.crt
+        namespace: argocd
+      auth:
+        jwt:
+          path: "jwt-management"
+          role: "eso-argocd"
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: argocd-server
+              namespace: argocd
+            audiences:
+              - https://kubernetes.default.svc.cluster.local
+
+selfSignedRootCA:
+  # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Let's Encrypt, etc.).
+  enabled: false
+
 backstage:
   backstage:
     appConfig:

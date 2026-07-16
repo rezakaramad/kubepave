@@ -66,3 +66,8 @@ backstage:
 httpRoute:
   hostname: <upsert-in-env-values-file>
 
+
+# SecretStore to pull secrets via ExternalSecret
+secretStore:
+  name:  <upsert-in-env-values-file>
+  provider: {}
