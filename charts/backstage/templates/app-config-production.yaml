@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backstage-app-config-production
+  namespace: backstage
+data:
+  app-config.production.yaml: |
+    app:
+      baseUrl: ${APP_BASE_URL}
+
+    backend:
+      baseUrl: ${APP_BASE_URL}
+      listen: ':7007'
+
+      database:
+        client: pg
+        connection:
+          host: ${POSTGRES_HOST}
+          port: ${POSTGRES_PORT}
+          user: ${POSTGRES_USER}
+          password: ${POSTGRES_PASSWORD}
+
+    auth:
+      environment: production
+      providers:
+        microsoft:
+          production:
+            clientId: ${AUTH_MICROSOFT_CLIENT_ID}
+            clientSecret: ${AUTH_MICROSOFT_CLIENT_SECRET}
+            tenantId: ${AUTH_MICROSOFT_TENANT_ID}
+            domainHint: ${AUTH_MICROSOFT_TENANT_ID}
+            signIn:
+              resolvers:
+                - resolver: emailMatchingUserEntityProfileEmail
+
+    catalog:
+      locations: []
