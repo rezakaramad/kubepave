@@ -25,8 +25,10 @@ install_cilium() {
   # for the API server since it can't resolve the in-cluster kubernetes Service yet.
   api_ip="$(get_control_plane_ip "$cluster")"
 
-  # Install Cilium via Helm, with the cluster-specific values file and the
-  # computed API server IP. The LB pool is injected via the values file.
+  # Install Cilium via Helm without the LB pool (CRDs don't exist yet).
+  # The lbPool.blocks override disables lb-pool.yaml template rendering so
+  # Helm doesn't try to create CiliumLoadBalancerIPPool / CiliumL2AnnouncementPolicy
+  # before the CRDs are established.
   log "Installing Cilium in $cluster (CNI)..."
   helm upgrade --install cilium "$CILIUM_CHART" \
     --kube-context "$context" \
@@ -35,6 +37,7 @@ install_cilium() {
     --values "$values_file" \
     --set "cilium.k8sServiceHost=${api_ip}" \
     --set "cilium.k8sServicePort=6443" \
+    --set "lbPool.blocks=" \
     --wait \
     --timeout 5m
 
