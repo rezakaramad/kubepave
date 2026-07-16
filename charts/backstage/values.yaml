@@ -21,6 +21,17 @@ backstage:
             port: ${POSTGRES_PORT}
             user: ${POSTGRES_USER}
             password: ${POSTGRES_PASSWORD}
+      auth:
+        environment: production
+        providers:
+          microsoft:
+            production:
+              clientId: ${AUTH_MICROSOFT_CLIENT_ID}
+              clientSecret: ${AUTH_MICROSOFT_CLIENT_SECRET}
+              tenantId: ${AUTH_MICROSOFT_TENANT_ID}
+              signIn:
+                resolvers:
+                  - resolver: emailMatchingUserEntityProfileEmail
 
     extraEnvVars:
       - name: POSTGRES_HOST
@@ -43,7 +54,11 @@ backstage:
           secretKeyRef:
             name: postgres-app
             key: password
+      - name: AUTH_MICROSOFT_TENANT_ID
+        value: <upsert-in-env-values-file>
 
+    extraEnvVarsSecrets:
+      - backstage-secrets
 
     # Backstage runs DB migrations on startup — give it time before probing
     readinessProbe:
@@ -80,6 +95,11 @@ backstage:
 
   service:
     type: ClusterIP
+
+# SecretStore reference for ExternalSecret (auth credentials)
+secretStore:
+  name: <upsert-in-env-values-file>
+  provider: {}
 
 # HTTPRoute hostname and gateway — overridden per environment
 httpRoute:

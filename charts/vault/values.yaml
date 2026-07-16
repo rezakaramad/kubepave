@@ -111,6 +111,18 @@ vault:
         }
         EOF
 
+        echo "Writing Backstage policy..."
+
+        vault policy write backstage-policy - <<'EOF'
+        path "local/data/backstage/*" {
+          capabilities = ["read"]
+        }
+
+        path "local/metadata/backstage/*" {
+          capabilities = ["read", "list"]
+        }
+        EOF
+
         echo "Writing ArgoCD policy..."
 
         vault policy write eso-argocd-policy - <<EOF

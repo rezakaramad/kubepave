@@ -277,6 +277,102 @@ output "keycloak_client_secret_value" {
 }
 
 # ---------------------------------------------------------------
+# Backstage
+# ---------------------------------------------------------------
+resource "azuread_application" "backstage" {
+  display_name     = "Backstage"
+  sign_in_audience = "AzureADMyOrg"
+  owners = [
+    data.azuread_client_config.current.object_id,
+    azuread_service_principal.crossplane.object_id
+  ]
+
+  # Include group memberships in the token so Backstage can resolve
+  # which groups the signed-in user belongs to (e.g. platform-admins).
+  group_membership_claims = [
+    "SecurityGroup",
+    "ApplicationGroup"
+  ]
+
+  web {
+    redirect_uris = [
+      "https://backstage.mgmt.rezakara.demo/api/auth/microsoft/handler/frame",
+    ]
+  }
+
+  optional_claims {
+    id_token {
+      name = "groups"
+    }
+    access_token {
+      name = "groups"
+    }
+  }
+
+  required_resource_access {
+    resource_app_id = "00000003-0000-0000-c000-000000000000"
+
+    # User.Read (delegated) — read signed-in user profile
+    resource_access {
+      id   = "e1fe6dd8-ba31-4d61-89e7-88639da4683d"
+      type = "Scope"
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [app_role]
+  }
+}
+
+resource "azuread_service_principal" "backstage" {
+  client_id                    = azuread_application.backstage.client_id
+  app_role_assignment_required = true
+  owners                       = [data.azuread_client_config.current.object_id]
+}
+
+resource "azuread_application_password" "backstage" {
+  application_id = azuread_application.backstage.id
+  display_name   = "Backstage"
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+# App role: platform-admin — grants elevated access inside Backstage
+resource "azuread_application_app_role" "backstage_platform_admin" {
+  application_id = azuread_application.backstage.id
+  role_id        = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+  allowed_member_types = ["User"]
+  description          = "Platform admins have full access to Backstage."
+  display_name         = "Backstage Platform Admin"
+  value                = "platform-admin"
+}
+
+# Assign platform-admin role directly to reza (free-tier Azure AD workaround —
+# in production assign to the platform-admins group instead)
+resource "azuread_app_role_assignment" "backstage_platform_admin" {
+  app_role_id         = azuread_application_app_role.backstage_platform_admin.role_id
+  principal_object_id = data.azuread_user.reza.object_id
+  resource_object_id  = azuread_service_principal.backstage.object_id
+}
+
+# Backstage outputs
+output "backstage_client_id" {
+  value = azuread_application.backstage.client_id
+}
+
+output "backstage_client_secret_id" {
+  value = azuread_application_password.backstage.key_id
+}
+
+output "backstage_client_secret_value" {
+  value     = azuread_application_password.backstage.value
+  sensitive = true
+}
+
+# ---------------------------------------------------------------
 # General outputs
 # ---------------------------------------------------------------
 output "tenant_id" {

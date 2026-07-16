@@ -339,6 +339,28 @@ create_powerdns_secrets() {
 
 
 # -----------------------------------------------------------------------------
+# Backstage — Entra ID app registration credentials
+# Pushed under local/backstage/* so the backstage chart's ExternalSecret
+# (using the `backstage` SA, role `backstage`) can read them.
+# -----------------------------------------------------------------------------
+create_backstage_secrets() {
+  log "Writing Backstage secrets to Vault..."
+
+  local client_id client_secret
+  client_id=$(pass show private/azure/entraid/apps/backstage/client-id | head -n1)
+  tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
+  client_secret=$(pass show private/azure/entraid/apps/backstage/client-secrets/backstage/value | head -n1)
+
+  vault_kv_put "local/backstage/azure/app" \
+    "client_id"     "$client_id" \
+    "tenant_id"     "$tenant_id" \
+    "client_secret" "$client_secret"
+
+  ok "Backstage Entra ID client secret written"
+}
+
+
+# -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 main() {
@@ -355,6 +377,7 @@ main() {
   create_argocd_app_registration_azure
   create_crossplane_app_registration_azure
   create_keycloak_secrets
+  create_backstage_secrets
   register_clusters_argocd
   create_powerdns_secrets
 

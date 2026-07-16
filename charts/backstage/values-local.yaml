@@ -2,22 +2,22 @@ secretStore:
   name: vault-local
   provider:
     vault:
-      server: "https://vault.mgmt.rezakara.demo"
-      path: "local"
-      version: "v2"
+      server: https://vault.mgmt.rezakara.demo
+      path: local
+      version: v2
       caProvider:
         type: Secret
         name: root-ca
         key: tls.crt
-        namespace: argocd
+        namespace: backstage
       auth:
         jwt:
-          path: "jwt-management"
-          role: "eso-argocd"
+          path: jwt-management
+          role: backstage
           kubernetesServiceAccountToken:
             serviceAccountRef:
-              name: argocd-server
-              namespace: argocd
+              name: backstage
+              namespace: backstage
             audiences:
               - https://kubernetes.default.svc.cluster.local
 
@@ -38,3 +38,9 @@ backstage:
 
 httpRoute:
   hostname: backstage.mgmt.rezakara.demo
+
+backstage:
+  backstage:
+    extraEnvVars:
+      - name: AUTH_MICROSOFT_TENANT_ID
+        value: c6ba6fd6-0fdd-4458-ad98-0c292dd79188

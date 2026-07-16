@@ -155,7 +155,7 @@ configure_cluster_jwt() {
     policies=eso-argocd-policy \
     ttl=1h"
 
-  # keycloak only runs on the management cluster.
+  # keycloak and backstage only run on the management cluster.
   if [ "$cluster" = "management" ]; then
     vault_exec "vault write auth/${auth_path}/role/keycloak \
       role_type=jwt \
@@ -163,6 +163,14 @@ configure_cluster_jwt() {
       user_claim=sub \
       bound_subject='system:serviceaccount:keycloak:keycloak' \
       policies=keycloak-policy \
+      ttl=1h"
+
+    vault_exec "vault write auth/${auth_path}/role/backstage \
+      role_type=jwt \
+      bound_audiences='https://kubernetes.default.svc.cluster.local' \
+      user_claim=sub \
+      bound_subject='system:serviceaccount:backstage:backstage' \
+      policies=backstage-policy \
       ttl=1h"
   fi
 
