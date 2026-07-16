@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cilium-management
+  name: cilium-workload
   namespace: argocd
 spec:
   project: platform-system
@@ -12,9 +12,9 @@ spec:
     helm:
       valueFiles:
         - values.yaml
-        - values-local-management.yaml
+        - values-local-workload.yaml
   destination:
-    name: in-cluster
+    name: kind-workload
     namespace: kube-system
   syncPolicy:
     syncOptions:
