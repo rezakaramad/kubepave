@@ -30,6 +30,15 @@ backstage:
         value: <upsert-in-env-values-file>
       - name: AUTH_MICROSOFT_TENANT_ID
         value: <upsert-in-env-values-file>
+      # Frontend runtime config overrides (see values-local.yaml for details).
+      # app-backend injects APP_CONFIG_* env vars into the static frontend bundle
+      # at runtime, overriding the localhost defaults baked in at build time.
+      - name: APP_CONFIG_app_baseUrl
+        value: $(APP_BASE_URL)
+      - name: APP_CONFIG_backend_baseUrl
+        value: $(APP_BASE_URL)
+      - name: APP_CONFIG_auth_environment
+        value: production
 
     extraEnvVarsSecrets:
       - backstage-secrets

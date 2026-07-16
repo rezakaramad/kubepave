@@ -27,11 +27,46 @@ selfSignedRootCA:
 
 backstage:
   backstage:
+    # NOTE: Helm replaces (does not merge) list values across value files, so this
+    # list must be COMPLETE — it fully overrides the extraEnvVars from values.yaml.
     extraEnvVars:
+      # --- Database (CloudNativePG "postgres-app" secret) ---
+      - name: POSTGRES_HOST
+        valueFrom:
+          secretKeyRef:
+            name: postgres-app
+            key: host
+      - name: POSTGRES_PORT
+        valueFrom:
+          secretKeyRef:
+            name: postgres-app
+            key: port
+      - name: POSTGRES_USER
+        valueFrom:
+          secretKeyRef:
+            name: postgres-app
+            key: username
+      - name: POSTGRES_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres-app
+            key: password
+      # --- Backend runtime config (app-config.production.yaml) ---
       - name: APP_BASE_URL
         value: https://backstage.mgmt.rezakara.demo
       - name: AUTH_MICROSOFT_TENANT_ID
         value: c6ba6fd6-0fdd-4458-ad98-0c292dd79188
+      # --- Frontend runtime config overrides ---
+      # The frontend bundle is static and bakes in app-config.yaml (localhost) at
+      # build time. app-backend injects any APP_CONFIG_* env var into the served
+      # index.html at runtime, overriding those baked-in defaults. $(APP_BASE_URL)
+      # is a Kubernetes dependent-variable reference (must be defined earlier).
+      - name: APP_CONFIG_app_baseUrl
+        value: $(APP_BASE_URL)
+      - name: APP_CONFIG_backend_baseUrl
+        value: $(APP_BASE_URL)
+      - name: APP_CONFIG_auth_environment
+        value: production
 
 httpRoute:
   hostname: backstage.mgmt.rezakara.demo
