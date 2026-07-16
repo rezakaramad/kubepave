@@ -54,6 +54,8 @@ backstage:
           secretKeyRef:
             name: postgres-app
             key: password
+      - name: APP_CONFIG_auth_environment
+        value: production
 
     extraEnvVarsSecrets:
       - backstage-secrets
