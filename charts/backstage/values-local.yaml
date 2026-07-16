@@ -35,12 +35,9 @@ backstage:
         baseUrl: https://backstage.mgmt.rezakara.demo
         cors:
           origin: https://backstage.mgmt.rezakara.demo
-
-httpRoute:
-  hostname: backstage.mgmt.rezakara.demo
-
-backstage:
-  backstage:
     extraEnvVars:
       - name: AUTH_MICROSOFT_TENANT_ID
         value: c6ba6fd6-0fdd-4458-ad98-0c292dd79188
+
+httpRoute:
+  hostname: backstage.mgmt.rezakara.demo
