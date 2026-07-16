@@ -11,7 +11,7 @@ tls:
 
 traefik:
   # Trust X-Forwarded-For headers from RFC 1918 private ranges only.
-  # Required so apps see the real client IP instead of the metallb LB address.
+  # Required so apps see the real client IP instead of the LoadBalancer address.
   # insecure: false means only IPs in trustedIPs can set forwarded headers — anyone
   # outside those ranges cannot spoof their source IP.
   ports:

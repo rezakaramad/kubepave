@@ -1,0 +1,44 @@
+{{- if .Values.lbPool.blocks }}
+
+# Pool of IPs the Cilium operator assigns to "type=LoadBalancer" Services.
+apiVersion: cilium.io/v2
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: {{ .Values.lbPool.name }}
+spec:
+  blocks:
+    {{- range .Values.lbPool.blocks }}
+    - start: {{ .start | quote }}
+      stop: {{ .stop | quote }}
+    {{- end }}
+
+---
+
+# Tells Cilium which Services should announce their LoadBalancer/External IPs on the local network.
+# Reference: https://docs.cilium.io/en/stable/network/l2-announcements/
+# Example:
+#   Nodes: A, B, C
+#   Service: web-service (VIP: 192.168.1.100)
+#
+#   Client asks:
+#     "Who has 192.168.1.100?"
+#
+#   Node B replies with its MAC address, so all traffic for
+#   192.168.1.100 goes to Node B. Cilium then load-balances
+#   the traffic to the backend Pods.
+#
+#   If Node B goes down, Node C starts replying for
+#   192.168.1.100 instead. The Service IP stays the same;
+#   only the node owning the VIP changes.
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: {{ .Values.lbPool.name }}
+spec:
+  loadBalancerIPs: true
+  interfaces:
+    - {{ .Values.lbPool.interface | quote }}
+  nodeSelector:
+    matchLabels: {}
+
+{{- end }}

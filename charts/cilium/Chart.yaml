@@ -1,0 +1,8 @@
+apiVersion: v2
+name: cilium
+description: Cilium CNI + L2 load-balancer for bare-metal / kind clusters.
+version: 0.0.1
+dependencies:
+  - name: cilium
+    version: 1.19.5
+    repository: https://helm.cilium.io

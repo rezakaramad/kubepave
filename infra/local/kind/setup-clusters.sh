@@ -11,7 +11,7 @@ source "$DIR/libs/utils.sh"
 KIND_CONFIGS_DIR="$DIR/kind-configs"
 
 # Kubernetes version for kind clusters
-K8S_VERSION="v1.33.1"
+K8S_VERSION="v1.32.5"
 
 # cluster name → config file
 declare -A CLUSTERS=(
@@ -19,14 +19,14 @@ declare -A CLUSTERS=(
   [workload]="$KIND_CONFIGS_DIR/workload.yaml"
 )
 
-# Preferred start order (management must be first so metallb pool and
+# Preferred start order (management must be first so the LB pool and
 # CoreDNS stub for workload are derived after the kind network exists)
 CLUSTER_ORDER=(management workload)
 
 
 # -----------------------------------------------------------------------------
 # Enable promiscuous mode on the kind network interface for each node container.
-# Required for metallb L2 mode — without it ARP announcements are dropped by
+# Required for Cilium L2 mode, without it ARP announcements are dropped by
 # the Docker bridge and LoadBalancer IPs are unreachable.
 # -----------------------------------------------------------------------------
 enable_promiscuous_mode() {
@@ -98,13 +98,14 @@ create_cluster() {
 
   log "Creating $name (k8s $K8S_VERSION)..."
 
+  # No --wait: with the default CNI disabled, nodes stay NotReady until Cilium
+  # is installed (done immediately after, in start()). Waiting here would time out.
   kind create cluster \
     --name "$name" \
     --config "$config" \
-    --image "kindest/node:${K8S_VERSION}" \
-    --wait 120s
+    --image "kindest/node:${K8S_VERSION}"
 
-  ok "$name ready"
+  ok "$name created"
 }
 
 
@@ -144,7 +145,7 @@ clean_kubeconfig() {
 
 
 # -----------------------------------------------------------------------------
-# Print a summary of running clusters and their metallb pools
+# Print a summary of running clusters and their LB pools
 # -----------------------------------------------------------------------------
 status() {
   echo ""
@@ -159,8 +160,8 @@ status() {
   if docker network inspect kind >/dev/null 2>&1; then
     echo "kind network CIDR    : $(get_kind_cidr)"
     echo "PowerDNS IP          : $(get_powerdns_ip)"
-    echo "metallb management   : $(get_metallb_pool management)"
-    echo "metallb workload     : $(get_metallb_pool workload)"
+    echo "LB pool management   : $(get_lb_pool management)"
+    echo "LB pool workload     : $(get_lb_pool workload)"
   else
     echo "kind Docker network  : not found"
   fi
@@ -177,9 +178,10 @@ start() {
     echo "--------------------------------"
   done
 
-  # Always ensure promiscuous mode is on — required for metallb L2 ARP.
+  # Always ensure promiscuous mode is on — required for Cilium L2 ARP.
   # Always repatch CoreDNS — ensures the PowerDNS IP is current after any redeploy.
-  # Both operations are idempotent.
+  # Both operations are idempotent. CoreDNS stays Pending until Cilium (the CNI)
+  # is installed by the next bootstrap step (setup-cilium.sh); the patch persists.
   for name in "${CLUSTER_ORDER[@]}"; do
     enable_promiscuous_mode "$name"
     patch_coredns "$name"

@@ -31,17 +31,18 @@ get_kind_cidr() {
     | head -1
 }
 
-# Returns the metallb IP pool range for a given cluster.
+# Returns the LoadBalancer IP pool range for a given cluster (as "start-end").
 # Pools are carved from the upper end of the kind CIDR to avoid collisions
 # with the gateway and node IPs which are allocated from the lower end.
-# Usage: get_metallb_pool management
-#        get_metallb_pool workload
-get_metallb_pool() {
+# Provider-neutral: consumed by whichever LB is installed (Cilium here).
+# Usage: get_lb_pool management
+#        get_lb_pool workload
+get_lb_pool() {
   local cluster=$1
   local cidr
   cidr="$(get_kind_cidr)"
 
-  python3 - "$cidr" "$cluster" "$METALLB_MGMT_POOL_SIZE" "$METALLB_WL_POOL_SIZE" <<'EOF'
+  python3 - "$cidr" "$cluster" "$LB_MGMT_POOL_SIZE" "$LB_WL_POOL_SIZE" <<'EOF'
 import sys, ipaddress
 cidr, cluster, mgmt_size, wl_size = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
 hosts = list(ipaddress.IPv4Network(cidr, strict=False).hosts())
@@ -64,6 +65,16 @@ get_management_node_ip() {
     --format '{{.NetworkSettings.Networks.kind.IPAddress}}' 2>/dev/null
 }
 
+# Returns the Docker bridge IP of a cluster's control-plane node.
+# Used as k8sServiceHost for Cilium's kube-proxy replacement: without kube-proxy
+# the agent needs a direct address for the API server (it can't yet resolve the
+# in-cluster kubernetes Service). kind names the container "<cluster>-control-plane".
+get_control_plane_ip() {
+  local cluster=$1
+  docker inspect "${cluster}-control-plane" \
+    --format '{{.NetworkSettings.Networks.kind.IPAddress}}' 2>/dev/null
+}
+
 # Returns the IP where PowerDNS port 53 is reachable by all consumers.
 get_powerdns_ip() {
   get_management_node_ip
@@ -73,28 +84,4 @@ get_powerdns_ip() {
 kind_context() {
   local cluster=$1
   echo "kind-${cluster}"
-}
-
-# Vault login
-vault_login() {
-  echo "🔐 Authenticating to Vault..."
-
-  kubectl wait \
-    --for=condition=Ready pod \
-    -l app.kubernetes.io/name=vault \
-    -n "$VAULT_NAMESPACE" \
-    --timeout=120s
-
-  VAULT_POD=$(kubectl get pods -n "$VAULT_NAMESPACE" \
-    -l app.kubernetes.io/name=vault \
-    -o jsonpath='{.items[0].metadata.name}')
-
-  VAULT_TOKEN=$(kubectl exec -n "$VAULT_NAMESPACE" "$VAULT_POD" -- \
-    sh -c "grep 'Initial Root Token:' /vault/data/init.txt | awk '{print \$4}'")
-
-  export VAULT_ADDR="https://vault.mgmt.rezakara.demo"
-  export VAULT_TOKEN="$VAULT_TOKEN"
-  export VAULT_SKIP_VERIFY=true
-
-  vault secrets enable -path=local kv-v2 2>/dev/null || true
 }

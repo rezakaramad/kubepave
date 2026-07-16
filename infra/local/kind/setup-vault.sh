@@ -195,8 +195,7 @@ save_credentials() {
 
   local creds_file="$REPO_ROOT/.platform.env"
 
-  # Preserve existing entries (e.g. ARGOCD_ADMIN_PASSWORD written by setup-argocd.sh)
-  # and add/update VAULT_ROOT_TOKEN
+  # Preserve existing entries and add/update VAULT_ROOT_TOKEN
   if grep -q 'VAULT_ROOT_TOKEN' "$creds_file" 2>/dev/null; then
     sed -i "s|^export VAULT_ROOT_TOKEN=.*|export VAULT_ROOT_TOKEN=\"${vault_token}\"|" "$creds_file"
   else

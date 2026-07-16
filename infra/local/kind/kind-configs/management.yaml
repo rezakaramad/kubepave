@@ -4,12 +4,15 @@ apiVersion: kind.x-k8s.io/v1alpha4
 networking:
   podSubnet: "10.244.0.0/16"
   serviceSubnet: "10.101.0.0/16"
-  # Disable default CNI so we can install our own (required for metallb L2 mode)
-  disableDefaultCNI: false
+  # Disable the default kindnet CNI — Cilium is installed as the CNI + LB instead.
+  disableDefaultCNI: true
+  # Disable kube-proxy — Cilium runs in kube-proxy-replacement mode, which is
+  # required for its L2 LoadBalancer announcements to program the service datapath.
+  kubeProxyMode: "none"
 
 nodes:
   - role: control-plane
-    # Required for metallb L2 ARP — enable promiscuous mode on the kind network interface
+    # Promiscuous mode on the node interface is enabled post-create for Cilium L2 ARP.
     extraPortMappings: []
     kubeadmConfigPatches:
       - |

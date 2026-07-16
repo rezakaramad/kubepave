@@ -5,11 +5,8 @@ set -euo pipefail
 #
 # Differences from the minikube version:
 #   - No update_hosts (systemd-resolved handles DNS)
-#   - Keycloak secrets live under local/keycloak/* (minikube used
-#     local/management/keycloak/*)
 #   - All vault commands run inside the pod to avoid CLI/server version mismatch
-#   - register_clusters_argocd registers kind workload clusters (pull model,
-#     matching minikube) instead of the earlier `argocd cluster add` push model
+#   - register_clusters_argocd registers kind workload clusters (pull model)
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -342,24 +339,6 @@ create_powerdns_secrets() {
 
 
 # -----------------------------------------------------------------------------
-# Next Insight credentials
-# -----------------------------------------------------------------------------
-create_nextinsight_credentials() {
-  log "Writing Next Insight credentials..."
-
-  local url token
-  url=$(pass show corporate/nextinsight/url | head -n1)
-  token=$(pass show corporate/nextinsight/token | head -n1)
-
-  vault_kv_put "local/management/nextinsight" \
-    "url"   "$url" \
-    "token" "$token"
-
-  ok "NextInsight credentials written"
-}
-
-
-# -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 main() {
@@ -376,7 +355,6 @@ main() {
   create_argocd_app_registration_azure
   create_crossplane_app_registration_azure
   create_keycloak_secrets
-  create_nextinsight_credentials
   register_clusters_argocd
   create_powerdns_secrets
 

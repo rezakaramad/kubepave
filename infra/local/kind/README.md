@@ -25,7 +25,7 @@ Install and have on `PATH`:
 | `argocd` CLI | ArgoCD interaction |
 | `openssl`, `keytool`, `certutil` | trust store management |
 | `dig` | DNS verification |
-| `python3` | metallb pool / JSON helpers |
+| `python3` | LB pool / JSON helpers |
 | `pass` | source of GitHub App + Azure AD secrets |
 | `sudo` | systemd-resolved drop-in + system trust store |
 
@@ -40,7 +40,7 @@ Run from `systems/local/kind/`. Each step is idempotent.
 
 ```bash
 ./setup-clusters.sh start     # 1. create kind clusters, patch CoreDNS stub
-./setup-metallb.sh install    # 2. metallb LoadBalancer pools (both clusters)
+./setup-cilium.sh install     # 2. Cilium CNI + LoadBalancer pools (both clusters)
 ./install-gateway-api.sh      # 3. Gateway API CRDs (both clusters) — required by setup-dns.sh
 ./setup-dns.sh start          # 4. PowerDNS (hostNetwork) + systemd-resolved drop-in
 ./install-charts.sh           # 5. management stack + ArgoCD + workload seed
@@ -54,9 +54,9 @@ Run from `systems/local/kind/`. Each step is idempotent.
 1. **`setup-clusters.sh start`** — creates the `management` and `workload` kind
    clusters, enables promiscuous mode, and patches CoreDNS in both to forward
    `rezakara.demo` to PowerDNS. `destroy` tears them down; `status` shows state.
-2. **`setup-metallb.sh install`** — installs metallb and configures an
-   `IPAddressPool` + `L2Advertisement` per cluster, carved from the upper end of
-   the kind Docker bridge CIDR.
+2. **`setup-cilium.sh install`** — installs Cilium (CNI + L2 load-balancer) and
+   configures a `CiliumLoadBalancerIPPool` + `CiliumL2AnnouncementPolicy` per
+   cluster, carved from the upper end of the kind Docker bridge CIDR.
 3. **`install-gateway-api.sh`** — installs Gateway API CRDs (`v1.4.1`) on both
    clusters. Idempotent. Required before `setup-dns.sh` (PowerDNS HTTPRoute) and
    `install-charts.sh` (Traefik Gateway).
@@ -102,7 +102,8 @@ ArgoCD supports both Azure AD SSO and the local `admin` account. Retrieve the
 admin password with:
 
 ```bash
-./setup-argocd.sh password
+kubectl --context kind-management -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 
 ---
@@ -160,17 +161,16 @@ systems/local/kind/
 ├── ARCHITECTURE.md        # design decisions
 ├── libs/
 │   ├── common.sh          # shared constants + log helpers
-│   └── utils.sh           # kind/metallb/context helpers
+│   └── utils.sh           # kind/LB-pool/context helpers
 ├── kind-configs/
 │   ├── management.yaml    # kind config for the management cluster
 │   └── workload.yaml      # kind config for the workload cluster
 ├── setup-clusters.sh      # create/destroy clusters, patch CoreDNS
-├── setup-metallb.sh       # metallb pools
+├── setup-cilium.sh         # Cilium CNI + LoadBalancer pools
 ├── setup-dns.sh           # PowerDNS + systemd-resolved
 ├── install-charts.sh      # management stack + ArgoCD + gitops-platform
 ├── setup-vault.sh         # Vault JWT auth (all clusters)
 ├── setup-secrets.sh       # secrets to Vault + workload registration
 ├── setup-trust.sh         # root CA trust distribution
-├── setup-argocd.sh        # ArgoCD credentials helper
 └── dns-test.yaml          # sample HTTPRoute for DNS testing
 ```

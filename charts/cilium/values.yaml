@@ -1,0 +1,58 @@
+# Cilium wrapper chart: the upstream cilium chart (as a dependency) plus the
+# LoadBalancer IP pool + L2 announcement policy that replace MetalLB.
+#
+# Values under `cilium:` are passed straight through to the upstream chart.
+
+cilium:
+  # Use the node PodCIDR handed out by kind (podSubnet in the kind config)
+  # instead of Cilium's cluster-scope IPAM.
+  ipam:
+    mode: kubernetes
+
+  # kind is single-node; the default of 2 operator replicas leaves one Pending.
+  operator:
+    replicas: 1
+
+  # Run without kube-proxy (kubeProxyMode: "none" in the kind config). Cilium's
+  # eBPF datapath programs Service load balancing, which is also a hard
+  # prerequisite for L2 LoadBalancer announcements below. k8sServiceHost /
+  # k8sServicePort tell the agent where the API server is (kube-proxy would
+  # normally provide the in-cluster kubernetes Service); they are injected per
+  # cluster at install time from the kind control-plane node IP.
+  kubeProxyReplacement: true
+
+  # L2 (ARP) announcement of LoadBalancer IPs — the MetalLB L2-mode equivalent.
+  l2announcements:
+    enabled: true
+
+  # Allow the operator to assign IPs from CiliumLoadBalancerIPPool to Services.
+  externalIPs:
+    enabled: true
+
+  # L2 announcements use leader-election leases and are chatty against the API
+  # server; raise the client rate limit so they don't get throttled.
+  k8sClientRateLimit:
+    qps: 50
+    burst: 100
+
+# ------------------------------------------------------------------------------
+# LoadBalancer IP pool (CiliumLoadBalancerIPPool + CiliumL2AnnouncementPolicy).
+#
+# LOCAL (kind): blocks are dynamic — computed from the kind Docker network CIDR
+# at runtime and injected via --set at helm install time. Left empty here, so a
+# plain install brings up just the CNI (the pool is applied once its CRDs exist).
+#
+# ON-PREM / PRODUCTION: the networking team allocates a static range from the L2
+# network. Set it here and commit to Git — no runtime injection needed.
+#
+# Example (on-prem):
+#   lbPool:
+#     blocks:
+#       - start: 192.168.10.100
+#         stop:  192.168.10.120
+# ------------------------------------------------------------------------------
+lbPool:
+  name: default-pool
+  # Node interface Cilium announces LoadBalancer IPs on (kind node = eth0).
+  interface: "^eth0$"
+  blocks: []  # [{ start, stop }] — overridden per environment

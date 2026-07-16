@@ -78,8 +78,8 @@ reach it:
   `rezakara.demo` to the PowerDNS node IP.
 - **Workload pods** — same CoreDNS stub, reaching PowerDNS across the kind bridge.
 
-`hostNetwork` (rather than a metallb LoadBalancer IP) is used because the node IP
-is routable from pods in *both* clusters and from the host, whereas a metallb IP
+`hostNetwork` (rather than a Cilium LoadBalancer IP) is used because the node IP
+is routable from pods in *both* clusters and from the host, whereas a Cilium LB IP
 in the management cluster is not reachable from the workload pod network.
 
 ### Why keep external-dns + PowerDNS
@@ -204,7 +204,7 @@ Because OIDC requires a working HTTPS URL, this depends on the TLS chain being u
 
 | Concern | Mechanism |
 |---------|-----------|
-| LoadBalancer IPs | metallb (L2), pools carved from the kind bridge CIDR |
+| LoadBalancer IPs | Cilium (L2 announcements), pools carved from the kind bridge CIDR |
 | Cross-cluster reachability | shared `kind` Docker bridge network |
 | DNS (host) | systemd-resolved drop-in → PowerDNS node IP |
 | DNS (pods) | CoreDNS stub zone → PowerDNS node IP |

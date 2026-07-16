@@ -105,7 +105,7 @@ create_mgmt_bootstrap_secrets() {
 
 
 # -----------------------------------------------------------------------------
-# Install Traefik and wait for its LoadBalancer IP to be assigned by metallb
+# Install Traefik and wait for its LoadBalancer IP to be assigned by Cilium
 # -----------------------------------------------------------------------------
 install_traefik() {
   local cluster=$1

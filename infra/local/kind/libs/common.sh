@@ -28,13 +28,13 @@ TRAEFIK_NS="platform-system"
 # DNS
 DNS_DOMAIN="rezakara.demo"
 
-# metallb IP pools — carved from the upper end of the kind Docker bridge subnet.
-# The exact IPs are computed at runtime from the actual CIDR via get_metallb_pool()
+# LoadBalancer IP pools — carved from the upper end of the kind Docker bridge subnet.
+# The exact IPs are computed at runtime from the actual CIDR via get_lb_pool()
 # so this works regardless of whether Docker picks a /16, /24, /27, etc.
 #   management pool: last 10 IPs of the subnet (PowerDNS gets the first of these)
 #   workload pool:   10 IPs immediately before the management pool
-METALLB_MGMT_POOL_SIZE=10
-METALLB_WL_POOL_SIZE=10
+LB_MGMT_POOL_SIZE=10
+LB_WL_POOL_SIZE=10
 
 
 log()  { echo "➡️  $*"; }
