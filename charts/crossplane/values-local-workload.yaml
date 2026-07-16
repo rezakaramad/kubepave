@@ -9,6 +9,13 @@ keycloakProvider:
 azureADProvider:
   enabled: true
   providerPackage: xpkg.upbound.io/upbound/provider-azuread:v2.2.1
+  activatedResources:
+    - applications.applications.azuread.m.upbound.io
+    - principals.serviceprincipals.azuread.m.upbound.io
+    - approles.applications.azuread.m.upbound.io
+    - roleassignments.app.azuread.m.upbound.io
+    - federatedidentitycredentials.applications.azuread.m.upbound.io
+    - groups.groups.azuread.m.upbound.io
 
 secretStore:
   provider:
