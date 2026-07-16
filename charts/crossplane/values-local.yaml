@@ -6,13 +6,6 @@ secretStore:
   name: vault-local
   provider:
     vault:
-      auth:
-        kubernetes:
-          mountPath: <upsert-in-env-values-file>
-          role: crossplane
-          serviceAccountRef:
-            name: crossplane
-            namespace: crossplane-system
       caProvider:
         key: tls.crt
         name: root-ca
@@ -21,3 +14,13 @@ secretStore:
       path: local
       server: https://vault.mgmt.rezakara.demo
       version: v2
+      auth:
+        jwt:
+          path: <upsert-in-env-values-file>
+          role: crossplane
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: crossplane
+              namespace: crossplane-system
+            audiences:
+              - https://kubernetes.default.svc.cluster.local
