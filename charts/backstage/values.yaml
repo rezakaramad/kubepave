@@ -45,6 +45,25 @@ backstage:
             key: password
 
 
+    # Backstage runs DB migrations on startup — give it time before probing
+    readinessProbe:
+      httpGet:
+        path: /.backstage/health/v1/readiness
+        port: 7007
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      failureThreshold: 3
+
+    livenessProbe:
+      httpGet:
+        path: /.backstage/health/v1/liveness
+        port: 7007
+        scheme: HTTP
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      failureThreshold: 3
+
     resources:
       requests:
         cpu: 100m
