@@ -108,7 +108,55 @@ kubectl --context kind-management -n argocd get secret argocd-initial-admin-secr
 
 ---
 
-## Verification
+## IP address planning
+
+All ranges are in RFC 1918 Class C space (`192.168.x.x`), chosen to avoid
+conflicts with typical office (`10.x.x.x`) and home (`192.168.0–1.x`) LANs.
+
+### Docker bridge network — `192.168.211.64/27`
+
+kind creates a single Docker bridge shared by both clusters. The subnet is
+**pre-created with a pinned CIDR** by `setup-clusters.sh` so that the LoadBalancer
+IP ranges remain stable across every `kind:down && kind:up` cycle.
+
+```
+192.168.211.64/27  (30 usable hosts: .65 – .94)
+  .65      gateway (Docker bridge)
+  .66      management control-plane node
+  .67      workload control-plane node
+  .68–.74  unallocated
+  .75–.84  workload LoadBalancer pool   (10 IPs)
+  .85–.94  management LoadBalancer pool (10 IPs)
+```
+
+Pool sizes are controlled by `LB_MGMT_POOL_SIZE` / `LB_WL_POOL_SIZE` in
+`libs/common.sh`. The ranges are committed in
+`charts/cilium/values-local-{management,workload}.yaml` so ArgoCD can reconcile
+them without any runtime injection.
+
+### Pod and service CIDRs
+
+Internal-only — never routed outside the cluster. Pods and services in these
+ranges can only be reached through Cilium's eBPF datapath or via a LoadBalancer
+VIP from the pool above.
+
+| Cluster | Pod CIDR | Service (ClusterIP) CIDR |
+|---------|----------|--------------------------|
+| management | `192.168.100.0/24` | `192.168.101.0/24` |
+| workload   | `192.168.102.0/24` | `192.168.103.0/24` |
+
+### Summary — what's reachable from where
+
+| Address type | Range | Reachable from |
+|---|---|---|
+| Pod IP | `192.168.100–102.x` | inside the same cluster only |
+| ClusterIP | `192.168.101/103.x` | inside the same cluster only |
+| LoadBalancer VIP | `192.168.211.75–.94` | host + pods in both clusters (Docker bridge) |
+| Node IP | `192.168.211.66–.67` | host + pods in both clusters (Docker bridge) |
+
+---
+
+
 
 ```bash
 # DNS resolves from the host

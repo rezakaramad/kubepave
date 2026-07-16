@@ -11,6 +11,7 @@ source "$DIR/libs/utils.sh"
 CILIUM_CHART="$REPO_ROOT/charts/cilium"
 CILIUM_NAMESPACE="kube-system"
 LB_POOL_CRD="ciliumloadbalancerippools.cilium.io"
+L2_POLICY_CRD="ciliuml2announcementpolicies.cilium.io"
 
 
 # -----------------------------------------------------------------------------
@@ -19,21 +20,19 @@ LB_POOL_CRD="ciliumloadbalancerippools.cilium.io"
 # Two passes are required because Cilium registers the CiliumLoadBalancerIPPool /
 # CiliumL2AnnouncementPolicy CRDs at runtime (they are not shipped as static CRDs):
 #   1. install the CNI so nodes become Ready and the operator registers the CRDs
-#   2. once the CRDs exist, apply the IP pool + L2 announcement policy
+#   2. once both CRDs exist, apply the IP pool + L2 announcement policy
 #
-# The pool range is computed at runtime from the kind Docker network CIDR — it
-# changes every time clusters are recreated, so it cannot be committed to Git and
-# is injected via --set. On real on-prem clusters the networking team provides a
-# static range that lives in a committed values file instead.
+# The pool range is static and committed in values-local-{management,workload}.yaml
+# (pinned to the pre-created kind Docker network 192.168.211.64/27).
+# On real on-prem clusters the networking team provides a static range in the
+# same values files. After bootstrap, ArgoCD adopts the Cilium release.
 # -----------------------------------------------------------------------------
 install_cilium() {
   local cluster=$1
-  local context pool start stop api_ip
+  local context api_ip values_file
 
   context="$(kind_context "$cluster")"
-  pool="$(get_lb_pool "$cluster")"
-  start="${pool%-*}"
-  stop="${pool#*-}"
+  values_file="$CILIUM_CHART/values-local-${cluster}.yaml"
 
   # kube-proxy is disabled (kubeProxyMode: none); Cilium needs a direct address
   # for the API server since it can't resolve the in-cluster kubernetes Service yet.
@@ -44,6 +43,8 @@ install_cilium() {
   helm upgrade --install cilium "$CILIUM_CHART" \
     --kube-context "$context" \
     --namespace "$CILIUM_NAMESPACE" \
+    --values "$CILIUM_CHART/values.yaml" \
+    --values "$values_file" \
     --set "cilium.k8sServiceHost=${api_ip}" \
     --set "cilium.k8sServicePort=6443" \
     --wait \
@@ -53,21 +54,22 @@ install_cilium() {
   kubectl --context "$context" wait --for=condition=Ready nodes --all --timeout=120s
 
   # Pass 2 — apply the LoadBalancer IP pool now that its CRDs are registered.
-  log "Waiting for Cilium LB-IPPool CRD in $cluster..."
-  for _ in $(seq 1 30); do
-    kubectl --context "$context" get crd "$LB_POOL_CRD" >/dev/null 2>&1 && break
-    sleep 2
+  log "Waiting for Cilium LB CRDs in $cluster..."
+  for crd in "$LB_POOL_CRD" "$L2_POLICY_CRD"; do
+    for _ in $(seq 1 30); do
+      kubectl --context "$context" get crd "$crd" >/dev/null 2>&1 && break
+      sleep 2
+    done
+    kubectl --context "$context" wait --for=condition=Established \
+      "crd/$crd" --timeout=60s
   done
-  kubectl --context "$context" wait --for=condition=Established \
-    "crd/$LB_POOL_CRD" --timeout=60s
 
-  log "Configuring Cilium LB pool in $cluster ($pool)..."
+  log "Configuring Cilium LB pool in $cluster..."
   helm upgrade cilium "$CILIUM_CHART" \
     --kube-context "$context" \
     --namespace "$CILIUM_NAMESPACE" \
     --reuse-values \
-    --set "lbPool.blocks[0].start=${start}" \
-    --set "lbPool.blocks[0].stop=${stop}"
+    --values "$values_file"
 
   ok "Cilium ready in $cluster"
 }

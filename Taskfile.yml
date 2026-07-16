@@ -52,7 +52,7 @@ tasks:
         start=$(date +%s)
 
         bash setup-clusters.sh start
-        bash setup-metallb.sh install
+        bash setup-cilium.sh install
         bash install-gateway-api.sh
         bash setup-dns.sh start
         bash install-charts.sh

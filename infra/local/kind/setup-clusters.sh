@@ -173,6 +173,17 @@ status() {
 start() {
   log "Starting kind clusters..."
 
+  # Pre-create the kind Docker network with a pinned subnet so the LB pool
+  # ranges are stable across cluster rebuilds. Docker allocates from
+  # 192.168.211.0/24 in /27 chunks; pinning here prevents a different /27
+  # from being assigned after 'kind:down'. kind reuses an existing network.
+  if ! docker network inspect kind >/dev/null 2>&1; then
+    docker network create kind \
+      --subnet 192.168.211.64/27 \
+      --gateway 192.168.211.65 >/dev/null
+    log "Created pinned kind Docker network (192.168.211.64/27)"
+  fi
+
   for name in "${CLUSTER_ORDER[@]}"; do
     create_cluster "$name"
     echo "--------------------------------"

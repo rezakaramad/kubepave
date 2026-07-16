@@ -2,8 +2,8 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 
 networking:
-  podSubnet: "10.244.0.0/16"
-  serviceSubnet: "10.101.0.0/16"
+  podSubnet: "192.168.100.0/24"
+  serviceSubnet: "192.168.101.0/24"
   # Disable the default kindnet CNI — Cilium is installed as the CNI + LB instead.
   disableDefaultCNI: true
   # Disable kube-proxy — Cilium runs in kube-proxy-replacement mode, which is

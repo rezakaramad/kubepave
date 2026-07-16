@@ -1,0 +1,13 @@
+# Local (kind) management cluster overrides.
+#
+# The kind Docker network is pre-created with a pinned subnet (192.168.211.64/27)
+# in setup-clusters.sh, giving stable, committable LB pool ranges:
+#
+#   192.168.211.64/27 hosts: .65 (gateway) .66 .67 (nodes) ... .94
+#   Management pool  : last 10 hosts → .85–.94
+#   Workload pool    : next 10 hosts → .75–.84
+
+lbPool:
+  blocks:
+    - start: 192.168.211.85
+      stop: 192.168.211.94
