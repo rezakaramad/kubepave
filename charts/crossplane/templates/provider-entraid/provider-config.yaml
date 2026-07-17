@@ -16,7 +16,7 @@ spec:
     source: OIDCTokenFile
 {{- else }}
 apiVersion: azuread.m.upbound.io/v1beta1
-kind: ProviderConfig
+kind: ClusterProviderConfig
 metadata:
   name: azuread
   namespace: crossplane-system
