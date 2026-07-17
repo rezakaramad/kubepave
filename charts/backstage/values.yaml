@@ -36,8 +36,6 @@ backstage:
             key: password
       - name: APP_BASE_URL
         value: <upsert-in-env-values-file>
-      - name: AUTH_MICROSOFT_TENANT_ID
-        value: <upsert-in-env-values-file>
       # Frontend runtime config overrides (see values-local.yaml for details).
       # app-backend injects APP_CONFIG_* env vars into the static frontend bundle
       # at runtime, overriding the localhost defaults baked in at build time.
@@ -48,8 +46,7 @@ backstage:
       - name: APP_CONFIG_auth_environment
         value: production
 
-    extraEnvVarsSecrets:
-      - backstage-secrets
+    extraEnvVarsSecrets: []
 
     # Backstage runs DB migrations on startup — give it time before probing
     readinessProbe:
@@ -101,9 +98,10 @@ secretStore:
   name:  <upsert-in-env-values-file>
   provider: {}
 
-# Azure AD identity for OIDC client secret via ExternalSecret.
+# Azure AD client-id/secret are consumed by oauth2-proxy (see templates/oauth2-proxy-secret.yaml),
+# not by Backstage directly. Disabled — no longer needed as a standalone ExternalSecret.
 azureIdentity:
-  enabled: true
+  enabled: false
 
 # oauth2-proxy — sits in front of Backstage and handles OIDC with Microsoft.
 # Set oidcIssuerUrl and redirectUrl per environment in the env values file.
