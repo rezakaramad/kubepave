@@ -1,0 +1,16 @@
+selfSignedRootCA:
+  enabled: true
+
+issuerName: local-self-signed
+
+configConnector:
+  enabled: false
+
+environmentPrefix: <upsert-in-env-values-file>
+
+gateway:
+  # This is the default GatewayClass created by Traefik chart.
+  gatewayClass: "traefik"
+
+  # Upsert in environment values file.
+  loadBalancerIPs: []

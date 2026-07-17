@@ -1,0 +1,14 @@
+apiVersion: v2
+name: tenant-management
+description: Deploys the management cluster resources required to provision a tenant and manage its lifecycle.
+version: 0.0.1
+
+# Crossplane
+#     - GitHub DEPLOY Repository/RespositoryFile + SUPPORT.md
+#     - Vault path at `tenants/<ENV>/<TenantName>
+#     - XtenantEntra --> Entra ID resources (Group + AppReg.) for Argo CD and Vault and Keycloak
+
+# Argo CD
+#     - ApplicationSet --> To deploy everything tenants put in `platform-deploy-*` Repositories
+#     - AppProject
+#     - Namespace

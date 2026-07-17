@@ -1,0 +1,62 @@
+{{- $tenant := .Values.tenant }}
+
+# Deny all the ingress  traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: {{ $tenant.name | lower }}
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}
+    platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+
+---
+
+# Allow the ingress traffic from the same namespace and from the gateway controllers
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-allow-ingress
+  namespace: {{ $tenant.name | lower }}
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}
+    platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # Ingress traffic from any pod in current namespace
+        - podSelector: {}
+        # Ingress traffic from any gateway controller pod in 'platform-resources' namespace
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: platform-resources
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+              app.kubernetes.io/component: gateway
+      ports:
+        # Rootless HTTP port
+        - port: 8080
+        - port: 80
+        - port: 443
+        # OAuth2Proxy
+        - port: 4180
+    # Ingress traffic from app-collector in 'observability' namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: app-collector
+      ports:
+        # OTLP gRPC / HTTP
+        - port: 4317
+        - port: 4318

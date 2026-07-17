@@ -1,0 +1,34 @@
+tenant: null
+# E.g.
+# tenant:
+#   name: payment
+#   tenantShortName: pay
+#   gcp:
+#     aadGroupName: ACL.PLT.GCP.Tenant.Payment
+#     pushAuthorizedGithubRepos:
+#       - talktorubberduckdev/payment
+
+selfSignedRootCA:
+  enabled: false
+
+issuerName: <upsert-in-env-values-file>
+
+configConnector:
+  enabled: false
+
+environmentPrefix: <upsert-in-env-values-file>
+
+# The GCP project ID where the GKE cluster runs.
+# Used to construct the Workload Identity pool name (<project>.svc.id.goog) in the
+managementGoogleProjectID: kara-mgmt
+
+# Must be pinned to prevent breaking changes caused by future Pod Security Standard updates, especially in production.
+podSecurity:
+  enforceVersion: v1.33
+
+gateway:
+  # This is the default GatewayClass created by Traefik chart.
+  gatewayClass: "traefik"
+
+  # Upsert in environment values file.
+  loadBalancerIPs: []

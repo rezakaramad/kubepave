@@ -1,0 +1,17 @@
+issuerName: gcp-lets-encrypt
+
+configConnector:
+  enabled: true
+
+environmentPrefix: <upsert-in-env-values-file>
+
+# The GCP project ID where the GKE cluster runs.
+# Used to construct the Workload Identity pool name (<project>.svc.id.goog) in the
+managementGoogleProjectID: kara-mgmt
+
+gateway:
+  # This is the default GatewayClass created by Traefik chart.
+  gatewayClass: "traefik"
+
+  # Upsert in environment values file.
+  loadBalancerIPs: []

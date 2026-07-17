@@ -1,0 +1,37 @@
+{{- if and (.Values.selfSignedRootCA.enabled) (.Capabilities.APIVersions.Has "external-secrets.io/v1") }}
+{{- $tenant := .Values.tenant }}
+
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: root-ca
+  namespace: {{ $tenant.name | lower }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-15"
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-local
+    kind: ClusterSecretStore
+  target:
+    name: root-ca
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      type: kubernetes.io/tls
+  data:
+    - secretKey: ca.crt
+      remoteRef:
+        key: shared/pki/root-ca
+        property: ca.crt
+    - secretKey: tls.crt
+      remoteRef:
+        key: shared/pki/root-ca
+        property: tls.crt
+    - secretKey: tls.key
+      remoteRef:
+        key: shared/pki/root-ca
+        property: tls.key
+
+---
+{{- end }}

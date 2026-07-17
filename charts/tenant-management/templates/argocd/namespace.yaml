@@ -1,0 +1,13 @@
+# For each tenant, create a dedicated namespace in the management cluster to host the tenant's ArgoCD Application resources.
+# This allows tenant Application resources to live in their own namespace and avoids naming conflicts.
+{{- $tenant := .Values.tenant }}
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tn-{{ $tenant.name }}
+  labels:
+    {{- include "tpr.labels" . | nindent 4 }}
+    platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
+
+---

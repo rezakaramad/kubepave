@@ -1,0 +1,38 @@
+# {{- $tenant := .Values.tenant }}
+
+#   # --[ Namespace Scoped Default Roles ]----------------------
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: tenant-default-role
+#   namespace: {{ $tenant.name | lower }}
+#   labels:
+#     {{- include "tnr.labels" . | nindent 4 }}
+#     platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
+# subjects:
+#   - apiGroup: rbac.authorization.k8s.io
+#     kind: Group
+#     name: "{{ $tenant.gcp.aadGroupName }}@groups.talktorubberduck.dev"
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: tenant-default-aggregated-role
+
+# ---
+
+# # --[ Cluster Scoped Namespace Viewer ]---------------------
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: namespace-viewer-{{ $tenant.name | lower }}
+#   labels:
+#     {{- include "tnr.labels" . | nindent 4 }}
+#     platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
+# subjects:
+#   - apiGroup: rbac.authorization.k8s.io
+#     kind: Group
+#     name: "{{ $tenant.gcp.aadGroupName }}@groups.talktorubberduck.dev"
+# roleRef:
+#   kind: ClusterRole
+#   name: namespace-viewer
+#   apiGroup: rbac.authorization.k8s.io

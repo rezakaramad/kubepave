@@ -1,0 +1,141 @@
+# For each tenant and cluster, create an ArgoCD AppProject that allows the tenant to deploy applications to the cluster.
+
+{{- $tenant := .Values.tenant }}
+{{- range $cluster := $.Values.argocd.clusters -}}
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: "{{ $tenant.name }}-{{ $cluster.environmentPrefix }}"
+  namespace: argocd
+  labels:
+    {{- include "tpr.labels" . | nindent 4 }}
+    platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
+    platform.rezakara.demo/cluster: "{{ $cluster.clusterName | lower }}"
+spec:
+  sourceNamespaces:
+    - "tn-{{ $tenant.name }}"
+  clusterResourceWhitelist:
+    - group: ""
+      kind: ""
+  description: ArgoCD AppProject for {{ $tenant.name }} ({{ $cluster.environmentPrefix }})
+  destinations:
+  - namespace: {{ $tenant.name }}
+    name: {{ $cluster.clusterName }}
+  namespaceResourceWhitelist:
+    # Kubernetes native resources
+    - group: ""
+      kind: "Endpoints"
+    - group: ""
+      kind: "Pod"
+    - group: ""
+      kind: "ConfigMap"
+    - group: ""
+      kind: "Service"
+    - group: "gateway.networking.k8s.io"
+      kind: "HTTPRoute"
+    - group: ""
+      kind: "Secret"
+    - group: ""
+      kind: "ServiceAccount"
+
+    - group: "discovery.k8s.io"
+      kind: "EndpointSlice"
+
+    - group: "policy"
+      kind: "PodDisruptionBudget"
+
+    - group: "apps"
+      kind: "Deployment"
+    - group: "apps"
+      kind: "ReplicaSet"
+
+    - group: "networking.k8s.io"
+      kind: "Ingress"
+    - group: "networking.k8s.io"
+      kind: "NetworkPolicy"
+
+    - group: "rbac.authorization.k8s.io"
+      kind: "Role"
+    - group: "rbac.authorization.k8s.io"
+      kind: "RoleBinding"
+
+    - group: "batch"
+      kind: "Job"
+    - group: "batch"
+      kind: "CronJob"
+
+      # Cert Manager
+    - group: "cert-manager.io"
+      kind: "Certificate"
+    - group: "cert-manager.io"
+      kind: "CertificateRequest"
+    - group: "acme.cert-manager.io"
+      kind: "Order"
+
+  {{- if .Values.configConnector.enabled }}
+      # Google Config Connector
+    - group: "storage.cnrm.cloud.google.com"
+      kind: "StorageBucket"
+    - group: "sql.cnrm.cloud.google.com"
+      kind: "SQLUser"
+    - group: "sql.cnrm.cloud.google.com"
+      kind: "SQLDatabase"
+    - group: "sql.cnrm.cloud.google.com"
+      kind: "SQLInstance"
+    - group: "iam.cnrm.cloud.google.com"
+      kind: "IAMServiceAccount"
+    - group: "iam.cnrm.cloud.google.com"
+      kind: "IAMServiceAccountKey"
+    - group: "iam.cnrm.cloud.google.com"
+      kind: "IAMPartialPolicy"
+    - group: "iam.cnrm.cloud.google.com"
+      kind: "IAMPolicyMember"
+    - group: "pubsub.cnrm.cloud.google.com"
+      kind: "PubSubTopic"
+    - group: "pubsub.cnrm.cloud.google.com"
+      kind: "PubSubSubscription"
+    - group: "pubsub.cnrm.cloud.google.com"
+      kind: "PubSubSchema"
+  {{- end }}
+
+      # Platform Crossplane Resources
+    - group: "platform.rezakara.demo"
+      kind: "XDeployment"
+    - group: "platform.rezakara.demo"
+      kind: "XAppRegistration"
+    - group: "platform.rezakara.demo"
+      kind: "XValkey"
+
+      # Crossplane AzureAD
+    - group: applications.azuread.m.upbound.io
+      kind: Application
+    - group: applications.azuread.m.upbound.io
+      kind: AppRole
+    - group: applications.azuread.m.upbound.io
+      kind: FederatedIdentityCredential
+    - group: app.azuread.m.upbound.io
+      kind: RoleAssignment
+    - group: serviceprincipals.azuread.m.upbound.io
+      kind: Principal
+
+      # External Secret
+    - group: external-secrets.io
+      kind: ExternalSecret
+
+  sourceRepos:
+    - "https://github.com/talktorubberduckdev/platform-deploy-{{ $tenant.name }}"
+  roles:
+  - name: default
+    description: Default roles for {{ $tenant.name }}
+    policies:
+    {{- range $policy := $cluster.tenantAppProject.policies }}
+    {{- range $action := $policy.actions }}
+      - p, proj:{{ $tenant.name }}-{{ $cluster.environmentPrefix }}:default, {{ $policy.resource }}, {{ $action }}, {{ $tenant.name }}-{{ $cluster.environmentPrefix }}/*, allow
+    {{- end }}
+    {{- end }}
+    groups:
+      - {{ $tenant.name }}
+
+---
+{{- end }}

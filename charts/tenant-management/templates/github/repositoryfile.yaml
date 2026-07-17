@@ -1,0 +1,66 @@
+{{- $tenant := .Values.tenant }}
+{{- $repoName := include "tpr.crossplane.repoName" $tenant.name }}
+{{- $githubOrg := include "tpr.crossplane.githubOrg" $ }}
+
+apiVersion: repo.github.m.upbound.io/v1alpha1
+kind: RepositoryFile
+metadata:
+  name: "{{ $tenant.name }}-support"
+  labels:
+    {{- include "tpr.labels" . | nindent 4 }}
+    platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
+    platform.rezakara.demo/github-org: "{{ $githubOrg }}"
+
+spec:
+  providerConfigRef:
+    kind: ClusterProviderConfig
+    name: "github-{{ $githubOrg }}"
+
+  managementPolicies: ["Create", "Observe", "Update"]
+
+  forProvider:
+    repositoryRef:
+      name: {{ $repoName | quote }}
+    file: SUPPORT.md
+    overwriteOnCreate: true
+    branch: main
+    commitMessage: "chore: post tenant details in SUPPORT.md via Crossplane"
+
+    content: |
+      # Tenant Guide
+
+      ⚠️ **This file is automatically managed by Crossplane. Do not edit manually.**
+
+      ---
+
+      ## 🏷 Tenant
+
+      `{{ $tenant.name }}`
+
+      ---
+
+      ## 🌐 DNS
+
+      | Environment | Hostname |
+      |-------------|-----------|
+      | DEV  | `*.{{ $tenant.tenantShortName }}.dev.rezakara.demo` |
+      | TEST | `*.{{ $tenant.tenantShortName }}.test.rezakara.demo` |
+      | PROD | `*.{{ $tenant.tenantShortName }}.prod.rezakara.demo` |
+      | WL  | `*.{{ $tenant.tenantShortName }}.wl.rezakara.demo` |
+
+      ---
+
+      ## 🚦 HTTPRoute / Gateway
+
+      ```yaml
+      parentRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: "{{ $tenant.name }}"
+          namespace: platform-system
+          sectionName: https
+      ```
+
+      ---
+
+---

@@ -1,0 +1,26 @@
+# Tenant namespaces are annotated differently when it's in Google Cloud
+# and Config Connector is enabled. The project ID is used to annotate 
+# the namespace so that Config Connector can manage resources in the correct GCP project.
+
+{{- $tenant := .Values.tenant }}
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $tenant.name | lower }}
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}
+    platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/enforce-version: {{ .Values.podSecurity.enforceVersion }}
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn-version: latest
+  {{- if .Values.configConnector.enabled }}
+  {{- $projectId := include "tnr.projectId" (dict "name" $tenant.tenantShortName "prefix" .Values.environmentPrefix) }}
+  annotations:
+    cnrm.cloud.google.com/project-id: {{ $projectId }}
+  {{- end }}
+
+---

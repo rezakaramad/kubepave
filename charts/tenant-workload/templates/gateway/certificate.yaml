@@ -1,0 +1,33 @@
+# Generate a wildcard TLS certificate for :: {{ $hostname }}
+
+{{- $tenant := .Values.tenant }}
+{{- $hostname := include "tnr.gateway.hostname" (dict "name" $tenant.tenantShortName "environmentPrefix" .Values.environmentPrefix) }}
+{{- $wildcardHostname := printf "*.%s" $hostname }}
+{{- $certificateName := printf "%s-cert-traefik" (include "tnr.gateway.certificateName" $hostname) }}
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $certificateName | quote }}
+  namespace: platform-system
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}
+    platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
+spec:
+  secretName: {{ $certificateName | quote }}
+  issuerRef:
+    group: cert-manager.io
+    name: {{ .Values.issuerName | quote }}
+    kind: "ClusterIssuer"
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  dnsNames:
+    - {{ $hostname | quote }}
+    - {{ $wildcardHostname | quote }}
+  usages:
+    - digital signature
+    - key encipherment
+
+---

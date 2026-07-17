@@ -1,0 +1,67 @@
+# This ApplicationSet watches the tenant's `platform-deploy-*` repository and deploys all applications
+# in the `apps/*` directories to the tenant's workload clusters. The workload clusters are selected
+# based on the `argocd.jysk.tech/cluster-type=tenant` label and the `argocd.jysk.tech/environment` label,
+# which must match one of the environments defined in the tenant's configuration.
+
+{{- $tenant := .Values.tenant }}
+{{- $repoURL := printf "https://github.com/talktorubberduckdev/platform-deploy-%s" $tenant.name }}
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ $tenant.name | quote }}
+  namespace: "tn-{{ $tenant.name }}"
+  labels:
+    {{- include "tpr.labels" . | nindent 4 }}
+    platform.jysk.tech/tenant: "{{ $tenant.name | lower }}"
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: {{ $repoURL | quote }}
+              revision: HEAD
+              directories:
+                - path: applications/*
+          - clusters:
+              selector:
+                matchExpressions:
+                  - key: argocd.rezakara.demo/cluster-type
+                    operator: In
+                    values: ["tenant"]
+                  - key: argocd.rezakara.demo/environment
+                    operator: In
+                    values: ["dev","test","prod", "wl"]
+  template:
+    metadata:
+      name: '{{ `{{ .path.basename }}` }}-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}'
+      namespace: "tn-{{ $tenant.name }}"
+      labels:
+        {{- include "tpr.labels" . | nindent 8 }}
+        platform.jysk.tech/tenant: {{ $tenant.name | lower | quote }}
+    spec:
+      project: '{{ $tenant.name }}-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}'
+      source:
+        repoURL: {{ $repoURL | quote }}
+        targetRevision: HEAD
+        path: '{{ `{{ .path.path }}/{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}'
+      destination:
+        name: '{{ `{{ .name }}` }}'
+        namespace: {{ $tenant.name | quote }}
+      syncPolicy:
+        automated:
+          enabled: true
+          prune: false
+          selfHeal: false
+        syncOptions:
+        - ServerSideApply=true
+        - ApplyOutOfSyncOnly=true
+        - RespectIgnoreDifferences=true
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/syncPolicy
+
+---

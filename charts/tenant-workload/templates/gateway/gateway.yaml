@@ -1,0 +1,37 @@
+# Generate a Gateway resource for :: {{ $tenant.name }}
+
+{{- $tenant := .Values.tenant }}
+{{- $hostname := include "tnr.gateway.hostname" (dict "name" $tenant.tenantShortName "environmentPrefix" .Values.environmentPrefix) }}
+{{- $wildcardHostname := printf "*.%s" $hostname }}
+{{- $certificateName := printf "%s-cert-traefik" (include "tnr.gateway.certificateName" $hostname) }}
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $tenant.name | lower }}
+  namespace: platform-system
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}
+    platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
+spec:
+  gatewayClassName: {{ .Values.gateway.gatewayClass }}
+  listeners:
+  - name: https
+    protocol: HTTPS
+    port: 8443
+    hostname: {{ $wildcardHostname | quote }}
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - group: ''
+        kind: Secret
+        name: {{ $certificateName | quote }}
+        namespace: platform-system
+    allowedRoutes:
+      namespaces:
+        from: Selector
+        selector:
+          matchLabels:
+            platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
+
+---

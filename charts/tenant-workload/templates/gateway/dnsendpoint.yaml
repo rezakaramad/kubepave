@@ -1,0 +1,26 @@
+# Generate a wildcard DNS endpoint for :: {{ $tenant.name }}
+# This is used by ExternalDNS to create a wildcard DNS record for the tenant's gateway hostname.
+# Without this, the tenant's applications would not be accessible via the wildcard hostname.
+
+{{- $tenant := .Values.tenant }}
+{{- $hostname := include "tnr.gateway.hostname" (dict "name" $tenant.tenantShortName "environmentPrefix" .Values.environmentPrefix) }}
+{{- $wildcardHostname := printf "*.%s" $hostname }}
+
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: {{ $tenant.name | lower }}-wildcard-dns
+  namespace: platform-system
+  labels:
+    {{- include "tnr.labels" . | nindent 4 }}
+    external-dns-create: "true"
+    platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
+spec:
+  endpoints:
+  - dnsName: {{ $wildcardHostname | quote }}
+    recordTTL: 300
+    recordType: A
+    targets:
+    {{- .Values.gateway.loadBalancerIPs | toYaml | nindent 4 }}
+
+---

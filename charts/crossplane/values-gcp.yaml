@@ -1,5 +1,5 @@
 secretStore:
-  name: gcloud-secret-manager
+  name: gcp-secret-manager
   provider:
     gcpsm:
       projectID: kara-mgmt

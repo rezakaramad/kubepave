@@ -1,0 +1,14 @@
+configConnector:
+  enabled: false
+
+vault:
+  enabled: false
+
+grafana:
+  enabled: false
+
+harbor:
+  enabled: false
+
+gcp-artifact-registry:
+  enabled: false
