@@ -20,3 +20,11 @@ spec:
     syncOptions:
       - ServerSideApply=true
       - ApplyOutOfSyncOnly=true
+  ignoreDifferences:
+    # Cilium generates its own CA keypair at runtime (Hubble mTLS / WireGuard).
+    # Argo CD must not try to overwrite or flag it as OutOfSync.
+    - kind: Secret
+      name: cilium-ca
+      namespace: kube-system
+      jsonPointers:
+        - /data
