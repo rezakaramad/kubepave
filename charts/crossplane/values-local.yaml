@@ -24,3 +24,8 @@ secretStore:
               namespace: crossplane-system
             audiences:
               - https://kubernetes.default.svc.cluster.local
+
+compositeResources:
+  xTenantEntra:
+    enabled: true
+    packageTag: v0.1.0

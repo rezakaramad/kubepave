@@ -1,0 +1,30 @@
+{{- if .Values.compositeResources.xTenantEntra.enabled }}
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xtenantentra
+spec:
+  compositeTypeRef:
+    apiVersion: platform.jysk.tech/v1beta1
+    kind: XTenantEntra
+  mode: Pipeline
+  pipeline:
+    - step: run-the-template
+      functionRef:
+        name: xtenantentra
+      input:
+        apiVersion: defaults.fn.crossplane.io/v1beta1
+        kind: XTenantEntraDefaults
+
+        argocdApp:
+          appRegObjectID:  # The ObjectID of the App Registration
+          enterpriseAppObjectID: # The ObjectID of the Enterprise App
+
+        # The provider config all resources should reference.
+        providerConfigRef:
+          name: azuread
+          kind: ClusterProviderConfig
+
+---
+{{- end }}

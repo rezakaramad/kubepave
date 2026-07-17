@@ -28,3 +28,8 @@ spec:
       namespace: kube-system
       jsonPointers:
         - /data
+    - kind: Secret
+      name: hubble-server-certs
+      namespace: kube-system
+      jsonPointers:
+        - /data

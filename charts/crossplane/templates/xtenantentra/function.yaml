@@ -1,0 +1,13 @@
+{{- if .Values.compositeResources.xTenantEntra.enabled }}
+
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: xtenantentra
+spec:
+  {{- with .Values.compositeResources.xTenantEntra }}
+  package: {{ .package }}:{{ .packageTag }}
+  {{- end }}
+
+---
+{{- end }}

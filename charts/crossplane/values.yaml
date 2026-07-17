@@ -22,6 +22,12 @@ entraIdProvider:
     tenantID: <upsert-in-env-values-file>
     clientID: <upsert-in-env-values-file>
 
+compositeResources:
+  xTenantEntra:
+    enabled: false
+    package: ghcr.io/rezakaramad/function-xtenantentra
+    packageTag: <upsert-in-env-values-file>
+
 selfSignedRootCA:
   # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Let's Encrypt, etc.).
   enabled: false
