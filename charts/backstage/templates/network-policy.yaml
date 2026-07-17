@@ -1,0 +1,26 @@
+{{- if .Values.oauth2Proxy.enabled }}
+
+# Restrict inbound traffic to the Backstage pod to only come from oauth2-proxy.
+# This enforces the "only reachable through the proxy" requirement — direct
+# access to Backstage on port 7007 from anything other than oauth2-proxy is dropped.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backstage-ingress
+  namespace: backstage
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: backstage
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: oauth2-proxy
+      ports:
+        - protocol: TCP
+          port: 7007
+
+{{- end }}

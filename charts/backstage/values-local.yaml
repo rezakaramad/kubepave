@@ -70,3 +70,7 @@ backstage:
 
 httpRoute:
   hostname: backstage.mgmt.rezakara.demo
+
+oauth2Proxy:
+  oidcIssuerUrl: https://login.microsoftonline.com/c6ba6fd6-0fdd-4458-ad98-0c292dd79188/v2.0
+  redirectUrl: https://backstage.mgmt.rezakara.demo/oauth2/callback

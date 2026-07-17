@@ -1,0 +1,103 @@
+{{- if .Values.oauth2Proxy.enabled }}
+
+# oauth2-proxy sits in front of Backstage and handles the full OIDC flow with
+# Microsoft. Traefik routes all traffic here first; only authenticated requests
+# are forwarded upstream to Backstage on port 7007.
+#
+# Backstage reads the user identity from headers that oauth2-proxy injects:
+#   X-Forwarded-Email   → used by emailMatchingUserEntityProfileEmail resolver
+#   X-Auth-Request-User → forwarded username
+#
+# Sign-out: redirect users to /oauth2/sign_out which clears the proxy session
+# and can chain to Microsoft's end_session_endpoint for full SSO logout.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-proxy
+  namespace: backstage
+  labels:
+    app.kubernetes.io/name: oauth2-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oauth2-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: oauth2-proxy
+    spec:
+      containers:
+        - name: oauth2-proxy
+          image: "{{ .Values.oauth2Proxy.image.registry }}/{{ .Values.oauth2Proxy.image.repository }}:{{ .Values.oauth2Proxy.image.tag }}"
+          args:
+            - --provider=oidc
+            - --oidc-issuer-url={{ .Values.oauth2Proxy.oidcIssuerUrl }}
+            - --upstream=http://backstage:7007
+            - --http-address=0.0.0.0:4180
+            - --redirect-url={{ .Values.oauth2Proxy.redirectUrl }}
+            - --email-domain={{ .Values.oauth2Proxy.emailDomain }}
+            - --skip-provider-button=false
+            - --pass-access-token=false
+            # Inject X-Auth-Request-Email and X-Auth-Request-User headers so
+            # Backstage's oauth2Proxy auth provider can resolve the user identity.
+            - --set-xauthrequest=true
+            - --cookie-secure=true
+            - --scope=openid email profile
+            - --code-challenge-method=S256
+          env:
+            - name: OAUTH2_PROXY_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: oauth2-proxy-secrets
+                  key: CLIENT_ID
+            - name: OAUTH2_PROXY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: oauth2-proxy-secrets
+                  key: CLIENT_SECRET
+            - name: OAUTH2_PROXY_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: oauth2-proxy-secrets
+                  key: COOKIE_SECRET
+          ports:
+            - name: http
+              containerPort: 4180
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 4180
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 4180
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth2-proxy
+  namespace: backstage
+spec:
+  selector:
+    app.kubernetes.io/name: oauth2-proxy
+  ports:
+    - name: http
+      port: 4180
+      targetPort: 4180
+      protocol: TCP
+
+{{- end }}

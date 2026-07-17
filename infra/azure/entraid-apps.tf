@@ -296,7 +296,9 @@ resource "azuread_application" "backstage" {
 
   web {
     redirect_uris = [
-      "https://backstage.mgmt.rezakara.demo/api/auth/microsoft/handler/frame",
+      # oauth2-proxy callback — the proxy handles the full OIDC flow,
+      # Backstage no longer talks to Microsoft directly.
+      "https://backstage.mgmt.rezakara.demo/oauth2/callback",
     ]
   }
 

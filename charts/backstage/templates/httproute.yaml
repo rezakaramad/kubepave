@@ -17,8 +17,13 @@ spec:
     - backendRefs:
         - group: ""
           kind: Service
+          {{- if .Values.oauth2Proxy.enabled }}
+          name: oauth2-proxy
+          port: 4180
+          {{- else }}
           name: backstage
           port: 7007
+          {{- end }}
           weight: 1
       matches:
         - path:

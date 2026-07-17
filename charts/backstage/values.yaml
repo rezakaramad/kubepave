@@ -104,3 +104,18 @@ secretStore:
 # Azure AD identity for OIDC client secret via ExternalSecret.
 azureIdentity:
   enabled: true
+
+# oauth2-proxy — sits in front of Backstage and handles OIDC with Microsoft.
+# Set oidcIssuerUrl and redirectUrl per environment in the env values file.
+oauth2Proxy:
+  enabled: true
+  image:
+    registry: quay.io
+    repository: oauth2-proxy/oauth2-proxy
+    tag: v7.7.1
+  # OIDC issuer URL — for Microsoft: https://login.microsoftonline.com/<tenant-id>/v2.0
+  oidcIssuerUrl: ""
+  # Full callback URL: https://<backstage-hostname>/oauth2/callback
+  redirectUrl: ""
+  # '*' allows any authenticated email. Restrict to a domain if needed.
+  emailDomain: "*"
