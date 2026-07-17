@@ -356,7 +356,16 @@ create_backstage_secrets() {
     "tenant_id"     "$tenant_id" \
     "client_secret" "$client_secret"
 
-  ok "Backstage Entra ID client secret written"
+  # Generate a random 32-byte AES-256 key for oauth2-proxy's session cookie
+  # encryption. Written once; re-running regenerates it (invalidating all
+  # existing sessions — acceptable for a dev cluster reset).
+  local cookie_secret
+  cookie_secret=$(python3 -c 'import secrets,base64; print(base64.b64encode(secrets.token_bytes(32)).decode())')
+
+  vault_kv_put "local/backstage/oauth2-proxy" \
+    "cookie_secret" "$cookie_secret"
+
+  ok "Backstage secrets written (Entra ID app + oauth2-proxy cookie secret)"
 }
 
 
