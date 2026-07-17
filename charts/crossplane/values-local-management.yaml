@@ -9,6 +9,8 @@ keycloakProvider:
 entraIdProvider:
   enabled: true
   providerPackage: xpkg.upbound.io/upbound/provider-azuread:v2.2.1
+  auth:
+    method: secret
   activatedResources:
     - applications.applications.azuread.m.upbound.io
     - principals.serviceprincipals.azuread.m.upbound.io

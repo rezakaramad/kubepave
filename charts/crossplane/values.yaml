@@ -17,7 +17,7 @@ entraIdProvider:
   # "secret" = Vault-backed ExternalSecret (local/non-GCP clusters)
   # "oidc"   = GKE Workload Identity token file (GCP clusters)
   auth:
-    method: secret
+    method: <upsert-in-env-values-file> # secret | oidc
     # You need to set the below values when method=oidc (GCP Workload Identity)
     tenantID: <upsert-in-env-values-file>
     clientID: <upsert-in-env-values-file>
