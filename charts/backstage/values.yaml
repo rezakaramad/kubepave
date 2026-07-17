@@ -46,7 +46,8 @@ backstage:
       - name: APP_CONFIG_auth_environment
         value: production
 
-    extraEnvVarsSecrets: []
+    extraEnvVarsSecrets:
+      - msgraph-secrets
 
     # Backstage runs DB migrations on startup — give it time before probing
     readinessProbe:

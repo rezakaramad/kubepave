@@ -399,6 +399,87 @@ output "backstage_client_secret_value" {
 }
 
 # ---------------------------------------------------------------
+# Backstage Catalog Sync
+# Reads users and groups from Entra ID into the Backstage catalog
+# via the MSGraph API. Separate from the SSO app — read-only,
+# application permissions only (no delegated / user interaction).
+# ---------------------------------------------------------------
+resource "azuread_application" "backstage_catalog_sync" {
+  display_name     = "Backstage Catalog Sync"
+  sign_in_audience = "AzureADMyOrg"
+  owners           = [data.azuread_client_config.current.object_id]
+
+  required_resource_access {
+    resource_app_id = "00000003-0000-0000-c000-000000000000" # Microsoft Graph
+
+    # User.Read.All — read all users' profiles
+    resource_access {
+      id   = "df021288-bdef-4463-88db-98f22de89214"
+      type = "Role"
+    }
+
+    # Group.Read.All — read all groups and memberships
+    resource_access {
+      id   = "5b567255-7703-4780-807c-7be8301ae99b"
+      type = "Role"
+    }
+
+    # GroupMember.Read.All — read group memberships
+    resource_access {
+      id   = "98830695-27a2-44f7-8c18-0c3ebc9698f6"
+      type = "Role"
+    }
+  }
+}
+
+resource "azuread_service_principal" "backstage_catalog_sync" {
+  client_id = azuread_application.backstage_catalog_sync.client_id
+  owners    = [data.azuread_client_config.current.object_id]
+}
+
+resource "azuread_application_password" "backstage_catalog_sync" {
+  application_id = azuread_application.backstage_catalog_sync.id
+  display_name   = "Backstage Catalog Sync"
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+# Grant admin consent for the application permissions
+resource "azuread_app_role_assignment" "backstage_catalog_sync_users" {
+  principal_object_id = azuread_service_principal.backstage_catalog_sync.object_id
+  resource_object_id  = data.azuread_service_principal.msgraph.object_id
+  app_role_id         = "df021288-bdef-4463-88db-98f22de89214" # User.Read.All
+}
+
+resource "azuread_app_role_assignment" "backstage_catalog_sync_groups" {
+  principal_object_id = azuread_service_principal.backstage_catalog_sync.object_id
+  resource_object_id  = data.azuread_service_principal.msgraph.object_id
+  app_role_id         = "5b567255-7703-4780-807c-7be8301ae99b" # Group.Read.All
+}
+
+resource "azuread_app_role_assignment" "backstage_catalog_sync_group_members" {
+  principal_object_id = azuread_service_principal.backstage_catalog_sync.object_id
+  resource_object_id  = data.azuread_service_principal.msgraph.object_id
+  app_role_id         = "98830695-27a2-44f7-8c18-0c3ebc9698f6" # GroupMember.Read.All
+}
+
+# Backstage Catalog Sync outputs
+output "backstage_catalog_sync_client_id" {
+  value = azuread_application.backstage_catalog_sync.client_id
+}
+
+output "backstage_catalog_sync_client_secret_id" {
+  value = azuread_application_password.backstage_catalog_sync.key_id
+}
+
+output "backstage_catalog_sync_client_secret_value" {
+  value     = azuread_application_password.backstage_catalog_sync.value
+  sensitive = true
+}
+
+# ---------------------------------------------------------------
 # General outputs
 # ---------------------------------------------------------------
 output "tenant_id" {

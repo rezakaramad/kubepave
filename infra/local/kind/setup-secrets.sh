@@ -346,7 +346,7 @@ create_powerdns_secrets() {
 create_backstage_secrets() {
   log "Writing Backstage secrets to Vault..."
 
-  local client_id client_secret
+  local client_id client_secret tenant_id
   client_id=$(pass show private/azure/entraid/apps/backstage/client-id | head -n1)
   tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
   client_secret=$(pass show private/azure/entraid/apps/backstage/client-secrets/backstage/value | head -n1)
@@ -364,7 +364,17 @@ create_backstage_secrets() {
   vault_kv_put "local/backstage/oauth2-proxy" \
     "cookie_secret" "$cookie_secret"
 
-  ok "Backstage secrets written (Entra ID app + oauth2-proxy cookie secret)"
+  # Backstage Catalog Sync — reads users/groups from Entra ID into the catalog
+  local sync_client_id sync_client_secret
+  sync_client_id=$(pass show private/azure/entraid/apps/backstage-catalog-sync/client-id | head -n1)
+  sync_client_secret=$(pass show private/azure/entraid/apps/backstage-catalog-sync/client-secrets/backstage-catalog-sync/value | head -n1)
+
+  vault_kv_put "local/backstage/msgraph/app" \
+    "client_id"     "$sync_client_id" \
+    "tenant_id"     "$tenant_id" \
+    "client_secret" "$sync_client_secret"
+
+  ok "Backstage secrets written (SSO app + oauth2-proxy cookie secret + catalog sync app)"
 }
 
 

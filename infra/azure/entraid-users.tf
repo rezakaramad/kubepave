@@ -31,6 +31,13 @@ resource "azuread_invitation" "reza_personal" {
   message {
     additional_recipients = []
   }
+
+  lifecycle {
+    # The Terraform identity IS this guest user — attempting to delete/recreate
+    # the invitation fails with "cannot delete itself". Ignore all changes after
+    # the initial creation.
+    ignore_changes = all
+  }
 }
 
 resource "azuread_app_role_assignment" "argocd_personal_admin" {
