@@ -4,7 +4,7 @@
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
-  name: github-fluxdojo
+  name: github-talktorubberduckdev
   namespace: crossplane-system
 spec:
   package: {{ .Values.githubProvider.providerPackage }}

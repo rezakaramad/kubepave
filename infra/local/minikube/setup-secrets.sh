@@ -14,7 +14,7 @@ source "$DIR/libs/utils.sh"
 # Two separate GitHub Apps are used in the current setup:
 # - One for 'rezakaramad' GitHub account to connect Argo CD to GitHub and deploy from repos in that account
 #   - This is due to the fact that the platform repository 'kubepave' is in the 'rezakaramad' account and we want to deploy from it.
-# - Another for 'fluxdojo' GitHub organization and deploy from repos in that org.
+# - Another for 'talktorubberduckdev' GitHub organization and deploy from repos in that org.
 #   - This is where Argo CD ApplicationSets are defined to deploy tenant clusters, and we want to deploy from that repo as well.
 # ----------------------------------------------------------------------------
 create_github_app_secret_argocd() {
@@ -34,19 +34,19 @@ create_github_app_secret_argocd() {
 
   echo "✅ Argo CD GitHub App secret for 'https://github.com/rezakaramad' written to Vault"
 
-  # Access to https://github.com/fluxdojo
-  echo "🔐 Copying 'fluxdojo-argocd' GitHub App credentials from 'pass' local password store..."
-  APP_ID=$(pass show private/github/apps/fluxdojo-argocd/app-id | head -n1)
-  INSTALLATION_ID=$(pass show private/github/apps/fluxdojo-argocd/installation-id | head -n1)
-  PRIVATE_KEY=$(pass show private/github/apps/fluxdojo-argocd/private-key)
+  # Access to https://github.com/talktorubberduckdevdev
+  echo "🔐 Copying 'talktorubberduckdev-argocd' GitHub App credentials from 'pass' local password store..."
+  APP_ID=$(pass show private/github/apps/talktorubberduckdev-argocd/app-id | head -n1)
+  INSTALLATION_ID=$(pass show private/github/apps/talktorubberduckdev-argocd/installation-id | head -n1)
+  PRIVATE_KEY=$(pass show private/github/apps/talktorubberduckdev-argocd/private-key)
 
-  echo "🔐 Storing 'fluxdojo-argocd' GitHub App credentials in Vault..."
-  vault kv put local/management/github/apps/argocd/fluxdojo \
+  echo "🔐 Storing 'talktorubberduckdev-argocd' GitHub App credentials in Vault..."
+  vault kv put local/management/github/apps/argocd/talktorubberduckdev \
     app-id="$APP_ID" \
     installation-id="$INSTALLATION_ID" \
     private-key="$PRIVATE_KEY"
 
-  echo "✅ Argo CD GitHub App secret for 'https://github.com/fluxdojo' written to Vault"
+  echo "✅ Argo CD GitHub App secret for 'https://github.com/talktorubberduckdevdev' written to Vault"
 
   echo "🎉 All Argo CD GitHub App secrets successfully stored in Vault so Argo CD can access GitHub repositories securely."
 }
@@ -232,19 +232,19 @@ create_github_app_secret_crossplane() {
 
   echo "✅ Crossplane GitHub App secret for 'https://github.com/rezakaramad' written to Vault"
 
-  # Access to https://github.com/fluxdojo
-  echo "🔐 Copying 'fluxdojo-crossplane' GitHub App credentials from 'pass' local password store..."
-  APP_ID=$(pass show private/github/apps/fluxdojo-crossplane/app-id | head -n1)
-  INSTALLATION_ID=$(pass show private/github/apps/fluxdojo-crossplane/installation-id | head -n1)
-  PRIVATE_KEY=$(pass show private/github/apps/fluxdojo-crossplane/private-key)
+  # Access to https://github.com/talktorubberduckdevdev
+  echo "🔐 Copying 'talktorubberduckdev-crossplane' GitHub App credentials from 'pass' local password store..."
+  APP_ID=$(pass show private/github/apps/talktorubberduckdev-crossplane/app-id | head -n1)
+  INSTALLATION_ID=$(pass show private/github/apps/talktorubberduckdev-crossplane/installation-id | head -n1)
+  PRIVATE_KEY=$(pass show private/github/apps/talktorubberduckdev-crossplane/private-key)
 
-  echo "🔐 Storing 'fluxdojo-crossplane' GitHub App credentials in Vault..."
-  vault kv put local/management/github/apps/crossplane/fluxdojo \
+  echo "🔐 Storing 'talktorubberduckdev-crossplane' GitHub App credentials in Vault..."
+  vault kv put local/management/github/apps/crossplane/talktorubberduckdev \
     app-id="$APP_ID" \
     installation-id="$INSTALLATION_ID" \
     private-key="$PRIVATE_KEY"
 
-  echo "✅ Crossplane GitHub App secret for 'https://github.com/fluxdojo' written to Vault"
+  echo "✅ Crossplane GitHub App secret for 'https://github.com/talktorubberduckdevdev' written to Vault"
 
   echo "🎉 All Crossplane GitHub App secrets successfully stored in Vault so Argo CD can access GitHub repositories securely."
 }

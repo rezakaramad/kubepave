@@ -113,17 +113,17 @@ create_github_app_secret_argocd() {
 
   ok "ArgoCD GitHub App secret for rezakaramad written"
 
-  log "Reading 'fluxdojo-argocd' GitHub App credentials from pass..."
-  app_id=$(pass show private/github/apps/fluxdojo-argocd/app-id | head -n1)
-  installation_id=$(pass show private/github/apps/fluxdojo-argocd/installation-id | head -n1)
-  private_key=$(pass show private/github/apps/fluxdojo-argocd/private-key)
+  log "Reading 'talktorubberduckdev-argocd' GitHub App credentials from pass..."
+  app_id=$(pass show private/github/apps/talktorubberduckdev-argocd/app-id | head -n1)
+  installation_id=$(pass show private/github/apps/talktorubberduckdev-argocd/installation-id | head -n1)
+  private_key=$(pass show private/github/apps/talktorubberduckdev-argocd/private-key)
 
-  vault_kv_put "local/argocd/github/apps/fluxdojo" \
+  vault_kv_put "local/argocd/github/apps/talktorubberduckdev" \
     "app-id"          "$app_id" \
     "installation-id" "$installation_id" \
     "private-key"     "$private_key"
 
-  ok "ArgoCD GitHub App secret for fluxdojo written"
+  ok "ArgoCD GitHub App secret for talktorubberduckdev written"
 }
 
 
@@ -146,17 +146,17 @@ create_github_app_secret_crossplane() {
 
   ok "Crossplane GitHub App secret for rezakaramad written"
 
-  log "Reading 'fluxdojo-crossplane' GitHub App credentials from pass..."
-  app_id=$(pass show private/github/apps/fluxdojo-crossplane/app-id | head -n1)
-  installation_id=$(pass show private/github/apps/fluxdojo-crossplane/installation-id | head -n1)
-  private_key=$(pass show private/github/apps/fluxdojo-crossplane/private-key)
+  log "Reading 'talktorubberduckdev-crossplane' GitHub App credentials from pass..."
+  app_id=$(pass show private/github/apps/talktorubberduckdev-crossplane/app-id | head -n1)
+  installation_id=$(pass show private/github/apps/talktorubberduckdev-crossplane/installation-id | head -n1)
+  private_key=$(pass show private/github/apps/talktorubberduckdev-crossplane/private-key)
 
-  vault_kv_put "local/crossplane/github/apps/org-fluxdojo" \
+  vault_kv_put "local/crossplane/github/apps/org-talktorubberduckdev" \
     "app-id"          "$app_id" \
     "installation-id" "$installation_id" \
     "private-key"     "$private_key"
 
-  ok "Crossplane GitHub App secret for fluxdojo written"
+  ok "Crossplane GitHub App secret for talktorubberduckdev written"
 }
 
 

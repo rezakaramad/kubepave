@@ -39,7 +39,7 @@ put_secret() {
 # GitHub App secret for Argo CD
 # Two separate GitHub Apps are used:
 # - rezakaramad: for deploying from repos in the personal 'rezakaramad' GitHub account (e.g. kubepave)
-# - fluxdojo: for deploying from repos in the 'fluxdojo' GitHub organization (ApplicationSets for tenant clusters)
+# - talktorubberduckdev: for deploying from repos in the 'talktorubberduckdev' GitHub organization (ApplicationSets for tenant clusters)
 # ----------------------------------------------------------------------------
 create_github_app_secret_argocd() {
   echo "🔐 Writing Argo CD GitHub App secrets to Cloud Secret Manager..."
@@ -57,17 +57,17 @@ create_github_app_secret_argocd() {
 
   echo "✅ Argo CD GitHub App secrets for 'rezakaramad' written"
 
-  # Access to https://github.com/fluxdojo
-  echo "📖 Reading 'fluxdojo-argocd' credentials from pass..."
-  app_id=$(pass show private/github/apps/fluxdojo-argocd/app-id | head -n1)
-  installation_id=$(pass show private/github/apps/fluxdojo-argocd/installation-id | head -n1)
-  private_key=$(pass show private/github/apps/fluxdojo-argocd/private-key)
+  # Access to https://github.com/talktorubberduckdev
+  echo "📖 Reading 'talktorubberduckdev-argocd' credentials from pass..."
+  app_id=$(pass show private/github/apps/talktorubberduckdev-argocd/app-id | head -n1)
+  installation_id=$(pass show private/github/apps/talktorubberduckdev-argocd/installation-id | head -n1)
+  private_key=$(pass show private/github/apps/talktorubberduckdev-argocd/private-key)
 
-  put_secret "argocd-github-fluxdojo-app-id"          "$app_id"
-  put_secret "argocd-github-fluxdojo-installation-id" "$installation_id"
-  put_secret "argocd-github-fluxdojo-private-key"     "$private_key"
+  put_secret "argocd-github-talktorubberduckdev-app-id"          "$app_id"
+  put_secret "argocd-github-talktorubberduckdev-installation-id" "$installation_id"
+  put_secret "argocd-github-talktorubberduckdev-private-key"     "$private_key"
 
-  echo "✅ Argo CD GitHub App secrets for 'fluxdojo' written"
+  echo "✅ Argo CD GitHub App secrets for 'talktorubberduckdev' written"
 }
 
 # ----------------------------------------------------------------------------
@@ -98,7 +98,7 @@ create_argocd_app_registration_azure() {
 # Crossplane credential in GitHub
 # Two separate GitHub Apps are used:
 # - rezakaramad: for managing repos in the personal 'rezakaramad' GitHub account
-# - fluxdojo: for managing repos in the 'fluxdojo' GitHub organization
+# - talktorubberduckdev: for managing repos in the 'talktorubberduckdev' GitHub organization
 # ----------------------------------------------------------------------------
 create_github_app_secret_crossplane() {
   echo "🔐 Writing Crossplane GitHub App secrets to Cloud Secret Manager..."
@@ -116,17 +116,17 @@ create_github_app_secret_crossplane() {
 
   echo "✅ Crossplane GitHub App secrets for 'rezakaramad' written"
 
-  # Access to https://github.com/fluxdojo
-  echo "📖 Reading 'fluxdojo-crossplane' credentials from pass..."
-  app_id=$(pass show private/github/apps/fluxdojo-crossplane/app-id | head -n1)
-  installation_id=$(pass show private/github/apps/fluxdojo-crossplane/installation-id | head -n1)
-  private_key=$(pass show private/github/apps/fluxdojo-crossplane/private-key)
+  # Access to https://github.com/talktorubberduckdev
+  echo "📖 Reading 'talktorubberduckdev-crossplane' credentials from pass..."
+  app_id=$(pass show private/github/apps/talktorubberduckdev-crossplane/app-id | head -n1)
+  installation_id=$(pass show private/github/apps/talktorubberduckdev-crossplane/installation-id | head -n1)
+  private_key=$(pass show private/github/apps/talktorubberduckdev-crossplane/private-key)
 
-  put_secret "crossplane-github-fluxdojo-app-id"          "$app_id"
-  put_secret "crossplane-github-fluxdojo-installation-id" "$installation_id"
-  put_secret "crossplane-github-fluxdojo-private-key"     "$private_key"
+  put_secret "crossplane-github-talktorubberduckdev-app-id"          "$app_id"
+  put_secret "crossplane-github-talktorubberduckdev-installation-id" "$installation_id"
+  put_secret "crossplane-github-talktorubberduckdev-private-key"     "$private_key"
 
-  echo "✅ Crossplane GitHub App secrets for 'fluxdojo' written"
+  echo "✅ Crossplane GitHub App secrets for 'talktorubberduckdev' written"
 }
 
 # ----------------------------------------------------------------------------
@@ -136,6 +136,7 @@ main() {
   echo "🚀 Setting up secrets in Cloud Secret Manager (project: $GCP_PROJECT)..."
   echo ""
   create_github_app_secret_argocd
+  echo ""
   echo ""
   create_argocd_app_registration_azure
   echo ""
