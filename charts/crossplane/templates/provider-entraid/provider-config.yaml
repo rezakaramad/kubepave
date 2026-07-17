@@ -1,6 +1,5 @@
 {{- if .Values.entraIdProvider.enabled }}
 
-{{- if eq .Values.entraIdProvider.auth.method "oidc" }}
 apiVersion: azuread.m.upbound.io/v1beta1
 kind: ClusterProviderConfig
 metadata:
@@ -9,28 +8,20 @@ metadata:
     argocd.argoproj.io/sync-wave: "5"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
+  {{- if eq .Values.entraIdProvider.auth.method "oidc" }}
   tenantID: {{ .Values.entraIdProvider.auth.tenantID }}
   clientID: {{ .Values.entraIdProvider.auth.clientID }}
   oidcTokenFilePath: /var/run/secrets/tokens/azure-token
   credentials:
     source: OIDCTokenFile
-{{- else }}
-apiVersion: azuread.m.upbound.io/v1beta1
-kind: ClusterProviderConfig
-metadata:
-  name: azuread
-  namespace: crossplane-system
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-spec:
+  {{- else }}
   credentials:
     source: Secret
     secretRef:
       namespace: crossplane-system
       name: azuread
       key: credentials
-{{- end }}
+  {{- end }}
 
 ---
 {{- end }}
