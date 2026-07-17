@@ -356,11 +356,10 @@ create_backstage_secrets() {
     "tenant_id"     "$tenant_id" \
     "client_secret" "$client_secret"
 
-  # Generate a random 32-byte AES-256 key for oauth2-proxy's session cookie
-  # encryption. Written once; re-running regenerates it (invalidating all
-  # existing sessions — acceptable for a dev cluster reset).
+  # Generate a random 32-character cookie secret for oauth2-proxy AES-256 session
+  # encryption. token_urlsafe(24) produces exactly 32 URL-safe characters.
   local cookie_secret
-  cookie_secret=$(python3 -c 'import secrets,base64; print(base64.b64encode(secrets.token_bytes(32)).decode())')
+  cookie_secret=$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')
 
   vault_kv_put "local/backstage/oauth2-proxy" \
     "cookie_secret" "$cookie_secret"

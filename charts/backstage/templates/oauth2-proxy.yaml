@@ -39,6 +39,9 @@ spec:
             - --email-domain={{ .Values.oauth2Proxy.emailDomain }}
             - --skip-provider-button=false
             - --pass-access-token=false
+            # Azure AD does not include the 'email' claim by default.
+            # Use 'preferred_username' which always contains the UPN.
+            - --oidc-email-claim=preferred_username
             # Inject X-Auth-Request-Email and X-Auth-Request-User headers so
             # Backstage's oauth2Proxy auth provider can resolve the user identity.
             - --set-xauthrequest=true
