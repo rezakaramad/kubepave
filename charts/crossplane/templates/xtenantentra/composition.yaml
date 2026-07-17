@@ -6,7 +6,7 @@ metadata:
   name: xtenantentra
 spec:
   compositeTypeRef:
-    apiVersion: platform.jysk.tech/v1beta1
+    apiVersion: idp.rezakara.demo/v1beta1
     kind: XTenantEntra
   mode: Pipeline
   pipeline:
