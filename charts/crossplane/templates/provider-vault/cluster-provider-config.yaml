@@ -1,0 +1,33 @@
+{{- if .Values.vaultProvider.enabled }}
+
+# ClusterProviderConfig for provider-vault.
+#
+# Authenticates to Vault with the JWT auth method — the same model ESO and the
+# other platform components use — via a Vault Agent sidecar (see
+# runtime-config.yaml). The agent logs in to jwt-management with the
+# provider-vault ServiceAccount JWT, obtains a short-lived Vault token, and
+# writes it to a shared in-memory volume at /vault/secrets/token. This provider
+# reads that file each reconcile. No static secret and no TokenReview call-back.
+#
+# skip_child_token: the provider uses the agent-supplied token directly instead
+# of minting a child token (which would need auth/token/create — a capability we
+# deliberately keep out of provider-vault-policy).
+#
+# Uses the in-cluster Vault service URL (HTTP) so the provider does not depend
+# on the TLS ingress being up during cluster bootstrap.
+apiVersion: vault.m.upbound.io/v1beta1
+kind: ClusterProviderConfig
+metadata:
+  name: vault
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  address: http://vault.vault.svc.cluster.local:8200
+  skip_child_token: true
+  credentials:
+    source: Fs
+    fs:
+      path: /vault/secrets/token
+
+{{- end }}

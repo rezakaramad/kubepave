@@ -22,6 +22,13 @@ entraIdProvider:
     tenantID: <upsert-in-env-values-file>
     clientID: <upsert-in-env-values-file>
 
+vaultProvider:
+  enabled: false
+  providerPackage: <upsert-in-env-values-file>
+  # Vault Agent sidecar image (used by the DeploymentRuntimeConfig to obtain a
+  # short-lived Vault token via JWT auth for the provider container).
+  agentImage: <upsert-in-env-values-file>
+
 compositeResources:
   xTenantEntra:
     enabled: false

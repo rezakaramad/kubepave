@@ -6,6 +6,10 @@ issuerName: local-self-signed
 configConnector:
   enabled: false
 
+vault:
+  enabled: true
+  server: "https://vault.mgmt.rezakara.demo"
+
 environmentPrefix: <upsert-in-env-values-file>
 
 gateway:

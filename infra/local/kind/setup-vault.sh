@@ -172,11 +172,97 @@ configure_cluster_jwt() {
       bound_subject='system:serviceaccount:backstage:backstage' \
       policies=backstage-policy \
       ttl=1h"
+
+    # crossplane provider-vault runs on the management cluster. Its pod runs a
+    # Vault Agent sidecar (see the DeploymentRuntimeConfig) that logs in here
+    # with the provider-vault ServiceAccount JWT and maintains a short-lived
+    # token for the provider — same JWT auth model as ESO, no static secret.
+    vault_exec "vault write auth/${auth_path}/role/provider-vault \
+      role_type=jwt \
+      bound_audiences='https://kubernetes.default.svc.cluster.local' \
+      user_claim=sub \
+      bound_subject='system:serviceaccount:crossplane-system:provider-vault' \
+      policies=provider-vault-policy \
+      ttl=1h"
   fi
 
   vault_exec "rm -f /tmp/api-ca-${cluster}.crt"
 
   ok "JWT auth configured for $cluster"
+}
+
+
+# -----------------------------------------------------------------------------
+# Configure a shared JWT auth backend for tenant service accounts.
+#
+# Uses a separate backend (jwt-workload-tenants) so existing roles on jwt-workload are not disrupted.
+#
+# user_claim is set to the namespace JSON pointer so Vault entity aliases become
+# the bare namespace name (e.g. "foo") rather than the full sub string
+# ("system:serviceaccount:foo:external-secrets"). This is what makes the
+# identity-templated tenant-policy resolve to the correct per-tenant path.
+# -----------------------------------------------------------------------------
+configure_tenant_jwt() {
+  local cluster="workload"
+  local auth_path="jwt-workload-tenants"
+  local api_url jwks_url api_ca
+
+  api_url="$(cluster_api_url "$cluster")"
+  jwks_url="${api_url}/openid/v1/jwks"
+
+  log "Configuring $auth_path backend (namespace-scoped user_claim)..."
+
+  # Reuse the API server CA that configure_cluster_jwt already copied.
+  # Copy it again under a stable name for this backend.
+  api_ca=$(kubectl --context "$(kind_context "$cluster")" \
+    config view --raw --minify \
+    -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d)
+
+  kubectl --context "$(kind_context management)" \
+    -n "$VAULT_NAMESPACE" \
+    exec -i vault-0 -- sh -c "cat > /tmp/api-ca-${auth_path}.crt" <<< "$api_ca"
+
+  vault_exec "vault auth enable -path=${auth_path} jwt 2>/dev/null || true"
+
+  log "Configuring $auth_path JWKS (${jwks_url})..."
+  local ok=false
+  for i in $(seq 1 20); do
+    if vault_exec "vault write auth/${auth_path}/config \
+        jwks_url='${jwks_url}' \
+        jwks_ca_pem=@/tmp/api-ca-${auth_path}.crt \
+        bound_issuer='https://kubernetes.default.svc.cluster.local'" >/dev/null 2>&1; then
+      ok=true
+      break
+    fi
+    sleep 3
+  done
+  if [ "$ok" != "true" ]; then
+    err "Failed to configure $auth_path — API server not reachable at $jwks_url"
+    exit 1
+  fi
+
+  # Retrieve the accessor for this backend so we can embed it in the
+  # identity-templated policy. The accessor is stable for the lifetime of the
+  # auth backend (it changes only if the backend is disabled and re-enabled).
+  local accessor
+  accessor=$(vault_exec "vault auth list -format=json" \
+    | jq -r ".\"${auth_path}/\".accessor")
+
+  log "Writing tenant-policy (accessor: $accessor)..."
+
+  vault_exec "vault policy write tenant-policy - <<EOF
+path \"tenants/data/{{identity.entity.aliases[${accessor}].name}}/*\" {
+  capabilities = [\"read\", \"list\", \"create\", \"update\", \"delete\"]
+}
+
+path \"tenants/metadata/{{identity.entity.aliases[${accessor}].name}}/*\" {
+  capabilities = [\"read\", \"list\", \"delete\"]
+}
+EOF"
+
+  vault_exec "rm -f /tmp/api-ca-${auth_path}.crt"
+
+  ok "$auth_path configured and tenant-policy written"
 }
 
 
@@ -234,6 +320,12 @@ main() {
     configure_cluster_jwt "$cluster"
     echo "--------------------------------"
   done
+
+  # Configure the shared tenant JWT backend (jwt-workload-tenants) and write
+  # the identity-templated tenant-policy. Must run after configure_cluster_jwt
+  # workload so the workload API server CA is available.
+  configure_tenant_jwt
+  echo "--------------------------------"
 
   save_credentials
 
