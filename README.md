@@ -37,11 +37,11 @@ You may want to verify the active tenant:
 az account show
 ```
 
-[Install **OpenTofu**](https://opentofu.org/docs/intro/install/):
+[Install OpenTofu](https://opentofu.org/docs/intro/install/):
 ```bash
 tofu version
 ```
-Make sure **gpg** is installed (it is usually included by default on Ubuntu). This is needed because it is used to encrypt Tofu Statefile before pushing to Git repository:
+Make sure **GPG** is installed (it is usually included by default on Ubuntu). This is needed because it is used to encrypt Tofu Statefile before pushing to Git repository:
 ```bash
 gpg --version
 ```
