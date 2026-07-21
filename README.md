@@ -16,36 +16,32 @@
 ## 🚀 Getting started
 
 ### Bootstrap Azure EntraID (OpenTofu)
+
 `/src/bootstrap/azure` bootstraps identity resources in Microsoft Entra ID using OpenTofu.
+
 It provisions:
-- App registrations (Argo CD, Crossplane, Keycloak)
+- App registrations (Argo CD, Crossplane, Keycloak, Backstage)
 - Service Principals (Enterprise Applications)
 - App Roles and RBAC assignments
 - Required API permissions
 
 #### Prerequisites
 
-**Login** to Azure:
+After you [install Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest), login to Azure:
 ```bash
 az login
 ```
 
-**Verify** the active tenant:
+You may want to verify the active tenant:
 ```bash
 az account show
 ```
 
-Install **OpenTofu**:
+[Install **OpenTofu**](https://opentofu.org/docs/intro/install/):
 ```bash
 tofu version
 ```
-Install **Azure CLI**:
-```bash
-az version
-```
-[Install Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?view=azure-cli-latest&pivots=apt).
-
-Make sure **gpg** is installed (it is usually included by default on Ubuntu):
+Make sure **gpg** is installed (it is usually included by default on Ubuntu). This is needed because it is used to encrypt Tofu Statefile before pushing to Git repository:
 ```bash
 gpg --version
 ```
@@ -62,8 +58,8 @@ task azure:down
 
 #### State management (no cloud backend):
 
-- State is stored locally and encrypted before committing to Git.
-- Yes, this is a bit manual; that’s the price of avoiding a paid backend 🙂
+- State is stored locally and encrypted before committing to Git repository.
+- Yes, this is a bit manual; that’s the price of avoiding a paid backend 🙂.
 
 - When you run `task azure:up`, encryption and decryption of the Terraform state file are handled automatically.
 
@@ -79,37 +75,37 @@ Decrypt the state file:
 gpg -d terraform.tfstate.gpg > terraform.tfstate
 ```
 
+I stored the GPG key in my local password manager, [pass](https://www.passwordstore.org/).
 
 Commit encrypted file:
 ```
 git add terraform.tfstate.gpg
 git commit -m "Add encrypted state"
 ```
-**Note:** `*.tfstate` and `*.tftstate.backup` are ignored. 
+Note: `*.tfstate` and `*.tftstate.backup` are git-ignored. 
 
 ### Bootstrap
 
-Make sure Task is installed on your local machine.
+Make sure [Task is installed](https://taskfile.dev/docs/installation) on your local machine.
 
-[Install Task](https://taskfile.dev/docs/installation).
 ```
 task --version
 ```
 
-**Clone** the repository:
+Clone the repository:
 ```bash
 git clone git@github.com:rezakaramad/kubepave.git && cd kubepave
 ```
-Check **dependencies**:
+Check dependencies:
 
 ```bash
 task check
 ```
 
-**Bootstrap** everything:
+Bootstrap everything at once:
 
 ```bash
-task minikube:up
+task kind:up
 ```
 
 Load the Argo CD admin password and Vault token into your shell:
@@ -130,7 +126,7 @@ printf %s "$ARGOCD_ADMIN_PASSWORD" | xclip -selection clipboard
 ## 🧹 Destroy everything
 
 ```bash
-task minikube:down
+task kind:down
 ```
 ---
 
@@ -170,10 +166,12 @@ But there’s no perfect tool for everyone — and this is no exception.
 
 ## Where does it run?
 
-It started with Minikube for local development.
-Later it grew to support other environments too (Kind, maybe AWS/GCP in the future).
+It started with Minikube for local development. It now uses Kind to keep the setup lightweight and to make the networking less complex.
+
+It may later be extended to support additional environments, including AWS and GCP.
 
 For local setup, plain **shell scripts** work best, they run everywhere without extra dependencies.
+You don't have to use the scripts, but they make bootstrapping easier.
 
 So the repo uses a few scripts to:
 - start clusters
@@ -182,8 +180,7 @@ So the repo uses a few scripts to:
 
 to get you up and running quickly.
 
-In the future, additional approaches may be added for cloud environments.
-
+The scripts are only used for local setup. Cloud environments will be fired up with OpenTofu.
 
 ## Minikube Driver
 ### Why KVM instead of Docker?
@@ -207,8 +204,7 @@ The **KVM** (`kvm2`) driver runs each cluster as a small virtual machine on the 
 |-----------|----------|-------------|
 | **Argo CD** | `argocd-applications/` | Contains all Argo CD resources. |
 | **Helm Charts** | `charts/` | Contains Helm charts used by the platform. We depend on official upstream charts and compose them as dependencies. |
-| **Bootstrap (Minikube)** | `src/bootstrap/minikube/` | Resources and scripts required to spin up the Minikube edition of the platform. |
+| **Bootstrap Infrastructure** | `infra` | Resources and scripts required to spin up the infrastructure. |
 | **Crossplane Functions** | `src/crossplane/` | Contains Crossplane functions used by the platform. |
-| **kubectl Plugins** | `src/kubectl-plugins/` | Custom kubectl plugins that should be installed in `/usr/local/bin`. |
 
 Made with 🤓, 🐧 and 🍷.

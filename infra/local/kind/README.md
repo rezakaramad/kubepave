@@ -1,9 +1,10 @@
-# Local Kind Environment
+# Local kind environment
 
 A reproducible, multi-cluster local platform running on [kind](https://kind.sigs.k8s.io/).
-It mirrors the cloud/minikube setup: a **management** cluster running the platform
-control plane (ArgoCD, Vault, PowerDNS, cert-manager, external-secrets, Traefik)
-and a **workload** cluster whose platform components are installed by ArgoCD via
+It mirrors the cloud setup: 
+
+- a **management** cluster running the platform control plane (ArgoCD, Vault, PowerDNS, cert-manager, external-secrets, Traefik)
+- and a **workload** cluster whose platform components are installed by ArgoCD via
 GitOps.
 
 > For the design rationale (why kind, why PowerDNS in-cluster, the TLS chain, the

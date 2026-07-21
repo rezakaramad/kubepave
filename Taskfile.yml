@@ -2,16 +2,16 @@ version: '3'
 runner: bash
 
 tasks:
-  check:
+  minikube:check:
     desc: "Verify required dependencies are installed"
     cmds:
-      - ./local/minikube/check-dependencies.sh
+      - ./infra/local/minikube/check-dependencies.sh
   minikube:start:
     desc: "Start Minikube clusters"
-    deps: [check]
+    deps: [minikube:check]
     cmds:
-      - ./local/minikube/setup-minikube.sh start
-      - ./local/minikube/setup-iptables.sh
+      - ./infra/local/minikube/setup-minikube.sh start
+      - ./infra/local/minikube/setup-iptables.sh
   minikube:up:
     desc: "Run kubepave on Minikube"
     deps: [minikube:start]
@@ -20,13 +20,13 @@ tasks:
       - |
         start=$(date +%s)
 
-        ./local/minikube/install-charts.sh
-        ./local/minikube/setup-secrets.sh
-        ./local/minikube/setup-trust.sh
-        ./local/minikube/setup-vault.sh
-        ./local/minikube/setup-dns.sh start
-        ./local/minikube/setup-dns.sh clean_etc_hosts
-        ./local/minikube/setup-kubectl.sh
+        ./infra/local/minikube/install-charts.sh
+        ./infra/local/minikube/setup-secrets.sh
+        ./infra/local/minikube/setup-trust.sh
+        ./infra/local/minikube/setup-vault.sh
+        ./infra/local/minikube/setup-dns.sh start
+        ./infra/local/minikube/setup-dns.sh clean_etc_hosts
+        ./infra/local/minikube/setup-kubectl.sh
 
         end=$(date +%s)
 
@@ -35,14 +35,19 @@ tasks:
   minikube:tunnels:
     desc: "List Minikube tunnels"
     cmds:
-      - ./local/minikube/setup-minikube.sh tunnels
+      - ./infra/local/minikube/setup-minikube.sh tunnels
   minikube:down:
     desc: "Tear down everything"
     cmds:
-      - ./local/minikube/setup-minikube.sh destroy
-      - ./local/minikube/setup-dns.sh reset
+      - ./infra/local/minikube/setup-minikube.sh destroy
+      - ./infra/local/minikube/setup-dns.sh reset
+  kind:check:
+    desc: "Verify required dependencies are installed"
+    cmds:
+      - ./infra/local/kind/check-dependencies.sh
   kind:up:
     desc: "Bootstrap the full kind-based local environment"
+    deps: [kind:check]
     silent: true
     cmds:
       - |
