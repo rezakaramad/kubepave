@@ -9,7 +9,7 @@ kind: Namespace
 metadata:
   name: {{ $tenant.name | lower }}
   labels:
-    {{- include "tnr.labels" . | nindent 4 }}
+    {{- include "tn.labels" . | nindent 4 }}
     platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/audit: restricted
@@ -18,7 +18,7 @@ metadata:
     pod-security.kubernetes.io/audit-version: latest
     pod-security.kubernetes.io/warn-version: latest
   {{- if .Values.configConnector.enabled }}
-  {{- $projectId := include "tnr.projectId" (dict "name" $tenant.tenantShortName "prefix" .Values.environmentPrefix) }}
+  {{- $projectId := include "tn.projectId" (dict "name" $tenant.tenantShortName "prefix" .Values.environmentPrefix) }}
   annotations:
     cnrm.cloud.google.com/project-id: {{ $projectId }}
   {{- end }}

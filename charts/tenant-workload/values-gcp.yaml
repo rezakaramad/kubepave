@@ -3,6 +3,12 @@ issuerName: gcp-lets-encrypt
 configConnector:
   enabled: true
 
+# SecretStore provider for GCP: uses GCP Secret Manager with Workload Identity.
+# The tenant SA must have the iam.gke.io/gcp-service-account annotation set
+# and be granted roles/secretmanager.secretAccessor on the tenant's secrets.
+secretStore:
+  name: gcpsm
+
 environmentPrefix: <upsert-in-env-values-file>
 
 # The GCP project ID where the GKE cluster runs.

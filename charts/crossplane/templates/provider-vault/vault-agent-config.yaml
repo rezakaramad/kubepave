@@ -1,7 +1,5 @@
 {{- if .Values.vaultProvider.enabled }}
 
-# Vault Agent configuration for the provider-vault sidecar.
-#
 # auto_auth logs in to the jwt-management backend using the provider-vault
 # ServiceAccount token (projected with the Vault audience). The resulting
 # short-lived Vault token is written to the shared /vault/secrets/token sink,
@@ -20,7 +18,8 @@ data:
     pid_file = "/tmp/vault-agent.pid"
 
     vault {
-      address = "http://vault.vault.svc.cluster.local:8200"
+      address = {{ .Values.vaultProvider.address | quote }}
+      ca_cert = "/etc/vault-tls/tls.crt"
     }
 
     auto_auth {

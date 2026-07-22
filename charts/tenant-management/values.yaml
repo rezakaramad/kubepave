@@ -3,14 +3,14 @@ configConnector:
 
 vault:
   enabled: false
-  # JWT auth backend on the management Vault that validates workload-cluster
+  # JWT auth backend on the Vault that validates workload cluster
   # tenant ServiceAccount tokens. Created by setup-vault.sh (configure_tenant_jwt).
   authBackend: jwt-workload-tenants
   # Shared identity-templated policy scoping each tenant to tenants/<tenant>/*.
   policy: tenant-policy
-  # ServiceAccount (in the tenant's workload namespace) allowed to assume the role.
+  # ServiceAccount (in the tenant's namespace) allowed to assume the role.
   # Must match the ServiceAccount created by the tenant-workload chart.
-  serviceAccountName: tenant-secrets
+  serviceAccountName: tenant-eso
   # Audience the workload SA token is minted with (must match the projected token
   # audience requested by the consumer, e.g. the tenant SecretStore).
   audience: https://kubernetes.default.svc.cluster.local

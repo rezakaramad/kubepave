@@ -18,29 +18,6 @@ configConnector:
 
 vault:
   enabled: false
-  # ServiceAccount created in the tenant namespace to authenticate to the
-  # management Vault. Must match tenant-management's vault.serviceAccountName so
-  # the AuthBackendRole's boundSubject lines up with this SA.
-  serviceAccountName: tenant-secrets
-  # JWT auth backend on the management Vault that validates the tenant SA token.
-  # Must match tenant-management's vault.authBackend.
-  authBackend: jwt-workload-tenants
-  # KV v2 mount holding per-tenant secret paths (tenants/<tenant>/*).
-  mount: tenants
-  # Audience the tenant SA token is minted with. Must match the AuthBackendRole
-  # boundAudiences and tenant-management's vault.audience.
-  audience: https://kubernetes.default.svc.cluster.local
-  # Management Vault address. Upsert the real value in the env values file.
-  server: <upsert-in-env-values-file>
-  # ESO SecretStore created in each tenant namespace.
-  secretStore:
-    name: vault-tenant
-  # CA for the management Vault's TLS. root-ca is synced into the tenant
-  # namespace by the root-ca ExternalSecret (see secret-store/root-ca.yaml).
-  caProvider:
-    type: Secret
-    name: root-ca
-    key: tls.crt
 
 environmentPrefix: <upsert-in-env-values-file>
 

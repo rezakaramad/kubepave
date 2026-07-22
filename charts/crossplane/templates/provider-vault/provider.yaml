@@ -1,5 +1,4 @@
-{{- if .Capabilities.APIVersions.Has "pkg.crossplane.io/v1/Provider" }}
-{{- if .Values.vaultProvider.enabled }}
+{{- if and .Values.vaultProvider.enabled (.Capabilities.APIVersions.Has "pkg.crossplane.io/v1/Provider") }}
 
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
@@ -13,5 +12,4 @@ spec:
   runtimeConfigRef:
     name: provider-vault
 
-{{- end }}
 {{- end }}
