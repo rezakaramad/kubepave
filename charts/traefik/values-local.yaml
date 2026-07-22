@@ -7,7 +7,7 @@ defaultGateway:
 
 # TLS — always enabled; cert-manager issues the certificate via the cluster-issuer annotation.
 tls:
-  clusterIssuer: root-ca
+  clusterIssuer: local
 
 traefik:
   # Trust X-Forwarded-For headers from RFC 1918 private ranges only.

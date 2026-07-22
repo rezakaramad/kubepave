@@ -1,7 +1,7 @@
 selfSignedRootCA:
   enabled: true
 
-issuerName: local-self-signed
+issuerName: local
 
 configConnector:
   enabled: false
