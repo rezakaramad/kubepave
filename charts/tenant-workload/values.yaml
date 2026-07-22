@@ -16,6 +16,9 @@ issuerName: <upsert-in-env-values-file>
 configConnector:
   enabled: false
 
+vault:
+  enabled: false
+
 environmentPrefix: <upsert-in-env-values-file>
 
 # The GCP project ID where the GKE cluster runs.

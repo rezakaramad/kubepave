@@ -1,9 +1,9 @@
 # Generate a wildcard TLS certificate for :: {{ $hostname }}
 
 {{- $tenant := .Values.tenant }}
-{{- $hostname := include "tnr.gateway.hostname" (dict "name" $tenant.tenantShortName "environmentPrefix" .Values.environmentPrefix) }}
+{{- $hostname := include "tn.gateway.hostname" (dict "name" $tenant.tenantShortName "environmentPrefix" .Values.environmentPrefix) }}
 {{- $wildcardHostname := printf "*.%s" $hostname }}
-{{- $certificateName := printf "%s-cert-traefik" (include "tnr.gateway.certificateName" $hostname) }}
+{{- $certificateName := printf "%s-cert-traefik" (include "tn.gateway.certificateName" $hostname) }}
 
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -11,7 +11,7 @@ metadata:
   name: {{ $certificateName | quote }}
   namespace: platform-system
   labels:
-    {{- include "tnr.labels" . | nindent 4 }}
+    {{- include "tn.labels" . | nindent 4 }}
     platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
 spec:
   secretName: {{ $certificateName | quote }}

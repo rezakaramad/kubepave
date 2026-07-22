@@ -6,6 +6,13 @@ keycloakProvider:
   enabled: true
   providerPackage: xpkg.upbound.io/crossplane-contrib/provider-keycloak:v2.7.2
 
+vaultProvider:
+  enabled: true
+  providerPackage: xpkg.upbound.io/upbound/provider-vault:v4.0.0
+  agentImage: hashicorp/vault:1.19.0
+  address: https://vault.vault.svc.cluster.local:8200
+  caCertSecret: root-ca
+
 entraIdProvider:
   enabled: true
   providerPackage: xpkg.upbound.io/upbound/provider-azuread:v2.2.1

@@ -7,7 +7,7 @@ metadata:
   name: default-deny-ingress
   namespace: {{ $tenant.name | lower }}
   labels:
-    {{- include "tnr.labels" . | nindent 4 }}
+    {{- include "tn.labels" . | nindent 4 }}
     platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
 spec:
   podSelector: {}
@@ -23,7 +23,7 @@ metadata:
   name: default-allow-ingress
   namespace: {{ $tenant.name | lower }}
   labels:
-    {{- include "tnr.labels" . | nindent 4 }}
+    {{- include "tn.labels" . | nindent 4 }}
     platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
 spec:
   podSelector: {}

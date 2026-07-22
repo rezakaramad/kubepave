@@ -1,0 +1,79 @@
+{{- if and .Values.vaultProvider.enabled (.Capabilities.APIVersions.Has "pkg.crossplane.io/v1/Provider") }}
+
+# A DeploymentRuntimeConfig is a Crossplane object that controls how the provider's controller pod is deployed.
+#
+# 1. Pins the pod to a stable ServiceAccount (provider-vault) so Vault's JWT role can bind to a known subject:
+#      system:serviceaccount:crossplane-system:provider-vault
+# 2. Injects a Vault Agent sidecar that authenticates to Vault via JWT (same model as ESO)
+# and writes a short-lived token to the shared in-memory /vault/secrets volume.
+# The provider container reads the token from there.
+#      - vault-jwt: projected SA token with the Vault audience, consumed by the agent for auth/jwt-management/login.
+#      - vault-token: in-memory sink shared between the agent and the provider; the token never touches disk or a K8s Secret.
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: provider-vault
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  serviceAccountTemplate:
+    metadata:
+      name: provider-vault
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          serviceAccountName: provider-vault
+          containers:
+          - name: package-runtime
+            env:
+            - name: VAULT_CACERT
+              value: /etc/vault-tls/tls.crt
+            volumeMounts:
+            - name: vault-token
+              mountPath: /vault/secrets
+              readOnly: true
+            - name: vault-tls
+              mountPath: /etc/vault-tls
+              readOnly: true
+          - name: vault-agent
+            image: {{ .Values.vaultProvider.agentImage }}
+            args:
+            - agent
+            - -config=/etc/vault-agent/config.hcl
+            env:
+            - name: VAULT_CACERT
+              value: /etc/vault-tls/tls.crt
+            volumeMounts:
+            - name: vault-agent-config
+              mountPath: /etc/vault-agent
+              readOnly: true
+            - name: vault-jwt
+              mountPath: /var/run/secrets/tokens
+              readOnly: true
+            - name: vault-token
+              mountPath: /vault/secrets
+            - name: vault-tls
+              mountPath: /etc/vault-tls
+              readOnly: true
+          volumes:
+          - name: vault-agent-config
+            configMap:
+              name: provider-vault-agent-config
+          - name: vault-jwt
+            projected:
+              sources:
+              - serviceAccountToken:
+                  audience: https://kubernetes.default.svc.cluster.local
+                  expirationSeconds: 600
+                  path: vault-token
+          - name: vault-token
+            emptyDir:
+              medium: Memory
+          - name: vault-tls
+            secret:
+              secretName: {{ .Values.vaultProvider.caCertSecret }}
+
+{{- end }}

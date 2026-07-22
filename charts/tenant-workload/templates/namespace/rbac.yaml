@@ -7,7 +7,7 @@
 #   name: tenant-default-role
 #   namespace: {{ $tenant.name | lower }}
 #   labels:
-#     {{- include "tnr.labels" . | nindent 4 }}
+#     {{- include "tn.labels" . | nindent 4 }}
 #     platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
 # subjects:
 #   - apiGroup: rbac.authorization.k8s.io
@@ -26,7 +26,7 @@
 # metadata:
 #   name: namespace-viewer-{{ $tenant.name | lower }}
 #   labels:
-#     {{- include "tnr.labels" . | nindent 4 }}
+#     {{- include "tn.labels" . | nindent 4 }}
 #     platform.rezakara.demo/tenant: {{ $tenant.name | lower }}
 # subjects:
 #   - apiGroup: rbac.authorization.k8s.io

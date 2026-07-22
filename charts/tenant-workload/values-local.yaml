@@ -6,6 +6,15 @@ issuerName: local-self-signed
 configConnector:
   enabled: false
 
+vault:
+  enabled: true
+
+# SecretStore created in each tenant namespace.
+# On local the provider is Vault JWT (vault.enabled=true drives the auth block).
+# On GCP set provider directly here to override with gcpsm.
+secretStore:
+  name: local-vault
+
 environmentPrefix: <upsert-in-env-values-file>
 
 gateway:

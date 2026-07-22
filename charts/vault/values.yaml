@@ -111,6 +111,28 @@ vault:
         }
         EOF
 
+        echo "Writing provider-vault policy..."
+
+        # Policy for the crossplane provider-vault controller. It authenticates to
+        # Vault via the Kubernetes auth method (its pod ServiceAccount token — no
+        # static secret) and needs to manage per-tenant JWT auth roles.
+        vault policy write provider-vault-policy - <<'EOF'
+        # When a tenant is provisioned, provider-vault calls
+        # PUT /v1/auth/jwt-workload-tenants/role/<tenant> to create the JWT auth
+        # role that binds the tenant's namespace to tenant-policy.
+        # Without this, the provider gets a 403 on every tenant role reconciliation.
+        path "auth/jwt-workload-tenants/role/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+
+        # provider-vault reads back the policy name when reconciling a role resource
+        # to verify the referenced policy exists (drift detection). Read-only is enough;
+        # Crossplane never writes policies, only the postStart bootstrap does.
+        path "sys/policies/acl/tenant-policy" {
+          capabilities = ["read"]
+        }
+        EOF
+
         echo "Writing Backstage policy..."
 
         vault policy write backstage-policy - <<'EOF'
@@ -143,5 +165,8 @@ vault:
 
         vault secrets list | grep -q '^local/' || \
           vault secrets enable -path=local kv-v2
+
+        vault secrets list | grep -q '^tenants/' || \
+          vault secrets enable -path=tenants kv-v2
 
         echo "=== Vault bootstrap complete ==="

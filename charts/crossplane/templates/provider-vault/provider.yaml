@@ -1,0 +1,15 @@
+{{- if and .Values.vaultProvider.enabled (.Capabilities.APIVersions.Has "pkg.crossplane.io/v1/Provider") }}
+
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-vault
+spec:
+  package: {{ .Values.vaultProvider.providerPackage }}
+  # Pin the provider pod to the stable provider-vault ServiceAccount (see
+  # runtime-config.yaml) so Vault's Kubernetes auth role can bind to a known
+  # subject instead of the auto-generated per-revision SA name.
+  runtimeConfigRef:
+    name: provider-vault
+
+{{- end }}

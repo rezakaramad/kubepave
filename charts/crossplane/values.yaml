@@ -22,6 +22,18 @@ entraIdProvider:
     tenantID: <upsert-in-env-values-file>
     clientID: <upsert-in-env-values-file>
 
+vaultProvider:
+  enabled: false
+  providerPackage: <upsert-in-env-values-file>
+  # Vault Agent sidecar image (used by the DeploymentRuntimeConfig to obtain a
+  # short-lived Vault token via JWT auth for the provider container).
+  agentImage: <upsert-in-env-values-file>
+  # Vault server address used by both the Vault Agent sidecar and the provider.
+  address: <upsert-in-env-values-file>
+  # Kubernetes Secret containing the CA certificate (key: tls.crt) used to
+  # verify the Vault server's TLS certificate. Must exist in crossplane-system.
+  caCertSecret: <upsert-in-env-values-file>
+
 compositeResources:
   xTenantEntra:
     enabled: false
