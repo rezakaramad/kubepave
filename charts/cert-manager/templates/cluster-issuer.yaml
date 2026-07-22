@@ -47,7 +47,7 @@ metadata:
     helm.sh/hook-delete-policy: before-hook-creation
 spec:
   ca:
-    secretName: local-self-signed
+    secretName: root-ca
 
 ---
 {{- end }}
