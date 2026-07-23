@@ -2,7 +2,7 @@
 
 # We create a cluster-scoped ProviderConfig because there is no point in creating a namespaced one 
 # A namespaced ProviderConfig would only improve security if each namespace held differently-scoped credentials.
-# In this setup every ProviderConfig would be identical, same address, same source: Fs, same token path; 
+# In this setup every ProviderConfig would be identical, same address, same source: Filesystem, same token path; 
 # because there is one Vault Agent writing one token from one identity.
 # Splitting it across namespaces gives N identical copies with zero additional isolation; the actual tenant boundary
 # is enforced by the Vault tenant-policy identity template at login time, which has nothing to do with 
@@ -31,7 +31,7 @@
 # a shared in-memory volume. The provider reads that token each reconcile. No static secret and no TokenReview call-back.
 
 # provider-vault can only read a pre-issued token
-# from a Secret, env var, or file (source: Fs). A Vault Agent sidecar (see
+# from a Secret, env var, or file (source: Filesystem). A Vault Agent sidecar (see
 # runtime-config.yaml) bridges the gap: it performs the JWT login to jwt-management
 # with the provider-vault ServiceAccount JWT, obtains a short-lived Vault token, and
 # writes it to a shared in-memory volume at /vault/secrets/token. This provider reads
@@ -55,7 +55,7 @@ spec:
   address: {{ .Values.vaultProvider.address | quote }}
   skip_child_token: true
   credentials:
-    source: Fs
+    source: Filesystem
     fs:
       path: /vault/secrets/token
 
