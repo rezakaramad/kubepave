@@ -43,6 +43,11 @@ spec:
             args:
             - agent
             - -config=/etc/vault-agent/config.hcl
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
             env:
             - name: VAULT_CACERT
               value: /etc/vault-tls/tls.crt
