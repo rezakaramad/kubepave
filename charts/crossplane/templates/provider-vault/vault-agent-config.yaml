@@ -16,6 +16,7 @@ metadata:
 data:
   config.hcl: |
     pid_file = "/tmp/vault-agent.pid"
+    disable_mlock = true
 
     vault {
       address = {{ .Values.vaultProvider.address | quote }}
