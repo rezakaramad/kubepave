@@ -43,6 +43,10 @@ spec:
             args:
             - agent
             - -config=/etc/vault-agent/config.hcl
+            securityContext:
+              capabilities:
+                add:
+                - IPC_LOCK
             env:
             - name: VAULT_CACERT
               value: /etc/vault-tls/tls.crt
