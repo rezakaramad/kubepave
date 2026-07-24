@@ -40,6 +40,8 @@ spec:
               readOnly: true
           - name: vault-agent
             image: {{ .Values.vaultProvider.agentImage }}
+            command:
+            - /bin/vault
             args:
             - agent
             - -config=/etc/vault-agent/config.hcl
