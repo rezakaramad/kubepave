@@ -2,8 +2,8 @@
 <p align="center" width="100%">
     <img width="24%" src="./logo.png">
 </p>
-<h1 align="center">Platform Hub</h1>
 <p align="center" >
+  A paved road to Kubernetes for developers.
   This repository serves as a central hub for managing platform-related tools
   and configurations.
 </p>
