@@ -16,6 +16,21 @@
 
 </p>
 
+## � Table of Contents
+
+- [🚀 Getting started](#-getting-started)
+  - [Bootstrap Azure EntraID (OpenTofu)](#bootstrap-azure-entraid-opentofu)
+    - [Prerequisites](#prerequisites)
+    - [State management (no cloud backend)](#state-management-no-cloud-backend)
+  - [Bootstrap](#bootstrap)
+- [🧹 Destroy everything](#-destroy-everything)
+  - [Argo CD SSO](#argo-cd-sso)
+- [Why Task](#why-task)
+- [Where does it run?](#where-does-it-run)
+- [Minikube Driver](#minikube-driver)
+  - [Why KVM instead of Docker?](#why-kvm-instead-of-docker)
+- [Repository Structure](#repository-structure)
+
 ## 🚀 Getting started
 
 ### Bootstrap Azure EntraID (OpenTofu)
@@ -40,15 +55,14 @@ You may want to verify the active tenant:
 az account show
 ```
 
-[Install OpenTofu](https://opentofu.org/docs/intro/install/):
+[Install OpenTofu](https://opentofu.org/docs/intro/install/) and verify:
 ```bash
 tofu version
 ```
-Make sure **GPG** is installed (it is usually included by default on Ubuntu). This is needed because it is used to encrypt Tofu Statefile before pushing to Git repository:
+[Install **GnuPG**](https://www.gnupg.org/download/) (it is usually included by default on Ubuntu). This is needed because it is used to encrypt Tofu Statefile before pushing to Git repository:
 ```bash
 gpg --version
 ```
-[Install GnuPG](https://www.gnupg.org/download/).
 
 **Initialize & apply**:
 ```bash
@@ -61,7 +75,7 @@ task azure:down
 
 #### State management (no cloud backend):
 
-- State is stored locally and encrypted before committing to Git repository.
+- State is stored in Git and encrypted before pushing to remote.
 - Yes, this is a bit manual; that’s the price of avoiding a paid backend 🙂.
 
 - When you run `task azure:up`, encryption and decryption of the Terraform state file are handled automatically.
@@ -85,8 +99,6 @@ Commit encrypted file:
 git add terraform.tfstate.gpg
 git commit -m "Add encrypted state"
 ```
-Note: `*.tfstate` and `*.tftstate.backup` are git-ignored. 
-
 ### Bootstrap
 
 Make sure [Task is installed](https://taskfile.dev/docs/installation) on your local machine.
