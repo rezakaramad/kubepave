@@ -31,7 +31,7 @@
   - [Why KVM instead of Docker?](#why-kvm-instead-of-docker)
 - [Repository Structure](#repository-structure)
 
-## 🚀 Getting started
+## Getting started
 
 ### Bootstrap Azure EntraID (OpenTofu)
 
@@ -138,7 +138,7 @@ printf %s "$VAULT_ROOT_TOKEN" | xclip -selection clipboard
 printf %s "$ARGOCD_ADMIN_PASSWORD" | xclip -selection clipboard
 ```
 
-## 🧹 Destroy everything
+## Destroy everything
 
 ```bash
 task kind:down
