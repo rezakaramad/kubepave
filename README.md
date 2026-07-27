@@ -18,12 +18,12 @@
 
 ## � Table of Contents
 
-- [🚀 Getting started](#-getting-started)
+- [Getting started](#-getting-started)
   - [Bootstrap Azure EntraID (OpenTofu)](#bootstrap-azure-entraid-opentofu)
     - [Prerequisites](#prerequisites)
     - [State management (no cloud backend)](#state-management-no-cloud-backend)
   - [Bootstrap](#bootstrap)
-- [🧹 Destroy everything](#-destroy-everything)
+- [Destroy everything](#-destroy-everything)
   - [Argo CD SSO](#argo-cd-sso)
 - [Why Task](#why-task)
 - [Where does it run?](#where-does-it-run)
