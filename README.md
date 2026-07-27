@@ -1,4 +1,3 @@
-<html>
 <p align="center" width="100%">
     <img width="24%" src="./logo.png">
 </p>
@@ -14,8 +13,6 @@
   <img src="https://img.shields.io/badge/Helm-a?logo=helm&labelColor=555555&color=0F1689&logoColor=white" />
 
 </p>
-</html>
-
 
 ## 🚀 Getting started
 
