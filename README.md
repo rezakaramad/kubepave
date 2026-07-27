@@ -1,9 +1,10 @@
 <p align="center" width="100%">
     <img width="32%" src="./logo.svg">
 </p>
+<h1 align="center" >
+  A paved road to Kubernetes for developers
+</h1>
 <p align="center" >
-  A paved road to Kubernetes for developers.
-
   This repository serves as a central hub for managing platform-related tools
   and configurations.
 </p>
