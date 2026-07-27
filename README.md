@@ -1,5 +1,5 @@
 <p align="center" width="100%">
-    <img width="32%" src="./logo.png">
+    <img width="32%" src="./logo.svg">
 </p>
 <p align="center" >
   A paved road to Kubernetes for developers.
