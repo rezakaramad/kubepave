@@ -1,17 +1,19 @@
+<html>
 <p align="center" width="100%">
     <img width="24%" src="./logo.png">
 </p>
+<h1 align="center">Platform Hub</h1>
 <p align="center" >
-  A paved road to Kubernetes for developers.
+  This repository serves as a central hub for managing platform-related tools
+  and configurations.
 </p>
 <p align="center" >
-  <img src="https://img.shields.io/badge/internal%20developer%20platform-IDP-2F855A?style=flat" />
-  <img src="https://img.shields.io/badge/kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white" />
-  <img src="https://img.shields.io/badge/gitops-argoCD-orange?style=flat" />
-  <img src="https://img.shields.io/badge/crossplane-326CE5?style=flat&logo=crossplane&logoColor=white" />
-  <img src="https://img.shields.io/badge/helm-0F1689?style=flat&logo=helm&logoColor=white" />
-  <img src="https://img.shields.io/badge/shell%20scripting-bash-4EAA25?style=flat&logo=gnubash&logoColor=white" />
+  <img src="https://img.shields.io/badge/Internal_Developer_Platform-a?logo=devbox&labelColor=555555&color=2F855A&logoColor=white" />
+  <img src="https://img.shields.io/badge/ArgoCD-a?logo=argo&labelColor=555555&color=orange&logoColor=white" />
+  <img src="https://img.shields.io/badge/Kubernetes-k?logo=kubernetes&labelColor=555555&color=326CE5&logoColor=white" />
+  <img src="https://img.shields.io/badge/Helm-a?logo=helm&labelColor=555555&color=0F1689&logoColor=white" />
 </p>
+</html>
 
 ## 🚀 Getting started
 
