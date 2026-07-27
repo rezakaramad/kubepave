@@ -19,21 +19,21 @@
 ## � Table of Contents
 
 - [Getting started](#-getting-started)
-  - [Bootstrap Azure EntraID (OpenTofu)](#bootstrap-azure-entraid-opentofu)
+  - [Bootstrap Azure EntraID](#bootstrap-azure-entraid-opentofu)
     - [Prerequisites](#prerequisites)
     - [State management (no cloud backend)](#state-management-no-cloud-backend)
   - [Bootstrap](#bootstrap)
 - [Destroy everything](#-destroy-everything)
   - [Argo CD SSO](#argo-cd-sso)
 - [Why Task](#why-task)
-- [Where does it run?](#where-does-it-run)
+- [Where it runs](#where-does-it-run)
 - [Minikube Driver](#minikube-driver)
   - [Why KVM instead of Docker?](#why-kvm-instead-of-docker)
 - [Repository Structure](#repository-structure)
 
 ## Getting started
 
-### Bootstrap Azure EntraID (OpenTofu)
+### Bootstrap Azure EntraID
 
 `/src/bootstrap/azure` bootstraps identity resources in Microsoft Entra ID using OpenTofu.
 
@@ -179,7 +179,7 @@ So while **Make**, **Just**, and **Task** all solve similar problems, Task strik
 
 But there’s no perfect tool for everyone — and this is no exception.
 
-## Where does it run?
+## Where it runs
 
 It started with Minikube for local development. It now uses Kind to keep the setup lightweight and to make the networking less complex.
 
