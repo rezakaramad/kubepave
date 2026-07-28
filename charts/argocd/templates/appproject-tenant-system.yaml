@@ -7,8 +7,7 @@ metadata:
 spec:
   description: Project for tenant management.
   sourceRepos:
-    - https://github.com/rezakaramad/kubepave-tenants
-    - https://github.com/rezakaramad/kubepave-tenant-requests
+    - https://github.com/rezakaramad/kubepave
   destinations:
   - name:  in-cluster
     namespace: '*'
