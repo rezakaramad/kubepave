@@ -72,7 +72,7 @@ spec:
     - group: "acme.cert-manager.io"
       kind: "Order"
 
-  {{- if .Values.configConnector.enabled }}
+  {{- if $.Values.configConnector.enabled }}
       # Google Config Connector
     - group: "storage.cnrm.cloud.google.com"
       kind: "StorageBucket"
