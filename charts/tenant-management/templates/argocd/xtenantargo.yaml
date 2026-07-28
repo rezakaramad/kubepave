@@ -10,7 +10,6 @@ kind: XTenantArgo
 metadata:
   name: {{ $tenant.name }}
   labels:
-    {{- include "tpr.labels" . | nindent 4 }}
     platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
 spec: {}
 

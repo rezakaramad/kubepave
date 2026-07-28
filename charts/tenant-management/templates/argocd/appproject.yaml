@@ -9,7 +9,6 @@ metadata:
   name: "{{ $tenant.name }}-{{ $cluster.environmentPrefix }}"
   namespace: argocd
   labels:
-    {{- include "tpr.labels" . | nindent 4 }}
     platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
     platform.rezakara.demo/cluster: "{{ $cluster.clusterName | lower }}"
 spec:
