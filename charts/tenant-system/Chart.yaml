@@ -1,0 +1,4 @@
+apiVersion: v2
+name: tenant-system
+description: Creates the tenant-system namespace where tenant core components are installed
+version: 0.0.1

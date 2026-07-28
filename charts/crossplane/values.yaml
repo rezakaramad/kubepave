@@ -40,6 +40,11 @@ compositeResources:
     package: ghcr.io/rezakaramad/function-xtenantentra
     packageTag: <upsert-in-env-values-file>
 
+  xTenantArgo:
+    enabled: false
+    package: ghcr.io/rezakaramad/function-xtenantargo
+    packageTag: <upsert-in-env-values-file>
+
 selfSignedRootCA:
   # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Let's Encrypt, etc.).
   enabled: false

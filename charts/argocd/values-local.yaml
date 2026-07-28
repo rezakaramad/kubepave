@@ -31,6 +31,7 @@ selfSignedRootCA:
 # Credentials are pulled from Vault via ExternalSecret (clusters-credential.yaml).
 clusterCredentials:
   - name: kind-workload
+    environment: workload
     environmentPrefix: wl
 
 # ------------------------------------------------------------------------------

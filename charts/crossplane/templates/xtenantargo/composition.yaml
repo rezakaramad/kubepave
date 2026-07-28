@@ -1,0 +1,57 @@
+{{- if .Values.compositeResources.xTenantArgo.enabled }}
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xtenantargo
+spec:
+  compositeTypeRef:
+    apiVersion: idp.rezakara.demo/v1beta1
+    kind: XTenantArgo
+  mode: Pipeline
+  pipeline:
+    - step: run-the-template
+      functionRef:
+        name: xtenantargo
+      input:
+        apiVersion: defaults.fn.crossplane.io/v1beta1
+        kind: XTenantArgoDefaults
+
+        # The ArgoCD AppProject all generated Applications belong to.
+        project: tenant-system
+
+        # The Application deployed to the management cluster.
+        management:
+          repoURL: https://github.com/rezakaramad/kubepave
+          path: charts/tenant-management
+          targetRevision: HEAD
+          targetNamespace: tenant-system
+
+        # The Applications deployed to the workload clusters.
+        workload:
+          repoURL: https://github.com/rezakaramad/kubepave
+          path: charts/tenant-workload
+          targetRevision: HEAD
+          helm:
+            valueFiles:
+              - 'values-plt-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}.yaml'
+            parameters:
+              - name: environmentPrefix
+                value: '{{ `{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}'
+          targetClusters:
+            clusterTypeKey: argocd.rezakara.demo/cluster-type
+            clusterType: tenant
+            environmentKey: argocd.rezakara.demo/environment
+            environments:
+              - dev
+              - test
+              - prod
+              - wl
+
+        # The namespaces the ApplicationSet uses.
+        namespace:
+          applicationSet: argocd
+          prefix: tn-
+
+---
+{{- end }}

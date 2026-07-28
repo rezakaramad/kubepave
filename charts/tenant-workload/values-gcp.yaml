@@ -7,7 +7,7 @@ configConnector:
 # The tenant SA must have the iam.gke.io/gcp-service-account annotation set
 # and be granted roles/secretmanager.secretAccessor on the tenant's secrets.
 secretStore:
-  name: gcpsm
+  name: gcp-secret-manager
 
 environmentPrefix: <upsert-in-env-values-file>
 

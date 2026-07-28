@@ -40,6 +40,10 @@ spec:
               readOnly: true
           - name: vault-agent
             image: {{ .Values.vaultProvider.agentImage }}
+            # Override the default entrypoint (docker-entrypoint.sh) which calls
+            # `setcap cap_ipc_lock=+ep /bin/vault` at startup. That requires CAP_SETFCAP,
+            # which kind clusters don't grant, causing an immediate crash. Invoking
+            # /bin/vault directly skips the setcap call entirely.
             command:
             - /bin/vault
             args:

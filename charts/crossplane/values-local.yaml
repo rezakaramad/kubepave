@@ -29,3 +29,7 @@ compositeResources:
   xTenantEntra:
     enabled: true
     packageTag: v0.1.0
+
+  xTenantArgo:
+    enabled: true
+    packageTag: v0.1.1

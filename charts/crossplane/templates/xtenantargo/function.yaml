@@ -1,0 +1,13 @@
+{{- if .Values.compositeResources.xTenantArgo.enabled }}
+
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: xtenantargo
+spec:
+  {{- with .Values.compositeResources.xTenantArgo }}
+  package: {{ .package }}:{{ .packageTag }}
+  {{- end }}
+
+---
+{{- end }}
