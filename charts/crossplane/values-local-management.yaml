@@ -40,4 +40,4 @@ compositeResources:
 
   xTenantArgo:
     enabled: true
-    packageTag: v0.1.1
+    packageTag: v0.1.2
