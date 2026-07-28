@@ -27,3 +27,24 @@ harbor:
 
 gcp-artifact-registry:
   enabled: false
+
+argocd:
+  clusters:
+    - clusterName: kind-workload
+      environment: workload
+      environmentPrefix: wl
+      tenantAppProject:
+        policies:
+          - resource: applications
+            actions:
+              - get
+              - update
+              - delete
+              - sync
+              - action/apps/Deployment/pause
+              - action/apps/Deployment/resume
+              - action/apps/Deployment/restart
+              - action/batch/CronJob/create-job
+          - resource: logs
+            actions:
+              - get
