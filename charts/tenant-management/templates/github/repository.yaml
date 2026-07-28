@@ -1,6 +1,6 @@
 {{- $tenant := .Values.tenant }}
-{{- $repoName := include "tpr.crossplane.repoName" $tenant.name }}
-{{- $githubOrg := include "tpr.crossplane.githubOrg" $ }}
+{{- $repoName := include "tenantDeployRepo.repoName" $tenant.name }}
+{{- $githubOrg := include "tenantDeployRepo.githubOrg" $ }}
 
 apiVersion: repo.github.m.upbound.io/v1alpha1
 kind: Repository
