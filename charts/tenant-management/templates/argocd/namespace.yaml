@@ -7,7 +7,6 @@ kind: Namespace
 metadata:
   name: tn-{{ $tenant.name }}
   labels:
-    {{- include "tpr.labels" . | nindent 4 }}
     platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
 
 ---
