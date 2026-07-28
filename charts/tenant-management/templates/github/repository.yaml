@@ -9,7 +9,6 @@ metadata:
   annotations:
     crossplane.io/external-name: {{ $repoName | quote }}
   labels:
-    {{- include "tpr.labels" . | nindent 4 }}
     platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
     platform.rezakara.demo/github-org: {{ $githubOrg | quote }}
 
