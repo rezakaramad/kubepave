@@ -27,9 +27,9 @@ secretStore:
 
 compositeResources:
   xTenantEntra:
-    enabled: true
-    packageTag: v0.1.0
+    enabled: false
+    packageTag: <upsert-in-env-values-file>
 
   xTenantArgo:
-    enabled: true
-    packageTag: v0.1.1
+    enabled: false
+    packageTag: <upsert-in-env-values-file>
