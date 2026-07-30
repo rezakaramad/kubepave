@@ -24,7 +24,7 @@ spec:
               repoURL: {{ $repoURL | quote }}
               revision: HEAD
               directories:
-                - path: applications/*
+                - path: apps/*
           - clusters:
               selector:
                 matchExpressions:
