@@ -1,7 +1,7 @@
 # For each tenant and cluster, create an ArgoCD AppProject that allows the tenant to deploy applications to the cluster.
 
 {{- $tenant := .Values.tenant }}
-{{- range $cluster := $.Values.argocd.clusters -}}
+{{- range $cluster := $.Values.argocd.clusters }}
 
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
