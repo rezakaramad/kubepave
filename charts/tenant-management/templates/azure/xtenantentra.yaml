@@ -1,6 +1,6 @@
 {{- $tenant := .Values.tenant }}
 
-apiVersion: platform.rezakara.demo/v1beta1
+apiVersion: idp.rezakara.demo/v1beta1
 kind: XTenantEntra
 metadata:
   name: {{ $tenant.name }}
