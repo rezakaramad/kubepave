@@ -1,6 +1,6 @@
 {{/* Returns the GitHub organization where tenant deploy repositories are created */}}
 {{- define "tenantDeployRepo.githubOrg" -}}
-jysk-dev
+talktorubberduckdev
 {{- end -}}
 
 {{/* Builds the repository name for a tenant (platform-deploy-<tenant>) */}}
