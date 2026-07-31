@@ -34,14 +34,14 @@ spec:
           targetRevision: HEAD
           helm:
             valueFiles:
-              - 'values-plt-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}.yaml'
+              - 'values-plt-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environmentPrefix" }}` }}.yaml'
             parameters:
               - name: environmentPrefix
-                value: '{{ `{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}'
+                value: '{{ `{{ index .metadata.labels "argocd.rezakara.demo/environmentPrefix" }}` }}'
           targetClusters:
             clusterTypeKey: argocd.rezakara.demo/cluster-type
             clusterType: tenant
-            environmentKey: argocd.rezakara.demo/environment
+            environmentKey: argocd.rezakara.demo/environmentPrefix
             environments:
               - dev
               - test
