@@ -102,10 +102,10 @@ argocd:
       server.insecure: "true"
 
       # -- Allow Argo CD to discover and reconcile Application resources in argocd and all argocd-* namespaces
-      application.namespaces: argocd, argocd-*
+      application.namespaces: argocd, tn-*
 
       # -- Allow Argo CD to discover and reconcile ApplicationSet resources in argocd and all argocd-* namespaces
-      applicationsetcontroller.namespaces: argocd, argocd-*
+      applicationsetcontroller.namespaces: argocd, tn-*
 
       # -- # Required when ApplicationSets are watched outside the argocd namespace
       applicationsetcontroller.allowed.scm.providers: github
