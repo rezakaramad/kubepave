@@ -1,14 +1,16 @@
 {{- if .Values.compositeResources.xTenantArgo.enabled }}
 
 # Grant the Crossplane service account permission to manage ApplicationSet
-# resources in the argocd namespace. Crossplane composes ApplicationSets via
-# the xtenantargo function; without this Role the compose step fails with a
-# "forbidden: cannot patch resource applicationsets" error.
+# resources. Crossplane composes ApplicationSets via the xtenantargo function.
+# This must be a ClusterRole (not a namespaced Role): Crossplane's composite
+# controller starts a cluster-scoped informer to observe composed resources, so
+# it performs list/watch across all namespaces. A namespaced Role only satisfies
+# the create/patch calls into a single namespace and leaves the informer unable
+# to sync, failing with "Timeout: failed waiting for Informer to sync".
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   name: crossplane-applicationset-manager
-  namespace: argocd
 rules:
   - apiGroups: ["argoproj.io"]
     resources: ["applicationsets", "applicationsets/status"]
@@ -17,13 +19,12 @@ rules:
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
   name: crossplane-applicationset-manager
-  namespace: argocd
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
+  kind: ClusterRole
   name: crossplane-applicationset-manager
 subjects:
   - kind: ServiceAccount
