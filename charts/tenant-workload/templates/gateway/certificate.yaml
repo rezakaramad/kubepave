@@ -1,4 +1,4 @@
-# Generate a wildcard TLS certificate for :: {{ $hostname }}
+# Generate a wildcard TLS certificate for the tenant gateway hostname.
 
 {{- $tenant := .Values.tenant }}
 {{- $hostname := include "tn.gateway.hostname" (dict "name" $tenant.tenantShortName "environmentPrefix" .Values.environmentPrefix) }}

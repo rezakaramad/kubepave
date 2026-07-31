@@ -34,19 +34,17 @@ spec:
           targetRevision: HEAD
           helm:
             valueFiles:
-              - 'values-plt-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environmentPrefix" }}` }}.yaml'
-            parameters:
-              - name: environmentPrefix
-                value: '{{ `{{ index .metadata.labels "argocd.rezakara.demo/environmentPrefix" }}` }}'
+              - values-local.yaml
+              - 'values-local-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}.yaml'
           targetClusters:
             clusterTypeKey: argocd.rezakara.demo/cluster-type
             clusterType: tenant
-            environmentKey: argocd.rezakara.demo/environmentPrefix
+            environmentKey: argocd.rezakara.demo/environment
             environments:
               - dev
               - test
               - prod
-              - wl
+              - workload
 
         # The namespaces the ApplicationSet uses.
         namespace:

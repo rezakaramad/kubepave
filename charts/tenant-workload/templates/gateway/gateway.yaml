@@ -1,4 +1,4 @@
-# Generate a Gateway resource for :: {{ $tenant.name }}
+# Generate a Gateway resource for the tenant.
 
 {{- $tenant := .Values.tenant }}
 {{- $hostname := include "tn.gateway.hostname" (dict "name" $tenant.tenantShortName "environmentPrefix" .Values.environmentPrefix) }}

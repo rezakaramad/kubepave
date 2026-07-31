@@ -1,3 +1,4 @@
+{{/*
 # {{- $tenant := .Values.tenant }}
 
 #   # --[ Namespace Scoped Default Roles ]----------------------
@@ -36,3 +37,4 @@
 #   kind: ClusterRole
 #   name: namespace-viewer
 #   apiGroup: rbac.authorization.k8s.io
+*/}}

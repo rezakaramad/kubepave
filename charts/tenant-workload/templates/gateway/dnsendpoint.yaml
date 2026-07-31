@@ -1,4 +1,4 @@
-# Generate a wildcard DNS endpoint for :: {{ $tenant.name }}
+# Generate a wildcard DNS endpoint for the tenant.
 # This is used by ExternalDNS to create a wildcard DNS record for the tenant's gateway hostname.
 # Without this, the tenant's applications would not be accessible via the wildcard hostname.
 

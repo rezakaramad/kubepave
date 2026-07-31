@@ -22,3 +22,20 @@ Common labels for all resources in this chart
 platform.rezakara.demo/part-of: idp
 platform.rezakara.demo/component: tenant-foundation
 {{- end -}}
+
+{{/*
+Fully-qualified base hostname for a tenant's gateway:
+  <tenantShortName>.<environmentPrefix>.rezakara.demo   e.g. pil.wl.rezakara.demo
+Callers wildcard it as *.<hostname>. Expects a dict: {name, environmentPrefix}.
+*/}}
+{{- define "tn.gateway.hostname" -}}
+{{- printf "%s.%s.rezakara.demo" (.name | lower) (.environmentPrefix | lower) -}}
+{{- end -}}
+
+{{/*
+DNS-1123-safe resource name derived from a hostname (dots -> hyphens),
+e.g. pil.wl.rezakara.demo -> pil-wl-rezakara-demo. Expects the hostname string as the context.
+*/}}
+{{- define "tn.gateway.certificateName" -}}
+{{- . | lower | replace "." "-" -}}
+{{- end -}}

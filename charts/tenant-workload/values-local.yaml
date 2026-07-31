@@ -22,4 +22,4 @@ gateway:
   gatewayClass: "traefik"
 
   # Upsert in environment values file.
-  loadBalancerIPs: []
+  loadBalancerIPs: [ 10.10.10.10 ]

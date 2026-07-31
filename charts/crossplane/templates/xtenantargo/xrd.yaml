@@ -18,6 +18,17 @@ spec:
         properties:
           spec:
             type: object
+            properties:
+              shortName:
+                type: string
+                description: |-
+                  Short DNS-label alias for the tenant, used to build gateway
+                  hostnames such as <shortName>.<environment>.rezakara.demo.
+                minLength: 1
+                maxLength: 10
+                pattern: ^[a-z][a-z0-9-]*[a-z0-9]$
+            required:
+            - shortName
           status:
             type: object
         required:
