@@ -29,15 +29,19 @@ spec:
           containers:
           - name: package-runtime
             env:
+            {{- if hasPrefix "https://" .Values.vaultProvider.address }}
             - name: VAULT_CACERT
               value: /etc/vault-tls/tls.crt
+            {{- end }}
             volumeMounts:
             - name: vault-token
               mountPath: /vault/secrets
               readOnly: true
+            {{- if hasPrefix "https://" .Values.vaultProvider.address }}
             - name: vault-tls
               mountPath: /etc/vault-tls
               readOnly: true
+            {{- end }}
           - name: vault-agent
             image: {{ .Values.vaultProvider.agentImage }}
             # Override the default entrypoint (docker-entrypoint.sh) which calls
@@ -54,8 +58,10 @@ spec:
                 add:
                 - IPC_LOCK
             env:
+            {{- if hasPrefix "https://" .Values.vaultProvider.address }}
             - name: VAULT_CACERT
               value: /etc/vault-tls/tls.crt
+            {{- end }}
             volumeMounts:
             - name: vault-agent-config
               mountPath: /etc/vault-agent
@@ -65,9 +71,11 @@ spec:
               readOnly: true
             - name: vault-token
               mountPath: /vault/secrets
+            {{- if hasPrefix "https://" .Values.vaultProvider.address }}
             - name: vault-tls
               mountPath: /etc/vault-tls
               readOnly: true
+            {{- end }}
           volumes:
           - name: vault-agent-config
             configMap:
@@ -82,8 +90,10 @@ spec:
           - name: vault-token
             emptyDir:
               medium: Memory
+          {{- if hasPrefix "https://" .Values.vaultProvider.address }}
           - name: vault-tls
             secret:
               secretName: {{ .Values.vaultProvider.caCertSecret }}
+          {{- end }}
 
 {{- end }}

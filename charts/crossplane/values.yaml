@@ -29,9 +29,11 @@ vaultProvider:
   # short-lived Vault token via JWT auth for the provider container).
   agentImage: <upsert-in-env-values-file>
   # Vault server address used by both the Vault Agent sidecar and the provider.
+  # Use https:// for TLS-enabled Vault (production); http:// disables TLS (local dev).
   address: <upsert-in-env-values-file>
   # Kubernetes Secret containing the CA certificate (key: tls.crt) used to
   # verify the Vault server's TLS certificate. Must exist in crossplane-system.
+  # Ignored when address uses http://.
   caCertSecret: <upsert-in-env-values-file>
 
 compositeResources:

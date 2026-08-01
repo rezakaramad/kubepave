@@ -20,7 +20,9 @@ data:
 
     vault {
       address = {{ .Values.vaultProvider.address | quote }}
+      {{- if hasPrefix "https://" .Values.vaultProvider.address }}
       ca_cert = "/etc/vault-tls/tls.crt"
+      {{- end }}
     }
 
     auto_auth {
