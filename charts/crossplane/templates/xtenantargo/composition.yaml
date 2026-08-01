@@ -26,6 +26,10 @@ spec:
           path: charts/tenant-management
           targetRevision: HEAD
           targetNamespace: tenant-system
+          helm:
+            parameters:
+              - name: vault.enabled
+                value: "true"
 
         # The Applications deployed to the workload clusters.
         workload:
@@ -36,6 +40,9 @@ spec:
             valueFiles:
               - values-local.yaml
               - 'values-local-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}.yaml'
+            parameters:
+              - name: vault.enabled
+                value: "true"
           targetClusters:
             clusterTypeKey: argocd.rezakara.demo/cluster-type
             clusterType: tenant
