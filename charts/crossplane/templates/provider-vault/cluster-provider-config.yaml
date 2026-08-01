@@ -38,12 +38,13 @@
 # that file each reconcile. No static secret and no TokenReview call-back.
 
 
-# The Vault Terraform provider normally creates a short-lived child token for safer access.
-# In this setup, that would fail and add little value because the agent token is already short-lived,
-# renewable, and lacks permission to create child tokens. 
-# skip_child_token: the provider uses the agent-supplied token directly instead
-# of minting a child token (which would need auth/token/create , a capability we
-# deliberately keep out of provider-vault-policy).
+# The Vault Terraform provider issues itself a short-lived "limited child token"
+# for safer access. skip_child_token=true is meant to disable this so the provider
+# uses the agent-supplied token directly. NOTE: provider-vault v4.0.0 does not honor
+# skip_child_token — it always calls auth/token/create — so provider-vault-policy
+# grants "update" on auth/token/create. The child token is ephemeral and can only
+# inherit a subset of the policy, so this adds no privilege escalation. We keep
+# skip_child_token=true anyway for when a fixed provider honors it.
 apiVersion: vault.m.upbound.io/v1beta1
 kind: ClusterProviderConfig
 metadata:

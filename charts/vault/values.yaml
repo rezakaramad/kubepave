@@ -131,6 +131,16 @@ vault:
         path "sys/policies/acl/tenant-policy" {
           capabilities = ["read"]
         }
+
+        # provider-vault (terraform-plugin-based) issues itself a short-lived
+        # "limited child token" at setup time via auth/token/create. We set
+        # skip_child_token=true on the ClusterProviderConfig to avoid this, but
+        # provider-vault v4.0.0 does not honor that flag, so the capability is
+        # required. The child token is ephemeral and can only inherit a subset of
+        # this policy, so it grants no additional privilege.
+        path "auth/token/create" {
+          capabilities = ["update"]
+        }
         EOF
 
         echo "Writing Backstage policy..."
