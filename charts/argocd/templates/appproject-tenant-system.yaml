@@ -11,6 +11,10 @@ spec:
   destinations:
   - name:  in-cluster
     namespace: '*'
+  {{- range .Values.clusterCredentials }}
+  - name: {{ .name }}
+    namespace: '*'
+  {{- end }}
   clusterResourceWhitelist:
   - group: '*'
     kind: '*'
