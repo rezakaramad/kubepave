@@ -1,10 +1,10 @@
 {{- if .Values.vaultProvider.enabled }}
 
 # auto_auth logs in to the jwt-management backend using the provider-vault
-# ServiceAccount token (projected with the Vault audience). The resulting
-# short-lived Vault token is written to the shared /vault/secrets/token sink,
-# which the provider-vault container reads each reconcile. The agent keeps the
-# token renewed and re-authenticates when it expires — no static secret.
+# ServiceAccount token (projected with the Vault audience). A template renders
+# the resulting short-lived Vault token as JSON to the shared /vault/secrets/token
+# file, which the provider-vault container reads each reconcile. The agent keeps
+# the token renewed and re-authenticates when it expires — no static secret.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -33,12 +33,17 @@ data:
           path = "/var/run/secrets/tokens/vault-token"
         }
       }
+    }
 
-      sink "file" {
-        config = {
-          path = "/vault/secrets/token"
-        }
-      }
+    # provider-vault (upjet-based) reads this file and json.Unmarshal's it, so the
+    # token must be a JSON object {"token":"<token>"} rather than the raw string a
+    # file sink would write (which fails with: invalid character 'h' ... — the 'h'
+    # of hvs.). This template authenticates with the auto-auth token, looks itself
+    # up to recover the token id, and only renders after auth succeeds (no startup
+    # race that a sink + separate wrapper would introduce).
+    template {
+      destination = "/vault/secrets/token"
+      contents    = {{ `"{{ with secret \"auth/token/lookup-self\" }}{\"token\":\"{{ .Data.id }}\"}{{ end }}"` }}
     }
 
 {{- end }}
