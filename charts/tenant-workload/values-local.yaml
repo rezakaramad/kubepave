@@ -8,6 +8,7 @@ configConnector:
 
 vault:
   enabled: true
+  serviceAccountName: tenant-eso
 
 # SecretStore created in each tenant namespace.
 # On local the provider is Vault JWT (vault.enabled=true drives the auth block).
