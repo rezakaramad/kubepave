@@ -28,8 +28,8 @@ spec:
           serviceAccountName: provider-vault
           containers:
           - name: package-runtime
-            env:
             {{- if hasPrefix "https://" .Values.vaultProvider.address }}
+            env:
             - name: VAULT_CACERT
               value: /etc/vault-tls/tls.crt
             {{- end }}
@@ -57,8 +57,8 @@ spec:
               capabilities:
                 add:
                 - IPC_LOCK
-            env:
             {{- if hasPrefix "https://" .Values.vaultProvider.address }}
+            env:
             - name: VAULT_CACERT
               value: /etc/vault-tls/tls.crt
             {{- end }}
