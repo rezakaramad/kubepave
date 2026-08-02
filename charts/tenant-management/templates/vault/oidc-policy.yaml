@@ -25,6 +25,14 @@ spec:
   forProvider:
     name: {{ printf "tenant-%s" ($tenant.name | lower) | quote }}
     policy: |
+      # Deliberate UX trade-off: allow a LIST on the mount root so the Vault KV
+      # UI opens when the tenant browses the `tenants/` engine (the UI issues a
+      # list on `tenants/metadata/` before showing anything). This exposes the
+      # folder NAMES of other tenants but never their secret contents — actual
+      # data/metadata access stays scoped to this tenant's path below.
+      path "tenants/metadata" {
+        capabilities = ["list"]
+      }
       path "tenants/data/{{ $tenant.name | lower }}/*" {
         capabilities = ["read", "list", "create", "update", "delete"]
       }
