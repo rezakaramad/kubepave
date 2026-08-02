@@ -168,6 +168,35 @@ argocd:
         hs.message = "Waiting for operator"
         return hs
 
+      # -- Health check for all Crossplane provider managed resources
+      # (provider-vault + provider-azuread, group *.upbound.io). These share the
+      # standard Crossplane Ready/Synced conditions, which ArgoCD cannot assess
+      # on its own, so without this they show as Progressing/unhealthy forever
+      # even when Synced=True/Ready=True in the cluster. Wildcards are only
+      # supported via the `resource.customizations` key (not the
+      # `.health.<group>_<kind>` form), so one entry covers every MR kind.
+      resource.customizations: |
+        "*.upbound.io/*":
+          health.lua: |
+            hs = {}
+            if obj.status ~= nil and obj.status.conditions ~= nil then
+              for i, condition in ipairs(obj.status.conditions) do
+                if condition.type == "Ready" and condition.status == "True" then
+                  hs.status = "Healthy"
+                  hs.message = condition.message
+                  return hs
+                end
+                if condition.type == "Ready" and condition.status == "False" then
+                  hs.status = "Degraded"
+                  hs.message = condition.message
+                  return hs
+                end
+              end
+            end
+            hs.status = "Progressing"
+            hs.message = "Waiting for resource to become ready"
+            return hs
+
     rbac:
       # -- Default role for authenticated users when no explicit RBAC rule matches.
       # -- Leave empty to give no permissions by default (recommended with SSO).
