@@ -114,6 +114,19 @@ resource "azuread_app_role_assignment" "argocd_platform_viewer" {
   resource_object_id  = azuread_service_principal.argocd.object_id
 }
 
+# Tenant-wide admin consent for the OIDC sign-in scopes.
+#
+# Argo CD requests openid/profile/email dynamically at login and does not
+# declare them in required_resource_access. Historically this grant was created
+# by clicking "Grant admin consent" once; capturing it here means a fresh apply
+# (or SP recreation) reproduces it automatically instead of breaking login with
+# "needs permission that only an admin can grant".
+resource "azuread_service_principal_delegated_permission_grant" "argocd_oidc" {
+  service_principal_object_id          = azuread_service_principal.argocd.object_id
+  resource_service_principal_object_id = data.azuread_service_principal.msgraph.object_id
+  claim_values                         = ["openid", "profile", "email"]
+}
+
 # Argo CD outputs
 output "argocd_client_id" {
   value = azuread_application.argocd.client_id
@@ -529,6 +542,20 @@ resource "azuread_application_password" "vault" {
   lifecycle {
     ignore_changes = all
   }
+}
+
+# Tenant-wide (AllPrincipals) admin consent for the OIDC sign-in scopes.
+#
+# The Vault app requests openid/profile/email dynamically at login time and does
+# not declare them in required_resource_access (same as the Argo CD app). When
+# the tenant disallows user self-consent, a login otherwise fails with
+# "needs permission that only an admin can grant". This grant is the Terraform
+# equivalent of clicking "Grant admin consent" once, so a fresh apply (or app
+# recreation) reproduces it automatically instead of requiring a manual step.
+resource "azuread_service_principal_delegated_permission_grant" "vault_oidc" {
+  service_principal_object_id          = azuread_service_principal.vault.object_id
+  resource_service_principal_object_id = data.azuread_service_principal.msgraph.object_id
+  claim_values                         = ["openid", "profile", "email"]
 }
 
 # Vault outputs

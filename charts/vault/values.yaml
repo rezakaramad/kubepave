@@ -132,6 +132,42 @@ vault:
           capabilities = ["read"]
         }
 
+        # Per-tenant human-operator ACL policies (tenant-<t>) are managed by
+        # provider-vault from the tenant-management chart (Vault OIDC SSO). It must
+        # create/update/delete these named policies as tenants come and go.
+        path "sys/policies/acl/tenant-*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+
+        # Per-tenant external Identity Groups + Group Aliases that map the Entra ID
+        # `roles` claim to the tenant policy (Vault OIDC SSO). provider-vault manages
+        # these identity objects from the tenant-management chart.
+        path "identity/group" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "identity/group/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "identity/group-alias" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "identity/group-alias/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "identity/lookup/group" {
+          capabilities = ["update"]
+        }
+
+        # Placeholder tenant secret so each tenant's KV path exists on first login.
+        # provider-vault writes tenants/<t>/welcome from the tenant-management chart,
+        # so it needs write access across the tenant KV paths.
+        path "tenants/data/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "tenants/metadata/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+
         # provider-vault (terraform-plugin-based) issues itself a short-lived
         # "limited child token" at setup time via auth/token/create. We set
         # skip_child_token=true on the ClusterProviderConfig to avoid this, but

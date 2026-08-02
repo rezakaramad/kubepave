@@ -18,6 +18,9 @@ vault:
   providerConfigName: vault
   # TTL (seconds) for tokens issued under this role.
   tokenTtl: 3600
+  # KV v2 mount that holds per-tenant secrets. A placeholder secret is written
+  # under <kvMount>/<tenant>/ so the path exists on first login.
+  kvMount: tenants
 
   # Human tenant-operator SSO into Vault via Entra ID OIDC. When enabled, the
   # chart provisions a per-tenant ACL Policy + external Identity Group + Group
