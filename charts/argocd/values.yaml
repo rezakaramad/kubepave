@@ -176,6 +176,17 @@ argocd:
       # supported via the `resource.customizations` key (not the
       # `.health.<group>_<kind>` form), so one entry covers every MR kind.
       resource.customizations: |
+        # ProviderConfigUsage is internal Crossplane bookkeeping (a finalizer
+        # guard so a ProviderConfig can't be deleted while an MR still uses it).
+        # It carries NO status.conditions and has no lifecycle to wait on, so the
+        # generic MR check below would pin it as Progressing forever. This more
+        # specific entry wins over the `*` kind wildcard and reports it Healthy.
+        "*.upbound.io/ProviderConfigUsage":
+          health.lua: |
+            hs = {}
+            hs.status = "Healthy"
+            hs.message = "ProviderConfigUsage (internal usage record)"
+            return hs
         "*.upbound.io/*":
           health.lua: |
             hs = {}
