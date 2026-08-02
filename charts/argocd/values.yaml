@@ -179,16 +179,20 @@ argocd:
         "*.upbound.io/*":
           health.lua: |
             hs = {}
-            -- ProviderConfigUsage is internal Crossplane bookkeeping (a finalizer
-            -- guard so a ProviderConfig can't be deleted while an MR still uses it).
-            -- It carries NO status.conditions and has no lifecycle to wait on, so
-            -- the condition loop below would pin it as Progressing forever. Branch
-            -- on kind here (a single wildcard entry) instead of a second glob key:
-            -- ArgoCD picks between overlapping globs by random map order, not by
-            -- specificity, so two entries would flap between Healthy/Progressing.
-            if obj.kind == "ProviderConfigUsage" then
+            -- Some *.upbound.io kinds are config/bookkeeping, not reconciled
+            -- infrastructure, and carry NO status.conditions — the condition loop
+            -- below would pin them as Progressing forever. Short-circuit them to
+            -- Healthy by kind. (Branch inside this single wildcard rather than
+            -- adding more glob keys: ArgoCD picks between overlapping globs by
+            -- random map order, not specificity, so extra entries would flap.)
+            --  * ProviderConfigUsage    – finalizer guard linking an MR to a config
+            --  * ClusterProviderConfig  – provider credentials/endpoint config
+            --  * ProviderConfig         – namespaced provider config
+            if obj.kind == "ProviderConfigUsage"
+              or obj.kind == "ClusterProviderConfig"
+              or obj.kind == "ProviderConfig" then
               hs.status = "Healthy"
-              hs.message = "ProviderConfigUsage (internal usage record)"
+              hs.message = obj.kind .. " (configuration object)"
               return hs
             end
             if obj.status ~= nil and obj.status.conditions ~= nil then
