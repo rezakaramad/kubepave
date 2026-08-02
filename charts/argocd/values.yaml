@@ -176,20 +176,21 @@ argocd:
       # supported via the `resource.customizations` key (not the
       # `.health.<group>_<kind>` form), so one entry covers every MR kind.
       resource.customizations: |
-        # ProviderConfigUsage is internal Crossplane bookkeeping (a finalizer
-        # guard so a ProviderConfig can't be deleted while an MR still uses it).
-        # It carries NO status.conditions and has no lifecycle to wait on, so the
-        # generic MR check below would pin it as Progressing forever. This more
-        # specific entry wins over the `*` kind wildcard and reports it Healthy.
-        "*.upbound.io/ProviderConfigUsage":
-          health.lua: |
-            hs = {}
-            hs.status = "Healthy"
-            hs.message = "ProviderConfigUsage (internal usage record)"
-            return hs
         "*.upbound.io/*":
           health.lua: |
             hs = {}
+            -- ProviderConfigUsage is internal Crossplane bookkeeping (a finalizer
+            -- guard so a ProviderConfig can't be deleted while an MR still uses it).
+            -- It carries NO status.conditions and has no lifecycle to wait on, so
+            -- the condition loop below would pin it as Progressing forever. Branch
+            -- on kind here (a single wildcard entry) instead of a second glob key:
+            -- ArgoCD picks between overlapping globs by random map order, not by
+            -- specificity, so two entries would flap between Healthy/Progressing.
+            if obj.kind == "ProviderConfigUsage" then
+              hs.status = "Healthy"
+              hs.message = "ProviderConfigUsage (internal usage record)"
+              return hs
+            end
             if obj.status ~= nil and obj.status.conditions ~= nil then
               for i, condition in ipairs(obj.status.conditions) do
                 if condition.type == "Ready" and condition.status == "True" then
