@@ -19,6 +19,17 @@ vault:
   # TTL (seconds) for tokens issued under this role.
   tokenTtl: 3600
 
+  # Human tenant-operator SSO into Vault via Entra ID OIDC. When enabled, the
+  # chart provisions a per-tenant ACL Policy + external Identity Group + Group
+  # Alias so a user whose Entra ID token carries this tenant's app-role value
+  # (the `roles` claim) can log into Vault and access ONLY tenants/<tenant>/*.
+  oidc:
+    enabled: false
+    # Mount accessor of the `oidc` auth method on the management Vault. Captured
+    # by setup-vault.sh (VAULT_OIDC_ACCESSOR) and injected via the crossplane
+    # composition. Required when oidc.enabled is true.
+    mountAccessor: ""
+
 grafana:
   enabled: false
 

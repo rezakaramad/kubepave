@@ -480,6 +480,72 @@ output "backstage_catalog_sync_client_secret_value" {
 }
 
 # ---------------------------------------------------------------
+# Vault
+# ---------------------------------------------------------------
+# SSO login for human tenant operators. Mirrors the Argo CD pattern:
+# per-tenant app roles (one per tenant, value = tenant name) are created by the
+# xtenantentra Crossplane function, assigned to a per-tenant Entra group, and
+# surfaced to Vault in the "roles" claim of the ID token. Vault's OIDC auth
+# method maps that claim (groups_claim = roles) to a per-tenant policy so each
+# operator can read/write only tenants/<tenant>/* in Vault.
+resource "azuread_application" "vault" {
+  display_name     = "Vault"
+  sign_in_audience = "AzureADMyOrg"
+  owners = [
+    data.azuread_client_config.current.object_id,
+    # Crossplane SP is a co-owner so the xtenantentra function can add/remove
+    # per-tenant app roles on this application at runtime.
+    azuread_service_principal.crossplane.object_id
+  ]
+
+  web {
+    redirect_uris = [
+      # Vault UI OIDC callback (mount path "oidc", role "oidc").
+      "https://vault.mgmt.rezakara.demo/ui/vault/auth/oidc/oidc/callback",
+      # Vault CLI OIDC callback (`vault login -method=oidc`).
+      "http://localhost:8250/oidc/callback"
+    ]
+  }
+
+  # Per-tenant app roles are managed by the xtenantentra function, not Terraform.
+  # Ignore app_role so Terraform doesn't delete/recreate roles the function owns.
+  lifecycle {
+    ignore_changes = [
+      app_role
+    ]
+  }
+}
+
+resource "azuread_service_principal" "vault" {
+  client_id                    = azuread_application.vault.client_id
+  app_role_assignment_required = true
+  owners                       = [data.azuread_client_config.current.object_id]
+}
+
+resource "azuread_application_password" "vault" {
+  application_id = azuread_application.vault.id
+  display_name   = "Vault"
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+# Vault outputs
+output "vault_client_id" {
+  value = azuread_application.vault.client_id
+}
+
+output "vault_client_secret_id" {
+  value = azuread_application_password.vault.key_id
+}
+
+output "vault_client_secret_value" {
+  value     = azuread_application_password.vault.value
+  sensitive = true
+}
+
+# ---------------------------------------------------------------
 # General outputs
 # ---------------------------------------------------------------
 output "tenant_id" {

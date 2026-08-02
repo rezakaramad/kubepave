@@ -30,6 +30,15 @@ spec:
             parameters:
               - name: vault.enabled
                 value: "true"
+              {{- if .Values.vaultProvider.oidcAccessor }}
+              # Human tenant-operator Vault SSO: enabled only once the OIDC mount
+              # accessor has been pasted into vaultProvider.oidcAccessor. Provisions
+              # the per-tenant Policy/Group/GroupAlias in the tenant-management chart.
+              - name: vault.oidc.enabled
+                value: "true"
+              - name: vault.oidc.mountAccessor
+                value: {{ .Values.vaultProvider.oidcAccessor | quote }}
+              {{- end }}
 
         # The Applications deployed to the workload clusters.
         workload:

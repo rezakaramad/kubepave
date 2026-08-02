@@ -1,0 +1,34 @@
+{{- if and .Values.vault.enabled .Values.vault.oidc.enabled }}
+{{- $tenant := .Values.tenant }}
+
+# Per-tenant Vault ACL Policy for HUMAN tenant operators logging in via Entra ID
+# OIDC (distinct from the machine `tenant-policy`, which is identity-templated on
+# the jwt-workload-tenants backend and cannot be reused for OIDC users).
+#
+# Created by crossplane provider-vault on the management cluster. Grants the
+# tenant read/write on ONLY their own KV path — the same boundary the machine
+# policy enforces, but here bound to an explicit per-tenant policy name that the
+# external Identity Group (oidc-group.yaml) attaches to.
+apiVersion: vault.vault.m.upbound.io/v1alpha1
+kind: Policy
+metadata:
+  name: {{ printf "%s-vault-policy" ($tenant.name | lower) }}
+  labels:
+    platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
+spec:
+  providerConfigRef:
+    kind: ClusterProviderConfig
+    name: {{ .Values.vault.providerConfigName | quote }}
+
+  managementPolicies: ["Create", "Observe", "Update", "Delete"]
+
+  forProvider:
+    name: {{ printf "tenant-%s" ($tenant.name | lower) | quote }}
+    policy: |
+      path "tenants/data/{{ $tenant.name | lower }}/*" {
+        capabilities = ["read", "list", "create", "update", "delete"]
+      }
+      path "tenants/metadata/{{ $tenant.name | lower }}/*" {
+        capabilities = ["read", "list", "delete"]
+      }
+{{- end }}

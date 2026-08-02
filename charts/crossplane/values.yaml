@@ -35,6 +35,11 @@ vaultProvider:
   # verify the Vault server's TLS certificate. Must exist in crossplane-system.
   # Ignored when address uses http://.
   caCertSecret: <upsert-in-env-values-file>
+  # Mount accessor of the Vault `oidc` auth method (human tenant-operator SSO).
+  # Captured at bootstrap by setup-vault.sh (VAULT_OIDC_ACCESSOR in .platform.env).
+  # Paste once and commit to enable per-tenant Vault OIDC objects via xtenantargo.
+  # Empty = human Vault SSO objects stay off.
+  oidcAccessor: ""
 
 compositeResources:
   xTenantEntra:

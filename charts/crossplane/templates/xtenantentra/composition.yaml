@@ -21,6 +21,10 @@ spec:
           appRegObjectID: 805df85c-99e7-4e82-979f-242334735f59 # The ObjectID of the App Registration
           enterpriseAppObjectID: 622026ce-04e7-4b50-be99-f4302860da61 # The ObjectID of the Enterprise App
 
+        vaultApp:
+          appRegObjectID: 77b7f4b8-247d-4c83-a1c5-4feaea958525 # The ObjectID of the App Registration
+          enterpriseAppObjectID: 20661b7d-3f4e-4a6a-a681-ccf07438f105 # The ObjectID of the Enterprise App
+
         # The provider config all resources should reference.
         providerConfigRef:
           name: azuread

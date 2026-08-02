@@ -1,0 +1,34 @@
+{{- if and .Values.vault.enabled .Values.vault.oidc.enabled }}
+{{- $tenant := .Values.tenant }}
+
+# Group alias that maps the Entra ID `roles` claim value (== tenant name, the
+# app-role Value composed by the xtenantentra function) onto the external
+# Identity Group above. This is the join that makes OIDC login resolve to the
+# tenant's group and therefore its policy.
+#
+# - name          MUST equal the app-role Value (tenant name) delivered in the
+#                 `roles` claim; Vault matches the alias by this name.
+# - mountAccessor pins the alias to the `oidc` auth method (captured by
+#                 setup-vault.sh as VAULT_OIDC_ACCESSOR).
+# - canonicalIdRef references the Group MR so crossplane resolves the group's
+#                 canonical ID automatically once the group exists (no manual
+#                 status wait needed).
+apiVersion: identity.vault.m.upbound.io/v1alpha1
+kind: GroupAlias
+metadata:
+  name: {{ printf "%s-vault-group-alias" ($tenant.name | lower) }}
+  labels:
+    platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
+spec:
+  providerConfigRef:
+    kind: ClusterProviderConfig
+    name: {{ .Values.vault.providerConfigName | quote }}
+
+  managementPolicies: ["Create", "Observe", "Update", "Delete"]
+
+  forProvider:
+    name: {{ $tenant.name | lower | quote }}
+    mountAccessor: {{ required "vault.oidc.mountAccessor is required when vault.oidc.enabled is true" .Values.vault.oidc.mountAccessor | quote }}
+    canonicalIdRef:
+      name: {{ printf "%s-vault-group" ($tenant.name | lower) }}
+{{- end }}

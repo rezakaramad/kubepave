@@ -266,6 +266,84 @@ EOF"
 }
 
 
+# -----------------------------------------------------------------------------
+# Enable + configure the OIDC auth method for HUMAN tenant operators.
+#
+# Machine auth (JWT backends above) isolates pods by namespace. This method is
+# different: it lets a human log into the Vault UI/CLI with Azure Entra ID and
+# receive ONLY their own tenant's Vault policy.
+#
+# Isolation is keyed on the `roles` claim (Entra ID app-role value = tenant
+# name), mirroring the ArgoCD SSO pattern. The per-tenant AppRole/Group/
+# RoleAssignment on the Entra side are composed by the xtenantentra Crossplane
+# function; the matching per-tenant Vault Policy + external Identity Group +
+# GroupAlias are provisioned by the tenant-management chart (Phase 4). Here we
+# only stand up the method itself and a single `default` role.
+#
+# Credentials come from `pass` (populated by tofu-to-pass.sh) — the OIDC config
+# is a one-time Vault bootstrap, so there is no need to round-trip it through
+# Vault KV like the workload app secrets.
+# -----------------------------------------------------------------------------
+configure_oidc() {
+  log "Configuring Vault OIDC auth (Entra ID) for human tenant operators..."
+
+  local client_id tenant_id client_secret
+  client_id=$(pass show private/azure/entraid/apps/vault/client-id | head -n1)
+  tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
+  client_secret=$(pass show private/azure/entraid/apps/vault/client-secrets/vault/value | head -n1)
+
+  if [ -z "$client_id" ] || [ -z "$tenant_id" ] || [ -z "$client_secret" ]; then
+    err "Missing Vault Entra ID credentials in pass (vault client-id / tenant-id / client-secret)"
+    exit 1
+  fi
+
+  local discovery_url="https://login.microsoftonline.com/${tenant_id}/v2.0"
+
+  # Enable the method at path 'oidc' (idempotent).
+  vault_exec "vault auth enable -path=oidc oidc 2>/dev/null || true"
+
+  # Configure the method. The client secret is piped over stdin so it never
+  # appears in kubectl argv / process listings on the host.
+  log "Writing auth/oidc/config (discovery: $discovery_url)..."
+  printf '%s' "$client_secret" | \
+    kubectl --context "$(kind_context management)" \
+      -n "$VAULT_NAMESPACE" \
+      exec -i vault-0 -- sh -c "
+        export VAULT_ADDR=http://127.0.0.1:8200
+        export VAULT_TOKEN=\$(grep 'Initial Root Token:' /vault/data/init.txt | awk '{print \$4}')
+        secret=\$(cat)
+        vault write auth/oidc/config \
+          oidc_discovery_url='${discovery_url}' \
+          oidc_client_id='${client_id}' \
+          oidc_client_secret=\"\$secret\" \
+          default_role=default
+      "
+
+  # Default role: users land here on login. `groups_claim=roles` maps each
+  # Entra ID app-role value (= tenant name) to a Vault external Identity Group.
+  # Only the built-in `default` policy is granted at login; per-tenant access
+  # comes solely from group membership (Phase 4), so a user with no tenant
+  # app-role assignment gets no tenant path at all.
+  vault_exec "vault write auth/oidc/role/default \
+    role_type=oidc \
+    user_claim=sub \
+    groups_claim=roles \
+    oidc_scopes='openid,profile,email' \
+    token_policies=default \
+    token_ttl=1h \
+    allowed_redirect_uris='https://vault.mgmt.rezakara.demo/ui/vault/auth/oidc/oidc/callback,http://localhost:8250/oidc/callback'"
+
+  # The mount accessor is stable for the lifetime of the backend and is needed
+  # by the per-tenant GroupAlias in Phase 4. Persist it for the chart wiring.
+  local accessor
+  accessor=$(vault_exec "vault auth list -format=json" | jq -r '."oidc/".accessor')
+
+  save_oidc_accessor "$accessor"
+
+  ok "Vault OIDC auth configured (accessor: $accessor)"
+}
+
+
 wait_for_vault_bootstrap() {
   log "Waiting for Vault postStart bootstrap to complete (KV mount 'local')..."
   for i in $(seq 1 60); do
@@ -301,6 +379,23 @@ save_credentials() {
 }
 
 
+# Persist the OIDC mount accessor so the tenant-management chart (Phase 4) can
+# reference it for the per-tenant Identity GroupAlias mount_accessor.
+save_oidc_accessor() {
+  local accessor="$1"
+  local creds_file="$REPO_ROOT/.platform.env"
+
+  if grep -q 'VAULT_OIDC_ACCESSOR' "$creds_file" 2>/dev/null; then
+    sed -i "s|^export VAULT_OIDC_ACCESSOR=.*|export VAULT_OIDC_ACCESSOR=\"${accessor}\"|" "$creds_file"
+  else
+    echo "export VAULT_OIDC_ACCESSOR=\"${accessor}\"" >> "$creds_file"
+  fi
+
+  chmod 600 "$creds_file"
+  ok "VAULT_OIDC_ACCESSOR saved to $creds_file"
+}
+
+
 main() {
   log "Waiting for Vault pod to be ready..."
   kubectl --context "$(kind_context management)" \
@@ -325,6 +420,10 @@ main() {
   # the identity-templated tenant-policy. Must run after configure_cluster_jwt
   # workload so the workload API server CA is available.
   configure_tenant_jwt
+  echo "--------------------------------"
+
+  # Configure the OIDC method for human tenant operators (Entra ID SSO).
+  configure_oidc
   echo "--------------------------------"
 
   save_credentials

@@ -73,4 +73,11 @@ store "backstage/client-id" "backstage_client_id"
 store "backstage/client-secrets/backstage/value" "backstage_client_secret_value"
 store "backstage/client-secrets/backstage/id" "backstage_client_secret_id"
 
+# -------------------------------
+# Vault
+# -------------------------------
+store "vault/client-id" "vault_client_id"
+store "vault/client-secrets/vault/value" "vault_client_secret_value"
+store "vault/client-secrets/vault/id" "vault_client_secret_id"
+
 echo "✅ Secrets stored in pass"
