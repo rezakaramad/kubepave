@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# -----------------------------------------------------------------------------
+# setup-trust.sh
+#
+# Trust the self-signed CA certificate from Vault in local trust stores
+# (Java, browser, system) and distribute to workload clusters.
+# -----------------------------------------------------------------------------
+
+# Set the script directory to the current file's directory
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# shellcheck source=libs/common.sh
+# Import common functions and variables
 source "$DIR/libs/common.sh"
-# shellcheck source=libs/utils.sh
 source "$DIR/libs/utils.sh"
 
+# Get the kube context for the management cluster
 MGMT_CONTEXT="$(kind_context management)"
 
 

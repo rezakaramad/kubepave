@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# shellcheck source=libs/common.sh
+# -----------------------------------------------------------------------------
+# utils.sh
+#
+# Common utility functions for the local kind cluster setup scripts.
+# -----------------------------------------------------------------------------
+
+# Import common functions and variables
 source "$DIR/libs/common.sh"
 
 # Returns all running kind clusters managed by this setup

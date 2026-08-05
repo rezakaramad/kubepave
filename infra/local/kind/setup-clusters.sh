@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+#-----------------------------------------------------------------------------
+# setup-clusters.sh
+# Create and configure the local kind clusters for kubepave.
+# It creates the management and workload clusters,
+# enables 'promiscuous' mode on the node containers, and patches CoreDNS
+# to forward the rezakara.demo domain to the PowerDNS service.
+#-----------------------------------------------------------------------------
+
+# Set the script directory to the current file's directory
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# shellcheck source=libs/common.sh
+# Import common functions and variables
 source "$DIR/libs/common.sh"
-# shellcheck source=libs/utils.sh
 source "$DIR/libs/utils.sh"
 
+# Directory containing the kind cluster configuration files
 KIND_CONFIGS_DIR="$DIR/kind-configs"
 
 # Kubernetes version for kind clusters
@@ -25,15 +34,22 @@ CLUSTER_ORDER=(management workload)
 
 
 # -----------------------------------------------------------------------------
-# Enable promiscuous mode on the kind network interface for each node container.
+# Enable 'promiscuous' mode on the kind network interface for each node container.
 # Required for Cilium L2 mode, without it ARP announcements are dropped by
 # the Docker bridge and LoadBalancer IPs are unreachable.
+# In 'promiscuous' mode, a network interface accepts all Ethernet frames it sees,
+# not only frames addressed to its own MAC
+# In this setup, the kind node containers are connected to a Docker bridge network
+# and need to see ARP announcements for LoadBalancer IPs that are not their own.
 # -----------------------------------------------------------------------------
 enable_promiscuous_mode() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
   local cluster=$1
 
   log "Enabling promiscuous mode on $cluster nodes..."
 
+  # Iterate over each node in the kind cluster and set its eth0 interface to promiscuous mode
   kind get nodes --name "$cluster" | while read -r node; do
     docker exec "$node" ip link set eth0 promisc on
     ok "  $node → promisc on"
@@ -42,27 +58,39 @@ enable_promiscuous_mode() {
 
 
 # -----------------------------------------------------------------------------
-# Patch CoreDNS in a cluster to forward rezakara.demo to the kind gateway
+# Patch CoreDNS in a cluster to forward 'rezakara.demo' to the kind gateway
 # where PowerDNS is listening on port 5300.
 # Called once per cluster right after creation.
 # -----------------------------------------------------------------------------
 patch_coredns() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
+  # Local variables:
+  #   context: kube context derived from cluster name
+  #   pdns_ip: PowerDNS endpoint used as DNS forward target
+  #   corefile: current CoreDNS Corefile content, then patched content
   local cluster=$1
   local context
   local pdns_ip
   local corefile
 
+  # Set the kube context
   context="$(kind_context "$cluster")"
+
+  # Get the PowerDNS IP address from the kind network
   pdns_ip="$(get_powerdns_ip)"
 
   log "Patching CoreDNS in $cluster (→ $pdns_ip:53)..."
 
+  # Get the current CoreDNS Corefile content from the coredns ConfigMap in the kube-system namespace
   corefile=$(kubectl --context "$context" -n "$COREDNS_NS" \
     get cm coredns -o jsonpath='{.data.Corefile}')
 
-  # Remove any existing rezakara DNS block so this is idempotent
+  # Remove any existing 'rezakara' DNS block so this will remain idempotent
   corefile=$(sed '/# BEGIN rezakara DNS/,/# END rezakara DNS/d' <<< "$corefile")
 
+  # Append a new 'rezakara' DNS block to the Corefile that forwards queries
+  # for the 'rezakara.demo' domain to the PowerDNS service
   corefile="${corefile}
 # BEGIN rezakara DNS
 ${DNS_DOMAIN}:53 {
@@ -73,10 +101,12 @@ ${DNS_DOMAIN}:53 {
 # END rezakara DNS
 "
 
+  # Patch the coredns ConfigMap with the updated Corefile content
   kubectl --context "$context" -n "$COREDNS_NS" patch cm coredns \
     --type merge \
     -p "{\"data\":{\"Corefile\":$(jq -Rs . <<< "$corefile")}}"
 
+  # Restart the CoreDNS deployment to apply the new configuration
   kubectl --context "$context" -n "$COREDNS_NS" \
     rollout restart deployment coredns >/dev/null
 
@@ -88,9 +118,14 @@ ${DNS_DOMAIN}:53 {
 # Create a single kind cluster
 # -----------------------------------------------------------------------------
 create_cluster() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
+  # Local variables:
+  #   config: path to the kind cluster configuration file for the given cluster name
   local name=$1
   local config=${CLUSTERS[$name]}
 
+  # Skip creation if the cluster already exists
   if kind get clusters 2>/dev/null | grep -qx "$name"; then
     warn "$name already exists — skipping"
     return
@@ -113,8 +148,11 @@ create_cluster() {
 # Delete a single kind cluster
 # -----------------------------------------------------------------------------
 delete_cluster() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
   local name=$1
 
+  # Delete the cluster if it exists; otherwise, log a warning
   if kind get clusters 2>/dev/null | grep -qx "$name"; then
     log "Deleting $name..."
     kind delete cluster --name "$name"
@@ -126,11 +164,13 @@ delete_cluster() {
 
 
 # -----------------------------------------------------------------------------
-# Clean up stale kubeconfig contexts left behind after deletion
+# Clean up stale 'kubeconfig' contexts left behind after deletion
 # -----------------------------------------------------------------------------
 clean_kubeconfig() {
   log "Cleaning kubeconfig..."
 
+  # Iterate over all cluster names and remove their contexts, clusters, and users
+  # from the 'kubeconfig' if they exist
   for name in "${!CLUSTERS[@]}"; do
     local ctx="kind-${name}"
     if kubectl config get-contexts "$ctx" >/dev/null 2>&1; then
@@ -150,6 +190,7 @@ clean_kubeconfig() {
 status() {
   echo ""
   echo "Kind clusters:"
+  # List all kind clusters and their corresponding kube contexts
   kind get clusters 2>/dev/null | grep -E "^(management|workload)$" | while read -r c; do
     echo "  $c"
     echo "    context: kind-$c"
@@ -157,6 +198,8 @@ status() {
 
   echo ""
 
+  # Print the kind Docker network CIDR, PowerDNS IP, and LoadBalancer pool ranges
+  # for management and workload clusters
   if docker network inspect kind >/dev/null 2>&1; then
     echo "kind network CIDR    : $(get_kind_cidr)"
     echo "PowerDNS IP          : $(get_powerdns_ip)"
@@ -170,6 +213,10 @@ status() {
 }
 
 
+# -----------------------------------------------------------------------------
+# Start the kind clusters in the preferred order, enable promiscuous mode,
+# and patch CoreDNS in each cluster to forward 'rezakara.demo' to PowerDNS
+# -----------------------------------------------------------------------------
 start() {
   log "Starting kind clusters..."
 
@@ -204,6 +251,9 @@ start() {
 }
 
 
+# -----------------------------------------------------------------------------
+# Destroy all kind clusters and clean up kubeconfig contexts
+# -----------------------------------------------------------------------------
 destroy() {
   log "Destroying kind clusters..."
 
@@ -217,6 +267,10 @@ destroy() {
 }
 
 
+# -----------------------------------------------------------------------------
+# Main script entry point: parse command-line arguments
+# and execute the appropriate function
+# -----------------------------------------------------------------------------
 case "${1:-start}" in
   start)   start ;;
   destroy) destroy ;;

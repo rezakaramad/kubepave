@@ -1,21 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# -----------------------------------------------------------------------------
+# install-charts.sh
+#
+# Bootstrap the local kind environment by installing shared platform charts.
+# It prepares namespaces, bootstrap secrets, and core services for 
+# management/workload clusters.
+# Argo CD finishes the workload-side platform components after the cluster 
+# is registered.
+# -----------------------------------------------------------------------------
+
+# Set the script directory to the current file's directory
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# shellcheck source=libs/common.sh
+# Import common functions and variables
 source "$DIR/libs/common.sh"
-# shellcheck source=libs/utils.sh
 source "$DIR/libs/utils.sh"
 
+# Local secrets file containing sensitive information like API keys
 SECRETS_FILE="$REPO_ROOT/.powerdns.env"
 
 
 # -----------------------------------------------------------------------------
 # Small wrapper around `helm upgrade --install`
-# Usage: helm_install <release> <chart-dir> <namespace> <context> [-f file ...] [--set ...]
+# Usage: helm_install <release> <chart> <namespace> <context> [-f file ...] [--set ...]
 # -----------------------------------------------------------------------------
 helm_install() {
+  # Function arguments:
+  #   $1: release name
+  #   $2: chart path
+  #   $3: namespace
+  #   $4: kube context
+  #   $@: additional helm arguments
   local release=$1
   local chart=$2
   local namespace=$3
@@ -24,22 +41,12 @@ helm_install() {
 
   log "Installing $release → $namespace ($context)..."
 
-  # Pre-create the namespace with Helm's required ownership labels/annotations
-  # so that --create-namespace finds it already correct on both first runs and
-  # re-runs after a failure. This avoids the "invalid ownership metadata" error
-  # without any imperative kubectl annotate/label calls.
+  # Ensure the target namespace exists before Helm runs.
+  # Keep this namespace unowned by any Helm release so multiple releases can safely share it.
   if [[ "$namespace" != "default" ]]; then
-    kubectl --context "$context" apply -f - <<EOF
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${namespace}
-  labels:
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    meta.helm.sh/release-name: ${release}
-    meta.helm.sh/release-namespace: ${namespace}
-EOF
+    kubectl --context "$context" create namespace "$namespace" \
+      --dry-run=client -o yaml \
+      | kubectl --context "$context" apply -f -
   fi
 
   if helm upgrade --install "$release" "$chart" \
@@ -51,6 +58,7 @@ EOF
     "$@" 2>&1; then
     ok "$release installed"
   else
+    # If for whatever reason the upgrade fails, attempt to recover by uninstalling and reinstalling.
     warn "$release upgrade failed — attempting recovery..."
     helm uninstall "$release" \
       --kube-context "$context" \
@@ -68,9 +76,9 @@ EOF
 
 
 # -----------------------------------------------------------------------------
-# Install platform-system chart — creates platform-system namespace on
-# the management cluster (with helm.sh/resource-policy: keep).
-# Each other chart creates its own namespace via its namespace.yaml template.
+# Install 'platform-system' chart: creates 'platform-system' namespace on all clusters. 
+# 'platform-system' is a shared namespace for platform core components
+# like cert-manager, external-secrets, etc. that are installed on all clusters.
 # -----------------------------------------------------------------------------
 install_platform_namespaces() {
   for cluster in management workload; do
@@ -81,11 +89,11 @@ install_platform_namespaces() {
 
 
 # -----------------------------------------------------------------------------
-# Create the powerdns-api-key secret in platform-system on all clusters
-# directly from the local secrets file. The secret never rotates in a local
-# kind setup so there is no need to run it through Vault/ESO.
+# Create the 'powerdns-api-key' secret in 'platform-system' on all clusters
+# directly from the local secrets file.
+# It takes the '.powerdns.env' file and creates a Kubernetes secret with the key-value pair.
 # -----------------------------------------------------------------------------
-create_mgmt_bootstrap_secrets() {
+create_powerdns_bootstrap_secret() {
   log "Creating bootstrap secrets..."
 
   # shellcheck source=/dev/null
@@ -108,10 +116,15 @@ create_mgmt_bootstrap_secrets() {
 # Install Traefik and wait for its LoadBalancer IP to be assigned by Cilium
 # -----------------------------------------------------------------------------
 install_traefik() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
+  # Local variables:
+  #   context: kube context derived from cluster name
   local cluster=$1
   local context
   context="$(kind_context "$cluster")"
 
+  # Install Traefik with Helm
   helm_install traefik "$CHARTS_DIR/traefik" \
     "$PLATFORM_NAMESPACE" "$context" \
     -f "$CHARTS_DIR/traefik/values.yaml" \
@@ -121,6 +134,8 @@ install_traefik() {
   log "Waiting for Traefik LoadBalancer IP in $cluster..."
 
   local ip=""
+
+  # Wait for the Traefik service to have an external IP assigned by Cilium.
   for _ in {1..60}; do
     ip=$(kubectl --context "$context" \
       -n "$PLATFORM_NAMESPACE" \
@@ -137,16 +152,21 @@ install_traefik() {
   fi
 
   ok "Traefik running in $cluster at $ip"
-  echo "$ip"  # return the IP for callers
+  echo "$ip"
 }
 
 
 # -----------------------------------------------------------------------------
-# Install external-dns (management only).
-# The workload external-dns is installed by ArgoCD and points at the management
-# PowerDNS API via its stable Traefik hostname (see external-dns/values-local-workload.yaml).
+# Install external-dns (on 'management' cluster only).
+# The 'workload' external-dns is installed by ArgoCD once the workload cluster is registered.
+# and points at the management cluster's PowerDNS API via its stable Traefik hostname
+# (see external-dns/values-local-workload.yaml).
 # -----------------------------------------------------------------------------
 install_external_dns() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
+  # Local variables:
+  #   context: kube context derived from cluster name
   local cluster=$1
   local context
   context="$(kind_context "$cluster")"
@@ -165,6 +185,10 @@ install_external_dns() {
 # so Helm doesn't need to manage them (avoids CRD upgrade conflicts).
 # -----------------------------------------------------------------------------
 install_crds() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
+  # Local variables:
+  #   context: kube context derived from cluster name
   local cluster=$1
   local context
   context="$(kind_context "$cluster")"
@@ -185,6 +209,8 @@ install_crds() {
 # Install cert-manager
 # -----------------------------------------------------------------------------
 install_cert_manager() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
   local cluster=$1
   helm_install cert-manager "$CHARTS_DIR/cert-manager" \
     "$PLATFORM_NAMESPACE" "$(kind_context "$cluster")" \
@@ -205,6 +231,8 @@ install_cert_manager() {
 # Install external-secrets
 # -----------------------------------------------------------------------------
 install_external_secrets() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
   local cluster=$1
   helm_install external-secrets "$CHARTS_DIR/external-secrets" \
     "$PLATFORM_NAMESPACE" "$(kind_context "$cluster")" \
@@ -212,6 +240,7 @@ install_external_secrets() {
     -f "$CHARTS_DIR/external-secrets/values-local.yaml" \
     -f "$CHARTS_DIR/external-secrets/values-local-management.yaml"
 
+  # Wait for webhook to be ready before anything tries to create external-secrets resources
   kubectl --context "$(kind_context "$cluster")" \
     -n "$PLATFORM_NAMESPACE" \
     wait deployment external-secrets-webhook \
@@ -221,19 +250,21 @@ install_external_secrets() {
 
 
 # -----------------------------------------------------------------------------
-# Install ArgoCD into the management cluster
+# Install ArgoCD in the management cluster
 # -----------------------------------------------------------------------------
 install_argocd() {
+  # Local variables:
+  #   context: kube context derived from cluster name
   local context
-  context="$(kind_context management)"
+  context="$(kind_context "$1")"
 
   helm_install argocd "$CHARTS_DIR/argocd" \
     "$ARGOCD_NAMESPACE" "$context" \
     -f "$CHARTS_DIR/argocd/values.yaml" \
     -f "$CHARTS_DIR/argocd/values-local.yaml"
 
-  # Copy root-ca into argocd namespace immediately after the namespace is created
-  # so the vault-local SecretStore finds it on its first reconcile and becomes Ready.
+  # Copy 'root-ca' into argocd namespace immediately after the namespace is created
+  # so the 'vault-local' SecretStore finds it on its first reconcile and becomes Ready.
   log "Copying root-ca secret into $ARGOCD_NAMESPACE..."
   kubectl --context "$context" \
     get secret root-ca -n "$PLATFORM_NAMESPACE" -o json \
@@ -250,7 +281,7 @@ install_argocd() {
     --for=condition=Available \
     --timeout=120s
 
-  log "Applying ArgoCD gitops resources (AppProjects, App-of-Apps)..."
+  log "Re-applying ArgoCD gitops resources (AppProjects, App-of-Apps)..."
   helm_install argocd "$CHARTS_DIR/argocd" \
     "$ARGOCD_NAMESPACE" "$context" \
     -f "$CHARTS_DIR/argocd/values.yaml" \
@@ -262,42 +293,57 @@ install_argocd() {
 # Main bootstrap sequence
 # -----------------------------------------------------------------------------
 main() {
+  # Check for the presence of the secrets file before proceeding.
+  # Bootstrap local DNS by generating/loading PowerDNS secrets, creating K8s secrets, 
+  # and deploying PowerDNS in the management kind cluster.
+  # Then it wires your host resolver (systemd-resolved) so *.rezakara.demo queries
+  # go to that PowerDNS instance, with reset removing that config and uninstalling PowerDNS
   if [[ ! -f "$SECRETS_FILE" ]]; then
     err "Secrets file not found: $SECRETS_FILE"
     err "Run ./setup-dns.sh start first"
     exit 1
   fi
 
+  # Install external-dns and cert-manager CRDs first
+  # so Helm doesn't manage them (avoids CRD upgrade conflicts)
   echo "-------- CRDs --------------------"
   for cluster in management workload; do
     install_crds "$cluster"
   done
 
+  # Install 'platform-system' namespace on all clusters where platform core components will be installed
   echo "-------- platform-system ---------"
   install_platform_namespaces
 
+  # Install PowerDNS bootstrap secrets in 'platform-system' on all clusters
   echo "-------- bootstrap secrets -------"
-  create_mgmt_bootstrap_secrets
+  create_powerdns_bootstrap_secret
 
+  # Install cert-manager on management cluster first so it can issue TLS certs for PowerDNS and Traefik
   echo "-------- cert-manager ------------"
   install_cert_manager management
 
+  # Install external-secrets on management cluster first so it can read PowerDNS API key from the bootstrap secret
   echo "-------- external-secrets --------"
   install_external_secrets management
 
+  # Install Traefik on management cluster first so it can expose PowerDNS and external-dns to the host network
   echo "-------- Traefik (management) ----"
   install_traefik management
 
+  # Install Vault on management cluster so it can be used by ArgoCD and other components
   echo "-------- Vault -------------------"
   helm_install vault "$CHARTS_DIR/vault" \
     "$VAULT_NAMESPACE" "$(kind_context management)" \
     -f "$CHARTS_DIR/vault/values.yaml"
 
+  # Install external-dns on management cluster so it can manage DNS records in PowerDNS
   echo "-------- external-dns (mgmt) -----"
   install_external_dns management
 
+  # Install Argo CD on management cluster
   echo "-------- ArgoCD ------------------"
-  install_argocd
+  install_argocd management
 
   echo ""
   ok "Bootstrap complete — management stack and ArgoCD installed"

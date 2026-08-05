@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# -----------------------------------------------------------------------------
+# setup-vault.sh
 # Configures Vault JWT auth for ALL clusters (management + workloads).
 #
 # Vault validates pod JWTs cryptographically by fetching each cluster's public
@@ -21,12 +23,13 @@ set -euo pipefail
 #
 # JWT auth is configured here (not in the Vault postStart hook) so the vault-0
 # pod never blocks on network waits. postStart only handles init/unseal/policies.
+# -----------------------------------------------------------------------------
 
+# Set the script directory to the current file's directory
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# shellcheck source=libs/common.sh
+# Import common functions and variables
 source "$DIR/libs/common.sh"
-# shellcheck source=libs/utils.sh
 source "$DIR/libs/utils.sh"
 
 # ClusterRole (built into every cluster) that grants GET on the two OIDC
@@ -54,10 +57,15 @@ vault_exec() {
 # Uses the node's InternalIP:6443 — reachable across the shared kind Docker
 # network, exactly like the ArgoCD hub→spoke connection.
 cluster_api_url() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
+  # Local variables:
+  #   node_ip: InternalIP of the first node in the cluster
   local cluster=$1
   local node_ip
   node_ip=$(kubectl --context "$(kind_context "$cluster")" get node \
     -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+
   echo "https://${node_ip}:6443"
 }
 
@@ -66,7 +74,10 @@ cluster_api_url() {
 # Vault fetches the JWKS without credentials, so without this the API server
 # returns 403. The binding is idempotent.
 grant_anonymous_oidc_discovery() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
   local cluster=$1
+
   kubectl --context "$(kind_context "$cluster")" \
     create clusterrolebinding "$OIDC_DISCOVERY_CRB" \
     --clusterrole="$OIDC_DISCOVERY_CLUSTERROLE" \
@@ -80,6 +91,12 @@ grant_anonymous_oidc_discovery() {
 # Configure JWT auth backend for a cluster
 # -----------------------------------------------------
 configure_cluster_jwt() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
+  # Local variables:
+  #   auth_path: Vault auth path for the cluster (jwt-management or jwt-workload)
+  #   api_url: API server URL reachable from the Vault pod
+  #   jwks_url: JWKS endpoint URL for the cluster
   local cluster=$1
   local auth_path="jwt-${cluster}"
   local api_url jwks_url
@@ -203,6 +220,12 @@ configure_cluster_jwt() {
 # identity-templated tenant-policy resolve to the correct per-tenant path.
 # -----------------------------------------------------------------------------
 configure_tenant_jwt() {
+  # Local variables:
+  #   cluster: workload cluster name (only one workload cluster is supported)
+  #   auth_path: Vault auth path for the shared tenant backend (jwt-workload-tenants)
+  #   api_url: API server URL reachable from the Vault pod
+  #   jwks_url: JWKS endpoint URL for the workload cluster
+  #   api_ca: workload cluster API server CA, copied into the vault pod for JWKS fetch
   local cluster="workload"
   local auth_path="jwt-workload-tenants"
   local api_url jwks_url api_ca
@@ -287,6 +310,10 @@ EOF"
 configure_oidc() {
   log "Configuring Vault OIDC auth (Entra ID) for human tenant operators..."
 
+  # Local variables:
+  #   client_id: Entra ID app client ID for Vault
+  #   tenant_id: Entra ID tenant ID for the subscription
+  #   client_secret: Entra ID app client secret for Vault
   local client_id tenant_id client_secret
   client_id=$(pass show private/azure/entraid/apps/vault/client-id | head -n1)
   tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
@@ -344,6 +371,10 @@ configure_oidc() {
 }
 
 
+# Wait for the Vault postStart bootstrap to complete (KV mount 'local').
+# The postStart hook runs init/unseal/policies, but the KV mount is not ready
+# until the postStart completes. This is a short wait (a few seconds) but must
+# be done before any other Vault commands (e.g. configure_cluster_jwt) are run
 wait_for_vault_bootstrap() {
   log "Waiting for Vault postStart bootstrap to complete (KV mount 'local')..."
   for i in $(seq 1 60); do
@@ -358,6 +389,7 @@ wait_for_vault_bootstrap() {
 }
 
 
+# Save the initial Vault root token to the local credentials file ('.platform.env').
 save_credentials() {
   local vault_token
   vault_token="$(kubectl --context "$(kind_context management)" \
@@ -382,6 +414,10 @@ save_credentials() {
 # Persist the OIDC mount accessor so the tenant-management chart (Phase 4) can
 # reference it for the per-tenant Identity GroupAlias mount_accessor.
 save_oidc_accessor() {
+  # Function arguments:
+  #   $1: OIDC mount accessor
+  # Local variables:
+  #   creds_file: path to the local credentials file ('.platform.env')
   local accessor="$1"
   local creds_file="$REPO_ROOT/.platform.env"
 

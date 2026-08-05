@@ -72,7 +72,7 @@ true`, binding `:53` on the management node's Docker-bridge IP. Three consumers
 reach it:
 
 - **Host** — a two-line systemd-resolved drop-in
-  (`/etc/systemd/resolved.conf.d/rezakara.conf`) routes only `~rezakara.demo` to
+  (`/etc/systemd/resolved.conf.d/rezakara.demo.conf`) routes only `~rezakara.demo` to
   PowerDNS. Nothing else about the host resolver changes.
 - **Management pods** — CoreDNS is patched with a stub zone forwarding
   `rezakara.demo` to the PowerDNS node IP.

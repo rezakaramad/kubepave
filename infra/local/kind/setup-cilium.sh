@@ -1,23 +1,53 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+#-----------------------------------------------------------------------------
+# setup-cilium.sh
+#
+# Install Cilium in the local kind clusters.
+# It runs after the Gateway API CRDs are installed so Cilium can create the
+# 'CiliumLoadBalancerIPPool' and 'CiliumL2AnnouncementPolicy' resources.
+# The install is idempotent and skips clusters where Cilium is already installed.
+#-----------------------------------------------------------------------------
+
+# Set the script directory to the current file's directory
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# shellcheck source=libs/common.sh
+# Import common functions and variables
 source "$DIR/libs/common.sh"
-# shellcheck source=libs/utils.sh
 source "$DIR/libs/utils.sh"
 
+# Define variables for the Cilium Helm chart, namespace, and CRD names
 CILIUM_CHART="$REPO_ROOT/charts/cilium"
 CILIUM_NAMESPACE="kube-system"
 LB_POOL_CRD="ciliumloadbalancerippools.cilium.io"
 L2_POLICY_CRD="ciliuml2announcementpolicies.cilium.io"
 
+# -----------------------------------------------------------------------------
+# A little about Cilium's two resources:
+# 'CiliumLoadBalancerIPPool' and 'CiliumL2AnnouncementPolicy'.
+# These two resources are used to make 'LoadBalancer' Services work on bare-metal
+# or local clusters like kind, where there is no cloud load balancer.
+#
+# 'CiliumLoadBalancerIPPool' is the pool of external IPs Cilium is allowed to 
+# assign to LoadBalancer Services. When you create a Service of type LoadBalancer,
+# Cilium picks an IP from that pool and binds it to the Service status. 
+#
+# 'CiliumL2AnnouncementPolicy' tells Cilium how to advertise those assigned IPs
+# on the network. In practice, it makes one or more nodes announce “I own this IP”
+# at layer 2, usually via ARP/NDP, so traffic on your LAN knows where 
+# to send packets. Without this, the Service may have an IP in Kubernetes,
+# but nothing on the network would know how to reach it.
+# -----------------------------------------------------------------------------
 
 install_cilium() {
+  # Function arguments:
+  #   $1: cluster name (management or workload)
+  #   $2: values file for the cluster (optional)
   local cluster=$1
   local context api_ip values_file
 
+  # Get the kube context for the cluster and the values file for Cilium
   context="$(kind_context "$cluster")"
   values_file="$CILIUM_CHART/values-local-${cluster}.yaml"
 
