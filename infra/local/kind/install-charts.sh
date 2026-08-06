@@ -41,18 +41,35 @@ helm_install() {
 
   log "Installing $release → $namespace ($context)..."
 
-  # Ensure the target namespace exists before Helm runs.
-  # Keep this namespace unowned by any Helm release so multiple releases can safely share it.
-  if [[ "$namespace" != "default" ]]; then
-    kubectl --context "$context" create namespace "$namespace" \
-      --dry-run=client -o yaml \
-      | kubectl --context "$context" apply -f -
+  # Namespace handling for this repo's charts:
+  #   - Each chart templates its OWN namespace (with helm.sh/resource-policy: keep)
+  #     and installs into it, so Helm needs the namespace to exist to store the
+  #     release secret, yet must also be able to import the chart's Namespace object.
+  #   - We therefore pre-create the namespace ONLY when it does not already exist,
+  #     stamping this release's Helm ownership metadata so the chart's own
+  #     Namespace resource is adopted cleanly instead of triggering an
+  #     "invalid ownership metadata" error.
+  #   - Namespaces that already exist (e.g. the shared platform-system namespace
+  #     created earlier by the platform-system chart) are left untouched, so their
+  #     original owner is preserved and no ownership drift occurs.
+  if [[ "$namespace" != "default" ]] \
+    && ! kubectl --context "$context" get namespace "$namespace" >/dev/null 2>&1; then
+    kubectl --context "$context" apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${namespace}
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: ${release}
+    meta.helm.sh/release-namespace: ${namespace}
+EOF
   fi
 
   if helm upgrade --install "$release" "$chart" \
     --kube-context "$context" \
     --namespace "$namespace" \
-    --create-namespace \
     --timeout 5m \
     --wait \
     "$@" 2>&1; then
@@ -66,7 +83,6 @@ helm_install() {
     helm install "$release" "$chart" \
       --kube-context "$context" \
       --namespace "$namespace" \
-      --create-namespace \
       --timeout 5m \
       --wait \
       "$@"

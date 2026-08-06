@@ -17,7 +17,7 @@ vaultProvider:
   # here once after the first bootstrap and commit. When set, the xtenantargo
   # composition turns on per-tenant Vault OIDC SSO (Policy/Group/GroupAlias) in
   # the tenant-management chart. Leave empty to keep human SSO objects off.
-  oidcAccessor: "auth_oidc_550c2a73"
+  oidcAccessor: "auth_oidc_de251605"
 
 entraIdProvider:
   enabled: true
