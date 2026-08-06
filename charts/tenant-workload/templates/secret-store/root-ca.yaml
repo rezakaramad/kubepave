@@ -7,7 +7,7 @@ metadata:
   name: root-ca
   namespace: {{ $tenant.name | lower }}
   annotations:
-    argocd.argoproj.io/sync-wave: "-15"
+    argocd.argoproj.io/sync-wave: "-5"
 spec:
   refreshInterval: 1h
   secretStoreRef:

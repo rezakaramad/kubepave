@@ -21,6 +21,7 @@ metadata:
   {{- $projectId := include "tn.projectId" (dict "name" $tenant.tenantShortName "prefix" .Values.environmentPrefix) }}
   annotations:
     cnrm.cloud.google.com/project-id: {{ $projectId }}
+    argo.argoproj.io/sync-wave: "-10"
   {{- end }}
 
 ---
