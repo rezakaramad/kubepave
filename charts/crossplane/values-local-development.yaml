@@ -22,4 +22,4 @@ secretStore:
     vault:
       auth:
         jwt:
-          path: jwt-workload
+          path: jwt-development

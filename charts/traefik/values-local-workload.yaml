@@ -1,6 +1,0 @@
-defaultGateway:
-  hostname: '*.wl.rezakara.demo'
-  # In the workload cluster, only allow routes from the same namespace 'platform-system'
-  allowedRoutes:
-    namespaces:
-      from: Same

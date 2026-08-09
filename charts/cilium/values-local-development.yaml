@@ -1,4 +1,4 @@
-# Local (kind) workload cluster overrides.
+# Local (kind) development cluster overrides.
 #
 # See values-local-management.yaml for subnet layout details.
 # Workload pool: 192.168.211.75–192.168.211.84 (10 IPs)

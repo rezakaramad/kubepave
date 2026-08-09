@@ -40,8 +40,8 @@ spec:
                 value: {{ .Values.vaultProvider.oidcAccessor | quote }}
               {{- end }}
 
-        # The Applications deployed to the workload clusters.
-        workload:
+        # The Applications deployed to the development clusters.
+        development:
           repoURL: https://github.com/rezakaramad/kubepave
           path: charts/tenant-workload
           targetRevision: HEAD
@@ -60,7 +60,7 @@ spec:
               - dev
               - test
               - prod
-              - workload
+              - development
 
         # The namespaces the ApplicationSet uses.
         namespace:

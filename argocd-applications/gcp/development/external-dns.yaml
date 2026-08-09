@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: external-dns-wl
+  name: external-dns-dev
   namespace: argocd
 spec:
   project: platform-system
@@ -11,9 +11,9 @@ spec:
     path: charts/gcp/external-dns
     helm:
       valueFiles:
-        - values-wl.yaml
+        - values-dev.yaml
   destination:
-    name: gke-workload
+    name: gke-development
     namespace: platform-system
   syncPolicy:
     syncOptions:

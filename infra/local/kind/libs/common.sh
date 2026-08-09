@@ -17,9 +17,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 CHARTS_DIR="$REPO_ROOT/charts"
 
 # Cluster names (kind automatically prefixes contexts with "kind-",
-# so these become contexts "kind-management" and "kind-workload").
+# so these become contexts "kind-management" and "kind-development").
 MANAGEMENT_CLUSTER="management"
-WORKLOAD_CLUSTER="workload"
+WORKLOAD_CLUSTER="development"
 
 # Namespace for platform components
 PLATFORM_NAMESPACE="platform-system"
@@ -38,7 +38,7 @@ DNS_DOMAIN="rezakara.demo"
 # The exact IPs are computed at runtime from the actual CIDR via get_lb_pool()
 # so this works regardless of whether Docker picks a /16, /24, /27, etc.
 #   management pool: last 10 IPs of the subnet (PowerDNS gets the first of these)
-#   workload pool:   10 IPs immediately before the management pool
+#   development pool:   10 IPs immediately before the management pool
 LB_MGMT_POOL_SIZE=10
 LB_WL_POOL_SIZE=10
 

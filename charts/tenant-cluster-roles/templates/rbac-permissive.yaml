@@ -4,7 +4,7 @@
 # This ClusterRole is only rendered when permission_profile=permissive. It aggregates
 # into tenant-default-aggregated-role (via the shared label) and extends the baseline
 # read-only rules from rbac.yaml with:
-#   - delete on most workload, batch, autoscaling, networking, cert-manager,
+#   - delete on most development, batch, autoscaling, networking, cert-manager,
 #     external-secrets, and GCP Config Connector resources
 #   - create on batch jobs
 #   - get/create on pods/portforward (for kubectl port-forward)

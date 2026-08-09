@@ -118,7 +118,7 @@ spec:
                   helm:
                     values: ""
                 destination:
-                  name: minikube-workload
+                  name: minikube-development
                   namespace: ""
                 syncPolicy:
                   automated: {}

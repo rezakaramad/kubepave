@@ -1,6 +1,6 @@
 apiVersion: v2
 name: tenant-workload
-description: Deploys all components required for a tenant to run in workload clusters.
+description: Deploys all components required for a tenant to run in development clusters.
 version: 0.0.1
 
 # In WORKLOAD clusters:

@@ -1,18 +1,13 @@
 {{- if and .Values.vault.enabled .Values.vault.oidc.enabled }}
 {{- $tenant := .Values.tenant }}
 
-# Per-tenant Vault ACL Policy for HUMAN tenant operators logging in via Entra ID
-# OIDC (distinct from the machine `tenant-policy`, which is identity-templated on
-# the jwt-workload-tenants backend and cannot be reused for OIDC users).
-#
-# Created by crossplane provider-vault on the management cluster. Grants the
-# tenant read/write on ONLY their own KV path — the same boundary the machine
-# policy enforces, but here bound to an explicit per-tenant policy name that the
-# external Identity Group (oidc-group.yaml) attaches to.
+# Per-tenant Vault ACL Policy for HUMAN tenant operators logging in via Entra ID OIDC
+# Grants the tenant read/write on ONLY their own KV path
+
 apiVersion: vault.vault.m.upbound.io/v1alpha1
 kind: Policy
 metadata:
-  name: {{ printf "%s-vault-policy" ($tenant.name | lower) }}
+  name: {{ printf "oidc-%s" ($tenant.name | lower) }}
   labels:
     platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
 spec:
@@ -23,13 +18,12 @@ spec:
   managementPolicies: ["Create", "Observe", "Update", "Delete"]
 
   forProvider:
-    name: {{ printf "tenant-%s" ($tenant.name | lower) | quote }}
+    name: {{ printf "oidc-%s" ($tenant.name | lower) | quote }}
     policy: |
-      # Deliberate UX trade-off: allow a LIST on the mount root so the Vault KV
-      # UI opens when the tenant browses the `tenants/` engine (the UI issues a
-      # list on `tenants/metadata/` before showing anything). This exposes the
-      # folder NAMES of other tenants but never their secret contents — actual
-      # data/metadata access stays scoped to this tenant's path below.
+      # Vault UI first lists tenants/metadata when opening the tenants/ KV mount.
+      # Grant list on the mount root so the UI can render.
+      # Trade-off: users may see other tenant folder names, but cannot read
+      # their data or metadata. Access below remains scoped to this tenant.
       path "tenants/metadata" {
         capabilities = ["list"]
       }

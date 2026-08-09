@@ -1,4 +1,4 @@
-# Shared secrets — cluster-wide store using JWT auth (consistent with workload cluster).
+# Shared secrets — cluster-wide store using JWT auth (consistent with development cluster).
 clusterSecretStore:
   provider:
     vault:

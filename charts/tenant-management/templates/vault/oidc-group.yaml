@@ -1,16 +1,15 @@
 {{- if and .Values.vault.enabled .Values.vault.oidc.enabled }}
 {{- $tenant := .Values.tenant }}
 
-# External Vault Identity Group for the tenant. `type: external` means membership
-# is NOT set here — it is resolved at login time via the group alias
-# (oidc-group-alias.yaml) matching the Entra ID `roles` claim. The group attaches
-# the per-tenant ACL policy (oidc-policy.yaml), so any human whose token carries
-# the tenant's app-role value inherits exactly that tenant's access and nothing
-# more.
+# Creates a Vault Identity Group per tenant, oidc-<tenant>.
+# Marks it type: external, so membership is not manually listed here.
+# Attaches the tenant policy (oidc-<tenant>) to that group.
+# Lets GroupAlias decide who joins at login (based on OIDC roles claim).
+
 apiVersion: identity.vault.m.upbound.io/v1alpha1
 kind: Group
 metadata:
-  name: {{ printf "%s-vault-group" ($tenant.name | lower) }}
+  name: {{ printf "oidc-%s" ($tenant.name | lower) }}
   labels:
     platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
 spec:
@@ -21,8 +20,8 @@ spec:
   managementPolicies: ["Create", "Observe", "Update", "Delete"]
 
   forProvider:
-    name: {{ printf "vault-tenant-%s" ($tenant.name | lower) | quote }}
+    name: {{ printf "oidc-%s" ($tenant.name | lower) | quote }}
     type: external
     policies:
-      - {{ printf "tenant-%s" ($tenant.name | lower) | quote }}
+      -  {{ printf "oidc-%s" ($tenant.name | lower) | quote }}
 {{- end }}

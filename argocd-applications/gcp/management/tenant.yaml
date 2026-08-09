@@ -31,7 +31,7 @@ spec:
               values: ["tenant"]
             - key: argocd.talktorubberduck.dev/environment
               operator: In
-              values: ["dev", "test", "prod", "wl"]
+              values: ["dev", "test", "prod", "dev"]
         template:
           metadata:
             name: pillow-factory-ns-{{index .metadata.labels "argocd.talktorubberduck.dev/environment"}}

@@ -42,7 +42,7 @@ L2_POLICY_CRD="ciliuml2announcementpolicies.cilium.io"
 
 install_cilium() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   #   $2: values file for the cluster (optional)
   local cluster=$1
   local context api_ip values_file
@@ -99,7 +99,7 @@ install_cilium() {
 
 
 install() {
-  for cluster in management workload; do
+  for cluster in management development; do
     install_cilium "$cluster"
     echo "--------------------------------"
   done

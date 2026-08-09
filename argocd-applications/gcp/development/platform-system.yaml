@@ -1,24 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: external-secrets-workload
+  name: platform-system-dev
   namespace: argocd
 spec:
   project: platform-system
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/external-secrets
-    helm:
-      valueFiles:
-        - values.yaml
-        - values-local.yaml
-        - values-local-workload.yaml
+    path: charts/gcp/platform-system
   destination:
-    name: kind-workload
-    namespace: platform-system
+    name: gke-development
   syncPolicy:
     syncOptions:
     - ServerSideApply=true
     - ApplyOutOfSyncOnly=true
-    - SkipDryRunOnMissingResource=true

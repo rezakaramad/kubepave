@@ -1,24 +1,23 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cert-manager-workload
+  name: traefik-development
   namespace: argocd
 spec:
   project: platform-system
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/cert-manager
+    path: charts/traefik
     helm:
       valueFiles:
         - values.yaml
         - values-local.yaml
-        - values-local-workload.yaml
+        - values-local-development.yaml
   destination:
-    name: kind-workload
+    name: kind-development
     namespace: platform-system
   syncPolicy:
     syncOptions:
     - ServerSideApply=true
     - ApplyOutOfSyncOnly=true
-    - SkipDryRunOnMissingResource=true

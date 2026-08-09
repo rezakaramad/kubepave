@@ -45,7 +45,7 @@ spec:
       | DEV  | `*.{{ $tenant.tenantShortName }}.dev.rezakara.demo` |
       | TEST | `*.{{ $tenant.tenantShortName }}.test.rezakara.demo` |
       | PROD | `*.{{ $tenant.tenantShortName }}.prod.rezakara.demo` |
-      | WL  | `*.{{ $tenant.tenantShortName }}.wl.rezakara.demo` |
+      | WL  | `*.{{ $tenant.tenantShortName }}.dev.rezakara.demo` |
 
       ---
 

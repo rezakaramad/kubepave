@@ -1,7 +1,7 @@
 external-dns:
-  txtOwnerId: kind-workload
+  txtOwnerId: kind-development
   domainFilters:
-    - wl.rezakara.demo
+    - dev.rezakara.demo
   # Reach the management PowerDNS API via its stable Traefik-exposed hostname.
   # Avoids depending on the management node's runtime IP (portable across kind
   # cluster recreation). TLS verification is skipped because the endpoint uses the local

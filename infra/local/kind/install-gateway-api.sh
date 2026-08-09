@@ -31,7 +31,7 @@ GATEWAY_API_URL="https://github.com/kubernetes-sigs/gateway-api/releases/downloa
 # -----------------------------------------------------------------------------
 install_gateway_api() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   # Local variables:
   #   context: kube context derived from cluster name
   local cluster=$1
@@ -61,9 +61,9 @@ install_gateway_api() {
 }
 
 
-# Install Gateway API in both management and workload clusters
+# Install Gateway API in both management and development clusters
 install() {
-  for cluster in management workload; do
+  for cluster in management development; do
     install_gateway_api "$cluster"
   done
 }

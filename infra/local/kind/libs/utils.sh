@@ -13,7 +13,7 @@ source "$DIR/libs/common.sh"
 # Returns all running kind clusters managed by this setup
 get_kind_clusters() {
   kind get clusters 2>/dev/null \
-    | grep -E "^(management|workload)$" || true
+    | grep -E "^(management|development)$" || true
 }
 
 # Returns tenant (non-management) clusters
@@ -42,7 +42,7 @@ get_kind_cidr() {
 # with the gateway and node IPs which are allocated from the lower end.
 # Provider-neutral: consumed by whichever LB is installed (Cilium here).
 # Usage: get_lb_pool management
-#        get_lb_pool workload
+#        get_lb_pool development
 get_lb_pool() {
   local cluster=$1
   local cidr
@@ -54,7 +54,7 @@ cidr, cluster, mgmt_size, wl_size = sys.argv[1], sys.argv[2], int(sys.argv[3]), 
 hosts = list(ipaddress.IPv4Network(cidr, strict=False).hosts())
 if cluster == "management":
     pool = hosts[-mgmt_size:]
-elif cluster == "workload":
+elif cluster == "development":
     pool = hosts[-(mgmt_size + wl_size):-mgmt_size]
 else:
     sys.exit(f"Unknown cluster: {cluster}")

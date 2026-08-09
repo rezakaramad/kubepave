@@ -1,20 +1,20 @@
 # ArgoCD
 
-App-of-Apps GitOps hub running in the management cluster. Manages the workload
+App-of-Apps GitOps hub running in the management cluster. Manages the development
 platform stack (cert-manager, external-secrets, Traefik, external-dns, Crossplane).
 
-## How ArgoCD authenticates to workload clusters
+## How ArgoCD authenticates to development clusters
 
 ### Current setup (local kind)
 
 ArgoCD uses the **pull model** with a **long-lived ServiceAccount token**. During
 `setup-secrets.sh`, an `argocd-manager` SA with `cluster-admin` binding is
-created on each workload cluster, and a permanent `kubernetes.io/service-account-token`
+created on each development cluster, and a permanent `kubernetes.io/service-account-token`
 secret is generated for it:
 
 ```
 setup-secrets.sh
-  → creates argocd-manager SA + ClusterRoleBinding on workload
+  → creates argocd-manager SA + ClusterRoleBinding on development
   → generates a long-lived SA token Secret
   → stores { server, token } in Vault at local/argocd/clusters/<name>
   → ESO materialises it as an ArgoCD cluster Secret in the argocd namespace
@@ -28,13 +28,13 @@ in this setup.
 
 The current ArgoCD cluster registration API expects a static `{ server, token }`
 pair in a `Secret`. ArgoCD itself reads that secret and uses the token for every
-`kubectl` operation against the workload cluster. It has no native support for
+`kubectl` operation against the development cluster. It has no native support for
 calling `TokenRequest` on each use.
 
 ### How to mature this
 
 **Option 1 — ArgoCD Agent (argocd-agent)**
-The proper fix. An agent pod runs *on the workload cluster* and initiates an
+The proper fix. An agent pod runs *on the development cluster* and initiates an
 outbound connection to the ArgoCD server. No inbound token needed on the hub side.
 The hub never holds a credential for the spoke; the spoke authenticates to the hub.
 This is the direction ArgoCD is investing in for hub-and-spoke production setups
@@ -64,7 +64,7 @@ ArgoCD pod (KSA: argocd-server)
   → ArgoCD uses the GCP access token to call the GKE API (not a static SA token)
 ```
 
-For a GKE workload cluster, ArgoCD can authenticate to it with a GCP identity
+For a GKE development cluster, ArgoCD can authenticate to it with a GCP identity
 rather than a static `argocd-manager` token — either by using the GKE Connect
 Gateway (which accepts GCP IAM identities) or by binding the ArgoCD GSA to the
 appropriate GKE RBAC role via `gcloud container clusters get-credentials`.
