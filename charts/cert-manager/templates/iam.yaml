@@ -18,7 +18,7 @@ spec:
 apiVersion: iam.cnrm.cloud.google.com/v1beta1
 kind: IAMPartialPolicy
 metadata:
-  name: cert-manager-workload-identity
+  name: cert-manager-development-identity
 spec:
   resourceRef:
     apiVersion: iam.cnrm.cloud.google.com/v1beta1

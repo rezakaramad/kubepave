@@ -1,5 +1,5 @@
 selfSignedRootCA:
   # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Let's Encrypt, etc.)
   enabled: true
-  # In workload clusters, we don't mint a root CA; we copy it from management via 'setup-trust.sh'.
+  # In development clusters, we don't mint a root CA; we copy it from management via 'setup-trust.sh'.
   mint: false

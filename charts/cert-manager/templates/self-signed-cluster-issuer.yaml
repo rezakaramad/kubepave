@@ -4,7 +4,7 @@ Step 1/3 — management only (selfSignedRootCA.mint: true)
 A self-signed ClusterIssuer is not automatically trusted by anyone; it signs whatever
 certificate asks for it. We use it for exactly one purpose: to sign the 'root-ca'
 Certificate in the next step. It is never referenced again after that.
-This is only needed on the management cluster, because workload clusters never mint their own root CA; 
+This is only needed on the management cluster, because development clusters never mint their own root CA; 
 they copy it from management via 'setup-trust.sh'.
 */}}
 

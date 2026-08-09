@@ -14,9 +14,9 @@ secretStore:
 # ------------------------------------------------------------------------------
 # ArgoCD is using Workload Identity and where therefore there are not secrets in the credentials.
 clusterCredentials:
-  - name: gke-workload
+  - name: gke-development
     server: "" # Put here the GKE cluster API server URL (e.g. https://<IP_ADDRESS>)
-    environmentPrefix: wl
+    environmentPrefix: dev
 
 # ------------------------------------------------------------------------------
 # -- Argo CD main configs

@@ -13,12 +13,12 @@ set -euo pipefail
 # This is the standard hub-and-spoke pattern: a central Vault reaches each
 # cluster's API server directly (the same way ArgoCD reaches spoke clusters at
 # https://<node-ip>:6443). It deliberately does NOT route through the cluster's
-# own Traefik ingress, doing so creates a bootstrap cycle on workload clusters
+# own Traefik ingress, doing so creates a bootstrap cycle on development clusters
 # (Gateway needs a cert → cert needs ESO SecretStore → SecretStore needs Vault
 # JWT auth → JWT auth needs the ingress that isn't up yet).
 #
 # Because the fetch only needs the API server (up as soon as the kind cluster
-# exists), both management and workload auth are configured in a single run —
+# exists), both management and development auth are configured in a single run —
 # no dependency on ArgoCD, Traefik, cert-manager or DNS.
 #
 # JWT auth is configured here (not in the Vault postStart hook) so the vault-0
@@ -58,7 +58,7 @@ vault_exec() {
 # network, exactly like the ArgoCD hub→spoke connection.
 cluster_api_url() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   # Local variables:
   #   node_ip: InternalIP of the first node in the cluster
   local cluster=$1
@@ -75,7 +75,7 @@ cluster_api_url() {
 # returns 403. The binding is idempotent.
 grant_anonymous_oidc_discovery() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   local cluster=$1
 
   kubectl --context "$(kind_context "$cluster")" \
@@ -92,9 +92,9 @@ grant_anonymous_oidc_discovery() {
 # -----------------------------------------------------
 configure_cluster_jwt() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   # Local variables:
-  #   auth_path: Vault auth path for the cluster (jwt-management or jwt-workload)
+  #   auth_path: Vault auth path for the cluster (jwt-management or jwt-development)
   #   api_url: API server URL reachable from the Vault pod
   #   jwks_url: JWKS endpoint URL for the cluster
   local cluster=$1
@@ -212,7 +212,7 @@ configure_cluster_jwt() {
 # -----------------------------------------------------------------------------
 # Configure a shared JWT auth backend for tenant service accounts.
 #
-# Uses a separate backend (jwt-workload-tenants) so existing roles on jwt-workload are not disrupted.
+# Uses a separate backend (jwt-development-tenants) so existing roles on jwt-development are not disrupted.
 #
 # user_claim is set to the namespace JSON pointer so Vault entity aliases become
 # the bare namespace name (e.g. "foo") rather than the full sub string
@@ -221,13 +221,13 @@ configure_cluster_jwt() {
 # -----------------------------------------------------------------------------
 configure_tenant_jwt() {
   # Local variables:
-  #   cluster: workload cluster name (only one workload cluster is supported)
-  #   auth_path: Vault auth path for the shared tenant backend (jwt-workload-tenants)
+  #   cluster: development cluster name (only one development cluster is supported)
+  #   auth_path: Vault auth path for the shared tenant backend (jwt-development-tenants)
   #   api_url: API server URL reachable from the Vault pod
-  #   jwks_url: JWKS endpoint URL for the workload cluster
-  #   api_ca: workload cluster API server CA, copied into the vault pod for JWKS fetch
-  local cluster="workload"
-  local auth_path="jwt-workload-tenants"
+  #   jwks_url: JWKS endpoint URL for the development cluster
+  #   api_ca: development cluster API server CA, copied into the vault pod for JWKS fetch
+  local cluster="development"
+  local auth_path="jwt-development-tenants"
   local api_url jwks_url api_ca
 
   api_url="$(cluster_api_url "$cluster")"
@@ -305,7 +305,7 @@ EOF"
 #
 # Credentials come from `pass` (populated by tofu-to-pass.sh) — the OIDC config
 # is a one-time Vault bootstrap, so there is no need to round-trip it through
-# Vault KV like the workload app secrets.
+# Vault KV like the development app secrets.
 # -----------------------------------------------------------------------------
 configure_oidc() {
   log "Configuring Vault OIDC auth (Entra ID) for human tenant operators..."
@@ -442,7 +442,7 @@ main() {
 
   wait_for_vault_bootstrap
 
-  # Configure the management cluster first, then each workload cluster. Both are
+  # Configure the management cluster first, then each development cluster. Both are
   # reachable directly at their API server, so no ordering dependency on ArgoCD.
   configure_cluster_jwt management
   echo "--------------------------------"
@@ -452,9 +452,9 @@ main() {
     echo "--------------------------------"
   done
 
-  # Configure the shared tenant JWT backend (jwt-workload-tenants) and write
+  # Configure the shared tenant JWT backend (jwt-development-tenants) and write
   # the identity-templated tenant-policy. Must run after configure_cluster_jwt
-  # workload so the workload API server CA is available.
+  # development so the development API server CA is available.
   configure_tenant_jwt
   echo "--------------------------------"
 

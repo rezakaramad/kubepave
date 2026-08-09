@@ -4,7 +4,7 @@ set -euo pipefail
 #-----------------------------------------------------------------------------
 # setup-clusters.sh
 # Create and configure the local kind clusters for kubepave.
-# It creates the management and workload clusters,
+# It creates the management and development clusters,
 # enables 'promiscuous' mode on the node containers, and patches CoreDNS
 # to forward the rezakara.demo domain to the PowerDNS service.
 #-----------------------------------------------------------------------------
@@ -25,12 +25,12 @@ K8S_VERSION="v1.32.5"
 # cluster name → config file
 declare -A CLUSTERS=(
   [management]="$KIND_CONFIGS_DIR/management.yaml"
-  [workload]="$KIND_CONFIGS_DIR/workload.yaml"
+  [development]="$KIND_CONFIGS_DIR/development.yaml"
 )
 
 # Preferred start order (management must be first so the LB pool and
-# CoreDNS stub for workload are derived after the kind network exists)
-CLUSTER_ORDER=(management workload)
+# CoreDNS stub for development are derived after the kind network exists)
+CLUSTER_ORDER=(management development)
 
 
 # -----------------------------------------------------------------------------
@@ -44,7 +44,7 @@ CLUSTER_ORDER=(management workload)
 # -----------------------------------------------------------------------------
 enable_promiscuous_mode() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   local cluster=$1
 
   log "Enabling promiscuous mode on $cluster nodes..."
@@ -64,7 +64,7 @@ enable_promiscuous_mode() {
 # -----------------------------------------------------------------------------
 patch_coredns() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   # Local variables:
   #   context: kube context derived from cluster name
   #   pdns_ip: PowerDNS endpoint used as DNS forward target
@@ -119,7 +119,7 @@ ${DNS_DOMAIN}:53 {
 # -----------------------------------------------------------------------------
 create_cluster() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   # Local variables:
   #   config: path to the kind cluster configuration file for the given cluster name
   local name=$1
@@ -149,7 +149,7 @@ create_cluster() {
 # -----------------------------------------------------------------------------
 delete_cluster() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   local name=$1
 
   # Delete the cluster if it exists; otherwise, log a warning
@@ -191,7 +191,7 @@ status() {
   echo ""
   echo "Kind clusters:"
   # List all kind clusters and their corresponding kube contexts
-  kind get clusters 2>/dev/null | grep -E "^(management|workload)$" | while read -r c; do
+  kind get clusters 2>/dev/null | grep -E "^(management|development)$" | while read -r c; do
     echo "  $c"
     echo "    context: kind-$c"
   done || echo "  (none)"
@@ -199,12 +199,12 @@ status() {
   echo ""
 
   # Print the kind Docker network CIDR, PowerDNS IP, and LoadBalancer pool ranges
-  # for management and workload clusters
+  # for management and development clusters
   if docker network inspect kind >/dev/null 2>&1; then
     echo "kind network CIDR    : $(get_kind_cidr)"
     echo "PowerDNS IP          : $(get_powerdns_ip)"
     echo "LB pool management   : $(get_lb_pool management)"
-    echo "LB pool workload     : $(get_lb_pool workload)"
+    echo "LB pool development     : $(get_lb_pool development)"
   else
     echo "kind Docker network  : not found"
   fi

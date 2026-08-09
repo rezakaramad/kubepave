@@ -5,7 +5,7 @@ set -euo pipefail
 # setup-trust.sh
 #
 # Trust the self-signed CA certificate from Vault in local trust stores
-# (Java, browser, system) and distribute to workload clusters.
+# (Java, browser, system) and distribute to development clusters.
 # -----------------------------------------------------------------------------
 
 # Set the script directory to the current file's directory
@@ -21,7 +21,7 @@ MGMT_CONTEXT="$(kind_context management)"
 
 # ----------------------------------------------------------------------------
 # Trust self-signed CA certificate from Vault in local trust stores
-# (Java, browser, system) and distribute to workload clusters.
+# (Java, browser, system) and distribute to development clusters.
 # ----------------------------------------------------------------------------
 trust_self_signed_ca_certificate() {
   BASE_DIR="$HOME/.local/share/rezakara"
@@ -171,9 +171,9 @@ trust_self_signed_ca_certificate() {
   echo "  set -x JAVA_TOOL_OPTIONS \"$JAVA_TOOL_OPTIONS\""
 
   # --------------------------------------------------------------------------
-  # Seed CA trust into workload clusters
+  # Seed CA trust into development clusters
   # --------------------------------------------------------------------------
-  log "Seeding CA trust into workload clusters..."
+  log "Seeding CA trust into development clusters..."
 
   get_kind_tenant_clusters | while IFS= read -r cluster; do
     local context
@@ -191,7 +191,7 @@ trust_self_signed_ca_certificate() {
       | kubectl --context "$context" apply -f -
   done
 
-  ok "Root CA secret distributed to workload clusters"
+  ok "Root CA secret distributed to development clusters"
 }
 
 

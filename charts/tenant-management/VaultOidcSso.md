@@ -134,7 +134,7 @@ Entra label "pillow-factory" → GroupAlias → Group → Policy → tenants/pil
 | | AuthBackendRole (machine) | Policy + Group + GroupAlias (human) |
 |---|---|---|
 | Who logs in | A pod's ServiceAccount | A person via Entra ID SSO |
-| Login method | `jwt-workload-tenants` backend | `oidc` auth method |
+| Login method | `jwt-development-tenants` backend | `oidc` auth method |
 | Identity source | Namespace claim in the SA token | `roles` claim in the Entra token |
 | How tenant is scoped | Identity-template on one shared `tenant-policy` | A dedicated per-tenant `tenant-<t>` policy via the group |
 

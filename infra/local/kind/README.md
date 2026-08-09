@@ -4,11 +4,11 @@ A reproducible, multi-cluster local platform running on [kind](https://kind.sigs
 It mirrors the cloud setup: 
 
 - a **management** cluster running the platform control plane (ArgoCD, Vault, PowerDNS, cert-manager, external-secrets, Traefik)
-- and a **workload** cluster whose platform components are installed by ArgoCD via
+- and a **development** cluster whose platform components are installed by ArgoCD via
 GitOps.
 
 > For the design rationale (why kind, why PowerDNS in-cluster, the TLS chain, the
-> GitOps model, and why the workload cluster needs no identity seed) see
+> GitOps model, and why the development cluster needs no identity seed) see
 > [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
@@ -44,15 +44,15 @@ Run from `systems/local/kind/`. Each step is idempotent.
 ./setup-cilium.sh install     # 2. Cilium CNI + LoadBalancer pools (both clusters)
 ./install-gateway-api.sh      # 3. Gateway API CRDs (both clusters) — required by setup-dns.sh
 ./setup-dns.sh start          # 4. PowerDNS (hostNetwork) + systemd-resolved drop-in
-./install-charts.sh           # 5. management stack + ArgoCD + workload seed
+./install-charts.sh           # 5. management stack + ArgoCD + development seed
 ./setup-vault.sh              # 6. configure Vault JWT auth for all clusters
-./setup-secrets.sh            # 7. push secrets to Vault + register workload with ArgoCD
-./setup-trust.sh              # 8. distribute root CA to workload + local trust stores
+./setup-secrets.sh            # 7. push secrets to Vault + register development with ArgoCD
+./setup-trust.sh              # 8. distribute root CA to development + local trust stores
 ```
 
 ### What each step does
 
-1. **`setup-clusters.sh start`** — creates the `management` and `workload` kind
+1. **`setup-clusters.sh start`** — creates the `management` and `development` kind
    clusters, enables promiscuous mode, and patches CoreDNS in both to forward
    `rezakara.demo` to PowerDNS. `destroy` tears them down; `status` shows state.
 2. **`setup-cilium.sh install`** — installs Cilium (CNI + L2 load-balancer) and
@@ -72,15 +72,15 @@ Run from `systems/local/kind/`. Each step is idempotent.
    fetching each cluster's JWKS directly from its API server, so external-secrets
    can authenticate to Vault.
 7. **`setup-secrets.sh`** — reads secrets from `pass` and writes them to Vault
-   (GitHub Apps, Azure AD, PowerDNS, Next Insight) and registers the workload
+   (GitHub Apps, Azure AD, PowerDNS, Next Insight) and registers the development
    cluster with ArgoCD (pull model) by storing its API server + token in Vault.
 8. **`setup-trust.sh`** — copies the root CA Secret from the management cluster
-   to the workload cluster, verifies it, and installs it into the Java / browser
+   to the development cluster, verifies it, and installs it into the Java / browser
    (NSS) / system trust stores.
 
-After step 6, ArgoCD materialises the workload cluster Secret and the App-of-Apps
-begins syncing `argocd-applications/local/workload/` — installing cert-manager,
-external-secrets, Traefik, and external-dns on the workload cluster.
+After step 6, ArgoCD materialises the development cluster Secret and the App-of-Apps
+begins syncing `argocd-applications/local/development/` — installing cert-manager,
+external-secrets, Traefik, and external-dns on the development cluster.
 
 > **Note:** ArgoCD pulls charts and Application manifests from Git
 > (`github.com/rezakaramad/kubepave` at `HEAD`). Any local chart changes must be
@@ -124,15 +124,15 @@ IP ranges remain stable across every `kind:down && kind:up` cycle.
 192.168.211.64/27  (30 usable hosts: .65 – .94)
   .65      gateway (Docker bridge)
   .66      management control-plane node
-  .67      workload control-plane node
+  .67      development control-plane node
   .68–.74  unallocated
-  .75–.84  workload LoadBalancer pool   (10 IPs)
+  .75–.84  development LoadBalancer pool   (10 IPs)
   .85–.94  management LoadBalancer pool (10 IPs)
 ```
 
 Pool sizes are controlled by `LB_MGMT_POOL_SIZE` / `LB_WL_POOL_SIZE` in
 `libs/common.sh`. The ranges are committed in
-`charts/cilium/values-local-{management,workload}.yaml` so ArgoCD can reconcile
+`charts/cilium/values-local-{management,development}.yaml` so ArgoCD can reconcile
 them without any runtime injection.
 
 ### Pod and service CIDRs
@@ -144,7 +144,7 @@ VIP from the pool above.
 | Cluster | Pod CIDR | Service (ClusterIP) CIDR |
 |---------|----------|--------------------------|
 | management | `192.168.100.0/24` | `192.168.101.0/24` |
-| workload   | `192.168.102.0/24` | `192.168.103.0/24` |
+| development   | `192.168.102.0/24` | `192.168.103.0/24` |
 
 ### Summary — what's reachable from where
 
@@ -170,7 +170,7 @@ kubectl --context kind-management -n platform-system get pods
 kubectl --context kind-management -n argocd get applications
 
 # Workload platform pods (installed by ArgoCD)
-kubectl --context kind-workload -n platform-system get pods
+kubectl --context kind-development -n platform-system get pods
 
 # HTTPS endpoints
 curl -s -o /dev/null -w '%{http_code}\n' https://argocd.mgmt.rezakara.demo/
@@ -213,13 +213,13 @@ systems/local/kind/
 │   └── utils.sh           # kind/LB-pool/context helpers
 ├── kind-configs/
 │   ├── management.yaml    # kind config for the management cluster
-│   └── workload.yaml      # kind config for the workload cluster
+│   └── development.yaml      # kind config for the development cluster
 ├── setup-clusters.sh      # create/destroy clusters, patch CoreDNS
 ├── setup-cilium.sh         # Cilium CNI + LoadBalancer pools
 ├── setup-dns.sh           # PowerDNS + systemd-resolved
 ├── install-charts.sh      # management stack + ArgoCD + gitops-platform
 ├── setup-vault.sh         # Vault JWT auth (all clusters)
-├── setup-secrets.sh       # secrets to Vault + workload registration
+├── setup-secrets.sh       # secrets to Vault + development registration
 ├── setup-trust.sh         # root CA trust distribution
 └── dns-test.yaml          # sample HTTPRoute for DNS testing
 ```

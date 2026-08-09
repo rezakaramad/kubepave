@@ -6,7 +6,7 @@ clusterSecretStore:
     vault:
       auth:
         jwt:
-          path: "jwt-workload"
+          path: "jwt-development"
           role: "eso-shared"
           kubernetesServiceAccountToken:
             serviceAccountRef:
@@ -21,7 +21,7 @@ secretStore:
     vault:
       auth:
         jwt:
-          path: "jwt-workload"
+          path: "jwt-development"
           role: "eso-platform-system"
           kubernetesServiceAccountToken:
             serviceAccountRef:

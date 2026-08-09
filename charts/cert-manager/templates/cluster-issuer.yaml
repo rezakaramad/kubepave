@@ -28,13 +28,13 @@ spec:
 # A ClusterIssuer with a self-signed root CA in local setup.
 
 {{/*
-Step 3/3 — both management and workload (selfSignedRootCA.enabled: true)
+Step 3/3 — both management and development (selfSignedRootCA.enabled: true)
 
 Creates a ClusterIssuer from the 'root-ca' Secret, allowing cert-manager to sign
 certificates for services in any namespace (for example, Traefik's wildcard TLS certificate).
 At this point, the 'root-ca' Secret already exists:
 - On management clusters: created locally in step 2.
-- On workload clusters: copied from the management cluster by setup-trust.sh.
+- On development clusters: copied from the management cluster by setup-trust.sh.
 */}}
 
 apiVersion: cert-manager.io/v1

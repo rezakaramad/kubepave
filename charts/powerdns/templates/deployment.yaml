@@ -136,7 +136,7 @@ spec:
               VALUES
                 ('rezakara.demo',      'NATIVE'),
                 ('mgmt.rezakara.demo', 'NATIVE'),
-                ('wl.rezakara.demo',   'NATIVE')
+                ('dev.rezakara.demo',   'NATIVE')
               ON CONFLICT (name) DO NOTHING;
 
               INSERT INTO records (domain_id, name, type, content, ttl)
@@ -144,13 +144,13 @@ spec:
                      'ns1.rezakara.demo. admin.rezakara.demo. 1 10800 3600 604800 3600',
                      3600
               FROM domains
-              WHERE name IN ('rezakara.demo', 'mgmt.rezakara.demo', 'wl.rezakara.demo')
+              WHERE name IN ('rezakara.demo', 'mgmt.rezakara.demo', 'dev.rezakara.demo')
               ON CONFLICT DO NOTHING;
 
               INSERT INTO records (domain_id, name, type, content, ttl)
               SELECT id, name, 'NS', 'ns1.rezakara.demo.', 3600
               FROM domains
-              WHERE name IN ('rezakara.demo', 'mgmt.rezakara.demo', 'wl.rezakara.demo')
+              WHERE name IN ('rezakara.demo', 'mgmt.rezakara.demo', 'dev.rezakara.demo')
               ON CONFLICT DO NOTHING;
               SQL
 

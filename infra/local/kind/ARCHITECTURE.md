@@ -11,7 +11,7 @@ Two kind clusters model a real platform:
 
 - **management** — runs the platform control plane (ArgoCD, Vault, PowerDNS,
   cert-manager, external-secrets, Traefik).
-- **workload** — a tenant cluster whose platform components are installed by
+- **development** — a tenant cluster whose platform components are installed by
   ArgoCD via GitOps.
 
 ```mermaid
@@ -29,7 +29,7 @@ flowchart TB
         cm_m["cert-manager<br/>selfsigned → root-ca"]
     end
 
-    subgraph wl["workload cluster (kind)"]
+    subgraph dev["development cluster (kind)"]
         coredns_w["CoreDNS stub"]
         traefik_w["Traefik Gateway<br/>TLS (shared root-ca)"]
         eso_w["external-secrets"]
@@ -41,7 +41,7 @@ flowchart TB
     host -->|DNS| pdns
     coredns_m -->|forward| pdns
     coredns_w -->|forward| pdns
-    argocd -->|GitOps sync| wl
+    argocd -->|GitOps sync| dev
     edns_w -->|"API @ powerdns.mgmt.rezakara.demo"| traefik_m --> pdns
     eso_w -->|JWT auth| vault
     vault -->|"fetch JWKS @ :6443"| api_w
@@ -57,8 +57,8 @@ kind is lighter and faster to tear down and recreate than minikube with a VM
 driver. Both clusters run as Docker containers on a single `kind` bridge network,
 so pods in one cluster can reach nodes in the other directly — no tunnels.
 
-Cluster names are `management` and `workload`; kube contexts are therefore
-`kind-management` and `kind-workload`.
+Cluster names are `management` and `development`; kube contexts are therefore
+`kind-management` and `kind-development`.
 
 ---
 
@@ -80,7 +80,7 @@ reach it:
 
 `hostNetwork` (rather than a Cilium LoadBalancer IP) is used because the node IP
 is routable from pods in *both* clusters and from the host, whereas a Cilium LB IP
-in the management cluster is not reachable from the workload pod network.
+in the management cluster is not reachable from the development pod network.
 
 ### Why keep external-dns + PowerDNS
 
@@ -109,7 +109,7 @@ cert-manager mints the wildcard cert and Traefik terminates HTTPS on `:8443`.
 The root CA is pushed to Vault (`management/pki`) via an external-secrets
 `PushSecret`. `setup-trust.sh` pulls it back out and installs it into the host's
 Java, browser (NSS), and system trust stores, and seeds the `root-ca` secret into
-the workload cluster — so the **same** CA is trusted across host and both clusters.
+the development cluster — so the **same** CA is trusted across host and both clusters.
 
 ---
 
@@ -121,8 +121,8 @@ Kubernetes as needed.
 
 - The **management** cluster uses a `ClusterSecretStore` (`vault-local`) that
   reaches Vault over its HTTPS route and authenticates via JWT auth.
-- The **workload** cluster uses a `SecretStore` and its own Vault JWT auth backend
-  (`jwt-workload`) configured by `setup-vault.sh`.
+- The **development** cluster uses a `SecretStore` and its own Vault JWT auth backend
+  (`jwt-development`) configured by `setup-vault.sh`.
 
 Vault validates each pod's ServiceAccount token cryptographically: it fetches the
 cluster's public signing keys (JWKS) directly from that cluster's API server
@@ -135,46 +135,46 @@ No long-lived reviewer token is needed.
 
 ---
 
-## GitOps model for the workload cluster
+## GitOps model for the development cluster
 
 Workload platform components (cert-manager, external-secrets, Traefik,
 external-dns) are **not** installed imperatively — ArgoCD installs them by syncing
-`argocd-applications/local/workload/`.
+`argocd-applications/local/development/`.
 
 The flow:
 
 1. `setup-secrets.sh` creates an `argocd-manager` ServiceAccount with a long-lived
-   token in the workload cluster and stores `server` + `token` in Vault.
+   token in the development cluster and stores `server` + `token` in Vault.
 2. `gitops-platform`'s `clusters-credential` ExternalSecret materialises the
-   ArgoCD **cluster Secret** (pull model — ArgoCD connects out to the workload API).
+   ArgoCD **cluster Secret** (pull model — ArgoCD connects out to the development API).
 3. `gitops-platform`'s App-of-Apps (`platform-application-folder`) points at
-   `argocd-applications/local/workload/` with `directory.recurse: true`.
-4. ArgoCD reconciles those Applications, installing the workload platform stack.
+   `argocd-applications/local/development/` with `directory.recurse: true`.
+4. ArgoCD reconciles those Applications, installing the development platform stack.
 
 Because ArgoCD reads from **Git**, chart and Application changes must be committed
 and pushed before they take effect.
 
-### Why the workload cluster needs no identity seed
+### Why the development cluster needs no identity seed
 
-Vault authenticates workload pods with JWT auth, fetching the workload cluster's
+Vault authenticates development pods with JWT auth, fetching the development cluster's
 JWKS **directly from its API server** (`https://<node-ip>:6443`). Because the API
 server is up the moment the kind cluster exists, `setup-vault.sh` can configure
-`jwt-workload` immediately — nothing has to be pre-seeded on the workload cluster.
+`jwt-development` immediately — nothing has to be pre-seeded on the development cluster.
 
 This deliberately avoids the bootstrap cycle that arises if you instead expose the
-JWKS through the workload's own Traefik ingress:
+JWKS through the development's own Traefik ingress:
 
 ```
 Traefik Gateway needs a TLS cert
   → cert comes from external-secrets (SecretStore)
-    → SecretStore needs Vault jwt-workload auth
-      → jwt-workload needs the JWKS endpoint behind Traefik
+    → SecretStore needs Vault jwt-development auth
+      → jwt-development needs the JWKS endpoint behind Traefik
         → back to the Gateway that isn't up yet
 ```
 
 Fetching the JWKS from the API server sits *below* that stack, so the whole
-workload platform can be pure GitOps with no hand-planted identity seed. The only
-thing bootstrapped imperatively is `setup-secrets.sh` registering the workload
+development platform can be pure GitOps with no hand-planted identity seed. The only
+thing bootstrapped imperatively is `setup-secrets.sh` registering the development
 cluster with ArgoCD (storing its API server + token in Vault).
 
 ### PowerDNS API at a stable hostname
@@ -185,7 +185,7 @@ Git, so it cannot inject a runtime IP.
 
 Instead the PowerDNS API is exposed behind the management Traefik at a stable
 hostname (`powerdns.mgmt.rezakara.demo`). Workload external-dns targets that URL
-with `--pdns-skip-tls-verify` (local self-signed CA). This keeps the whole workload
+with `--pdns-skip-tls-verify` (local self-signed CA). This keeps the whole development
 stack in GitOps and portable across cluster recreation — and mirrors the cloud
 model of talking to a DNS API over a stable endpoint.
 

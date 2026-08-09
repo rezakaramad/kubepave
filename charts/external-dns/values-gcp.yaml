@@ -11,7 +11,7 @@ managementGoogleProjectID: kara-mgmt
 workloadIdentityNamespace: platform-system
 
 # Only one Google service account (GSA) should be create for external-dns.
-# Using workload identity all external-secrets instances use the same GSA.
+# Using development identity all external-secrets instances use the same GSA.
 createIamServiceAccount: false
 
 external-dns:

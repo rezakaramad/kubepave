@@ -4,7 +4,7 @@ Step 2/3 — management only (selfSignedRootCA.mint: true)
 Asks the 'selfsigned' ClusterIssuer (step 1) to produce a self-signed CA certificate
 and store it in the Secret named 'root-ca' in 'platform-system'. That Secret contains
 'ca.crt' / 'tls.crt' / 'tls.key'. 'setup-trust.sh' then copies this Secret directly
-to workload clusters.
+to development clusters.
 */}}
 
 {{- if and .Values.selfSignedRootCA.enabled .Values.selfSignedRootCA.mint (.Capabilities.APIVersions.Has "cert-manager.io/v1/Certificate") }}

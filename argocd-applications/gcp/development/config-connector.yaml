@@ -1,20 +1,16 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: external-secrets-wl
+  name: config-connector-dev
   namespace: argocd
 spec:
   project: platform-system
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/gcp/external-secrets
-    helm:
-      valueFiles:
-        - values-wl.yaml
+    path: charts/gcp/config-connector
   destination:
-    name: gke-workload
-    namespace: platform-system
+    name: gke-development
   syncPolicy:
     syncOptions:
     - ServerSideApply=true

@@ -1,5 +1,5 @@
 # This ApplicationSet watches the tenant's `platform-deploy-*` repository and deploys all applications
-# in the `apps/*` directories to the tenant's workload clusters. The workload clusters are selected
+# in the `apps/*` directories to the tenant's development clusters. The development clusters are selected
 # based on the `argocd.jysk.tech/cluster-type=tenant` label and the `argocd.jysk.tech/environment` label,
 # which must match one of the environments defined in the tenant's configuration.
 
@@ -13,6 +13,7 @@ metadata:
   namespace: "tn-{{ $tenant.name }}"
   labels:
     platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
+    platform.rezakara.demo/tenant-deploy-repo: "{{ $repoURL | lower }}"
 spec:
   goTemplate: true
   goTemplateOptions:
@@ -33,7 +34,7 @@ spec:
                     values: ["tenant"]
                   - key: argocd.rezakara.demo/environment
                     operator: In
-                    values: ["dev","test","prod", "wl"]
+                    values: ["dev","test","prod", "dev"]
   template:
     metadata:
       name: '{{ `{{ .path.basename }}` }}-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}'

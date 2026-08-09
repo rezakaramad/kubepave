@@ -7,11 +7,11 @@ engine). JWT auth backends and roles are configured afterwards by
 ## Auth
 
 One JWT auth backend per cluster, mounted at `jwt-<cluster>` (e.g. `jwt-management`,
-`jwt-workload`). Each backend is configured to trust that cluster's API server as
+`jwt-development`). Each backend is configured to trust that cluster's API server as
 an OIDC identity provider; Vault fetches the public signing keys (JWKS) directly
 from `https://<cluster-node-ip>:6443/openid/v1/jwks` at setup time.
 
-### How a workload authenticates
+### How a development authenticates
 
 1. **Token request** — the pod asks its cluster's API server for a short-lived,
    audience-scoped ServiceAccount token (`TokenRequest` API). ESO does this

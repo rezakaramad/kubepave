@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: crossplane-workload
+  name: crossplane-development
   namespace: argocd
 spec:
   project: platform-system
@@ -13,9 +13,9 @@ spec:
       valueFiles:
         - values.yaml
         - values-local.yaml
-        - values-local-workload.yaml
+        - values-local-development.yaml
   destination:
-    name: kind-workload
+    name: kind-development
     namespace: crossplane-system
   syncPolicy:
     syncOptions:

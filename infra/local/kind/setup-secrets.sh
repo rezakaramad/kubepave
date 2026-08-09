@@ -8,7 +8,7 @@ set -euo pipefail
 # Differences from the minikube version:
 #   - No 'update_hosts' (systemd-resolved handles DNS)
 #   - All vault commands run inside the pod to avoid CLI/server version mismatch
-#   - 'register_clusters_argocd' registers kind workload clusters (pull model)
+#   - 'register_clusters_argocd' registers kind development clusters (pull model)
 # -----------------------------------------------------------------------------
 
 # Set the script directory to the current file's directory
@@ -253,17 +253,17 @@ create_keycloak_secrets() {
 
 
 # -----------------------------------------------------------------------------
-# Argo CD workload cluster credentials (pull model)
+# Argo CD development cluster credentials (pull model)
 # Creates an 'argocd-manager' ServiceAccount with a long-lived token in each
-# workload cluster and stores server + token in Vault. The argocd chart's
+# development cluster and stores server + token in Vault. The argocd chart's
 # 'clusters-credential' ExternalSecret then materialises the ArgoCD cluster
-# Secret so ArgoCD can connect out to the workload cluster.
+# Secret so ArgoCD can connect out to the development cluster.
 #
-# The ArgoCD cluster name is the kind context name (e.g. 'kind-workload') and
+# The ArgoCD cluster name is the kind context name (e.g. 'kind-development') and
 # MUST match 'clusterCredentials[].name' in 'argocd/values-local.yaml'.
 # -----------------------------------------------------------------------------
 register_clusters_argocd() {
-  log "Registering workload clusters with ArgoCD (pull model)..."
+  log "Registering development clusters with ArgoCD (pull model)..."
 
   get_kind_tenant_clusters | while read -r cluster; do
     local context name server token node_ip

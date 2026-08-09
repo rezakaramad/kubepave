@@ -1,7 +1,7 @@
 {{- if .Values.vault.enabled }}
 {{- $tenant := .Values.tenant }}
 
-# Per-tenant JWT auth role on the management Vault's jwt-workload-tenants backend.
+# Per-tenant JWT auth role on the management Vault's jwt-development-tenants backend.
 #
 # Created by crossplane provider-vault (which runs on the management cluster).
 # The role validates a ServiceAccount token minted in the tenant's WORKLOAD
@@ -17,7 +17,7 @@
 apiVersion: jwt.vault.m.upbound.io/v1alpha1
 kind: AuthBackendRole
 metadata:
-  name: {{ $tenant.name | lower }}
+  name: {{ $tenant.name | lower | quote }}
   labels:
     platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
 spec:

@@ -2,7 +2,7 @@
 Validate environmentPrefix against the list of supported environments.
 */}}
 
-{{ $environments := list "prod" "test" "dev" "wl" }}
+{{ $environments := list "prod" "test" "dev" }}
 
 {{- if not (has .Values.environmentPrefix $environments) }}
 {{- fail (printf "environmentPrefix [%s] does not have a valid type. Valid type: %s" .Values.environmentPrefix (join ", " $environments)) }}

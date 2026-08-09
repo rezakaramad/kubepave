@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cert-manager-wl
+  name: cert-manager-dev
   namespace: argocd
 spec:
   project: platform-system
@@ -10,7 +10,7 @@ spec:
     targetRevision: HEAD
     path: charts/gcp/cert-manager
   destination:
-    name: gke-workload
+    name: gke-development
     namespace: platform-system
   syncPolicy:
     syncOptions:

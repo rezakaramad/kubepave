@@ -6,8 +6,8 @@ set -euo pipefail
 #
 # Bootstrap the local kind environment by installing shared platform charts.
 # It prepares namespaces, bootstrap secrets, and core services for 
-# management/workload clusters.
-# Argo CD finishes the workload-side platform components after the cluster 
+# management/development clusters.
+# Argo CD finishes the development-side platform components after the cluster 
 # is registered.
 # -----------------------------------------------------------------------------
 
@@ -97,7 +97,7 @@ EOF
 # like cert-manager, external-secrets, etc. that are installed on all clusters.
 # -----------------------------------------------------------------------------
 install_platform_namespaces() {
-  for cluster in management workload; do
+  for cluster in management development; do
     helm_install platform-system "$CHARTS_DIR/platform-system" \
       "default" "$(kind_context "$cluster")"
   done
@@ -115,7 +115,7 @@ create_powerdns_bootstrap_secret() {
   # shellcheck source=/dev/null
   source "$SECRETS_FILE"
 
-  for cluster in management workload; do
+  for cluster in management development; do
     kubectl --context "$(kind_context "$cluster")" \
       -n "$PLATFORM_NAMESPACE" \
       create secret generic powerdns-api-key \
@@ -133,7 +133,7 @@ create_powerdns_bootstrap_secret() {
 # -----------------------------------------------------------------------------
 install_traefik() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   # Local variables:
   #   context: kube context derived from cluster name
   local cluster=$1
@@ -174,13 +174,13 @@ install_traefik() {
 
 # -----------------------------------------------------------------------------
 # Install external-dns (on 'management' cluster only).
-# The 'workload' external-dns is installed by ArgoCD once the workload cluster is registered.
+# The 'development' external-dns is installed by ArgoCD once the development cluster is registered.
 # and points at the management cluster's PowerDNS API via its stable Traefik hostname
-# (see external-dns/values-local-workload.yaml).
+# (see external-dns/values-local-development.yaml).
 # -----------------------------------------------------------------------------
 install_external_dns() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   # Local variables:
   #   context: kube context derived from cluster name
   local cluster=$1
@@ -202,7 +202,7 @@ install_external_dns() {
 # -----------------------------------------------------------------------------
 install_crds() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   # Local variables:
   #   context: kube context derived from cluster name
   local cluster=$1
@@ -226,7 +226,7 @@ install_crds() {
 # -----------------------------------------------------------------------------
 install_cert_manager() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   local cluster=$1
   helm_install cert-manager "$CHARTS_DIR/cert-manager" \
     "$PLATFORM_NAMESPACE" "$(kind_context "$cluster")" \
@@ -248,7 +248,7 @@ install_cert_manager() {
 # -----------------------------------------------------------------------------
 install_external_secrets() {
   # Function arguments:
-  #   $1: cluster name (management or workload)
+  #   $1: cluster name (management or development)
   local cluster=$1
   helm_install external-secrets "$CHARTS_DIR/external-secrets" \
     "$PLATFORM_NAMESPACE" "$(kind_context "$cluster")" \
@@ -323,7 +323,7 @@ main() {
   # Install external-dns and cert-manager CRDs first
   # so Helm doesn't manage them (avoids CRD upgrade conflicts)
   echo "-------- CRDs --------------------"
-  for cluster in management workload; do
+  for cluster in management development; do
     install_crds "$cluster"
   done
 
@@ -365,14 +365,14 @@ main() {
   ok "Bootstrap complete — management stack and ArgoCD installed"
   echo ""
   echo "Workload platform components (cert-manager, external-secrets, traefik,"
-  echo "external-dns) are installed by ArgoCD once the workload cluster is"
+  echo "external-dns) are installed by ArgoCD once the development cluster is"
   echo "registered. Run in order:"
-  echo "  ./setup-secrets.sh      # push secrets + register workload with ArgoCD"
-  echo "  ./setup-trust.sh        # distribute root CA to workload + local trust"
+  echo "  ./setup-secrets.sh      # push secrets + register development with ArgoCD"
+  echo "  ./setup-trust.sh        # distribute root CA to development + local trust"
   echo ""
   echo "Verify:"
   echo "  kubectl --context kind-management -n $ARGOCD_NAMESPACE get applications"
-  echo "  kubectl --context kind-workload   -n $PLATFORM_NAMESPACE get pods"
+  echo "  kubectl --context kind-development   -n $PLATFORM_NAMESPACE get pods"
 }
 
 main "$@"

@@ -1,6 +1,6 @@
 defaultGateway:
-  # The hostname for defeault gateway resource in 'gke-workload' cluster
-  hostname: '*.wl.gcp.talktorubberduck.dev'
+  # The hostname for defeault gateway resource in 'gke-development' cluster
+  hostname: '*.dev.gcp.talktorubberduck.dev'
 
 # The Traefik controller use the following static IP to specify the GCP Load Balancer.
 traefik:

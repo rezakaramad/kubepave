@@ -19,7 +19,7 @@ managementGoogleProjectID: kara-mgmt
 workloadIdentityNamespace: crossplane-system
 
 # Only one Google service account (GSA) should be create for crossplane.
-# Using workload identity all crossplane instances use the same GSA.
+# Using development identity all crossplane instances use the same GSA.
 createIamServiceAccount: false
 
 # A ConfigConnectorContext is required for Crossplane to pull OCI images from Artifact Registry.

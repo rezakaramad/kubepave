@@ -8,7 +8,7 @@ managementGoogleProjectID: kara-mgmt
 workloadIdentityNamespace: platform-system
 
 # Only one Google service account (GSA) should be create for cert-manager.
-# Using workload identity all cert-manager instances use the same GSA.
+# Using development identity all cert-manager instances use the same GSA.
 createIamServiceAccount: false
 
 external-secrets:

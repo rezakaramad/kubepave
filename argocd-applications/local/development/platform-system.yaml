@@ -1,23 +1,28 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: traefik-workload
+  name: platform-system-development
   namespace: argocd
 spec:
   project: platform-system
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/traefik
+    path: charts/platform-system
     helm:
       valueFiles:
         - values.yaml
         - values-local.yaml
-        - values-local-workload.yaml
   destination:
-    name: kind-workload
-    namespace: platform-system
+    name: kind-development
   syncPolicy:
     syncOptions:
     - ServerSideApply=true
     - ApplyOutOfSyncOnly=true
+  ignoreDifferences:
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy

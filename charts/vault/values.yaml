@@ -118,10 +118,10 @@ vault:
         # static secret) and needs to manage per-tenant JWT auth roles.
         vault policy write provider-vault-policy - <<'EOF'
         # When a tenant is provisioned, provider-vault calls
-        # PUT /v1/auth/jwt-workload-tenants/role/<tenant> to create the JWT auth
+        # PUT /v1/auth/jwt-development-tenants/role/<tenant> to create the JWT auth
         # role that binds the tenant's namespace to tenant-policy.
         # Without this, the provider gets a 403 on every tenant role reconciliation.
-        path "auth/jwt-workload-tenants/role/*" {
+        path "auth/jwt-development-tenants/role/*" {
           capabilities = ["create", "read", "update", "delete", "list"]
         }
 
