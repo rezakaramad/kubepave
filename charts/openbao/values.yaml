@@ -1,0 +1,218 @@
+openbao:
+  server:
+    standalone:
+      enabled: true
+
+    postStart:
+      - /bin/sh
+      - -c
+      - |
+        set -euo pipefail
+        export BAO_ADDR=http://127.0.0.1:8200
+
+        echo "=== OpenBao bootstrap starting ==="
+
+        INIT_FILE=/openbao/data/init.txt
+
+        ########################################
+        # 1. Initialize (only once)
+        ########################################
+
+        if [ ! -f "$INIT_FILE" ]; then
+          echo "Initializing OpenBao..."
+
+          until bao operator init -key-shares=1 -key-threshold=1 > "$INIT_FILE" 2>/dev/null; do
+            sleep 2
+          done
+
+          echo "OpenBao initialized"
+        else
+          echo "OpenBao already initialized"
+        fi
+
+        ########################################
+        # 2. Read keys
+        ########################################
+
+        UNSEAL_KEY=$(grep "Unseal Key 1:" "$INIT_FILE" | awk '{print $4}')
+        ROOT_TOKEN=$(grep "Initial Root Token:" "$INIT_FILE" | awk '{print $4}')
+
+        ########################################
+        # 3. Unseal
+        ########################################
+
+        echo "Unsealing OpenBao..."
+
+        until bao operator unseal "$UNSEAL_KEY" >/dev/null 2>&1; do
+          sleep 2
+        done
+
+        echo "OpenBao unsealed"
+
+        ########################################
+        # 4. Authenticated configuration
+        ########################################
+
+        export BAO_TOKEN="$ROOT_TOKEN"
+
+        echo "Writing ESO shared policy..."
+
+        bao policy write eso-shared-policy - <<EOF
+        path "local/metadata/shared/*" {
+          capabilities = ["read", "list"]
+        }
+
+        path "local/data/shared/*" {
+          capabilities = ["read"]
+        }
+        EOF
+
+        echo "Writing platform-system policy..."
+
+        bao policy write eso-platform-system-policy - <<EOF
+        path "local/metadata/platform/*" {
+          capabilities = ["read", "list"]
+        }
+
+        path "local/data/platform/*" {
+          capabilities = ["read"]
+        }
+        EOF
+
+        echo "Writing Keycloak ESO policy..."
+
+        bao policy write keycloak-policy - <<'EOF'
+        path "local/data/keycloak/*" {
+          capabilities = ["read", "create", "update", "patch"]
+        }
+
+        path "local/metadata/keycloak/*" {
+          capabilities = ["read", "list"]
+        }
+        EOF
+
+        echo "Writing Crossplane policy..."
+
+        bao policy write crossplane-policy - <<'EOF'
+        path "local/data/crossplane/*" {
+          capabilities = ["read"]
+        }
+
+        path "local/metadata/crossplane/*" {
+          capabilities = ["read", "list"]
+        }
+
+        path "local/data/shared/*" {
+          capabilities = ["read"]
+        }
+
+        path "local/metadata/shared/*" {
+          capabilities = ["read", "list"]
+        }
+        EOF
+
+        echo "Writing provider-vault policy..."
+
+        # Policy for the crossplane provider-vault controller. It authenticates to
+        # OpenBao via the Kubernetes auth method (its pod ServiceAccount token — no
+        # static secret) and needs to manage per-tenant JWT auth roles.
+        bao policy write provider-vault-policy - <<'EOF'
+        # When a tenant is provisioned, provider-vault calls
+        # PUT /v1/auth/jwt-development-tenants/role/<tenant> to create the JWT auth
+        # role that binds the tenant's namespace to tenant-policy.
+        # Without this, the provider gets a 403 on every tenant role reconciliation.
+        path "auth/jwt-development-tenants/role/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+
+        # provider-vault reads back the policy name when reconciling a role resource
+        # to verify the referenced policy exists (drift detection). Read-only is enough;
+        # Crossplane never writes policies, only the postStart bootstrap does.
+        path "sys/policies/acl/tenant-policy" {
+          capabilities = ["read"]
+        }
+
+        # Per-tenant human-operator ACL policies (tenant-<t>) are managed by
+        # provider-vault from the tenant-management chart (OpenBao OIDC SSO). It must
+        # create/update/delete these named policies as tenants come and go.
+        path "sys/policies/acl/tenant-*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+
+        # Per-tenant external Identity Groups + Group Aliases that map the Entra ID
+        # `roles` claim to the tenant policy (OpenBao OIDC SSO). provider-vault manages
+        # these identity objects from the tenant-management chart.
+        path "identity/group" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "identity/group/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "identity/group-alias" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "identity/group-alias/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "identity/lookup/group" {
+          capabilities = ["update"]
+        }
+
+        # Placeholder tenant secret so each tenant's KV path exists on first login.
+        # provider-vault writes tenants/<t>/welcome from the tenant-management chart,
+        # so it needs write access across the tenant KV paths.
+        path "tenants/data/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+        path "tenants/metadata/*" {
+          capabilities = ["create", "read", "update", "delete", "list"]
+        }
+
+        # provider-vault (terraform-plugin-based) issues itself a short-lived
+        # "limited child token" at setup time via auth/token/create. We set
+        # skip_child_token=true on the ClusterProviderConfig to avoid this, but
+        # provider-vault v4.0.0 does not honor that flag, so the capability is
+        # required. The child token is ephemeral and can only inherit a subset of
+        # this policy, so it grants no additional privilege.
+        path "auth/token/create" {
+          capabilities = ["update"]
+        }
+        EOF
+
+        echo "Writing Backstage policy..."
+
+        bao policy write backstage-policy - <<'EOF'
+        path "local/data/backstage/*" {
+          capabilities = ["read"]
+        }
+
+        path "local/metadata/backstage/*" {
+          capabilities = ["read", "list"]
+        }
+        EOF
+
+        echo "Writing ArgoCD policy..."
+
+        bao policy write eso-argocd-policy - <<EOF
+        path "local/metadata/argocd/*" {
+          capabilities = ["read", "list"]
+        }
+
+        path "local/data/argocd/*" {
+          capabilities = ["read"]
+        }
+        EOF
+
+        ########################################
+        # 5. Enable secrets engines
+        ########################################
+
+        echo "Ensuring KV engines exist..."
+
+        bao secrets list | grep -q '^local/' || \
+          bao secrets enable -path=local kv-v2
+
+        bao secrets list | grep -q '^tenants/' || \
+          bao secrets enable -path=tenants kv-v2
+
+        echo "=== OpenBao bootstrap complete ==="
