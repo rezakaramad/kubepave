@@ -61,7 +61,7 @@ The Job runs once at sync-wave 5, before Crossplane configures any realm resourc
 
 The Job is idempotent — it checks for the client's existence before creating it.
 
-The `keycloak` ServiceAccount is shared between the StatefulSet (used by ExternalSecrets to sync secrets from Vault) and the bootstrap Job. A single Vault role (`keycloak`) bound to this SA covers both use cases via the `keycloak-policy`, which grants read/write access to `local/data/keycloak/*`.
+The `keycloak` ServiceAccount is shared between the StatefulSet (used by ExternalSecrets to sync secrets from OpenBao) and the bootstrap Job. A single OpenBao role (`keycloak`) bound to this SA covers both use cases via the `keycloak-policy`, which grants read/write access to `kv/data/keycloak/*` (in the `platform` namespace).
 
 ## Crossplane Realm Configuration
 

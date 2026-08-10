@@ -1,7 +1,7 @@
 {{- if and .Values.vault.enabled .Values.vault.oidc.enabled }}
 {{- $tenant := .Values.tenant }}
 
-# Creates a Vault Identity Group per tenant, oidc-<tenant>.
+# Creates an OpenBao Identity Group per tenant, oidc-<tenant>.
 # Marks it type: external, so membership is not manually listed here.
 # Attaches the tenant policy (oidc-<tenant>) to that group.
 # Lets GroupAlias decide who joins at login (based on OIDC roles claim).

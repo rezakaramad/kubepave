@@ -2,8 +2,9 @@ clusterSecretStore:
   name: vault-local
   provider:
     vault:
-      server: "https://vault.mgmt.rezakara.demo"
-      path: "local"
+      server: "https://openbao.mgmt.rezakara.demo"
+      namespace: "platform"
+      path: "kv"
       version: "v2"
       caProvider:
         type: Secret
@@ -15,8 +16,9 @@ secretStore:
   name: vault-local
   provider:
     vault:
-      server: "https://vault.mgmt.rezakara.demo"
-      path: "local"
+      server: "https://openbao.mgmt.rezakara.demo"
+      namespace: "platform"
+      path: "kv"
       version: "v2"
       caProvider:
         type: Secret

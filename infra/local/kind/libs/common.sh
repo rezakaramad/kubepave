@@ -24,6 +24,7 @@ WORKLOAD_CLUSTER="development"
 # Namespace for platform components
 PLATFORM_NAMESPACE="platform-system"
 VAULT_NAMESPACE="vault"
+OPENBAO_NAMESPACE="openbao"
 ARGOCD_NAMESPACE="argocd"
 COREDNS_NS="kube-system"
 

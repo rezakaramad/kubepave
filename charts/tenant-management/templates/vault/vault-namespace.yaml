@@ -1,0 +1,31 @@
+{{- if .Values.vault.enabled }}
+{{- $tenant := .Values.tenant }}
+
+# Per-tenant OpenBao child namespace <parentNamespace>/<tenant> for DATA isolation.
+#
+# Created by crossplane provider-vault (running on the management cluster) from
+# the PARENT namespace context (forProvider.namespace: tenants). OpenBao rejects
+# a namespace whose name contains a slash, so the child is created as the bare
+# <tenant> leaf inside the parent, yielding the full path tenants/<tenant>.
+#
+# The provider authenticates at the ROOT namespace and is authorised for this
+# create by the root openbao-admin-policy path `tenants/sys/namespaces/*`.
+apiVersion: vault.vault.m.upbound.io/v1alpha1
+kind: VaultNamespace
+metadata:
+  name: {{ $tenant.name | lower | quote }}
+  labels:
+    platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
+spec:
+  providerConfigRef:
+    kind: ClusterProviderConfig
+    name: {{ .Values.vault.providerConfigName | quote }}
+
+  managementPolicies: ["Create", "Observe", "Update", "Delete"]
+
+  forProvider:
+    # Parent namespace context in which the child is created.
+    namespace: {{ .Values.vault.parentNamespace | quote }}
+    # Bare leaf name; combined with the parent it becomes tenants/<tenant>.
+    path: {{ $tenant.name | lower | quote }}
+{{- end }}

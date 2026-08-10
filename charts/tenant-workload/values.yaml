@@ -18,6 +18,10 @@ configConnector:
 
 vault:
   enabled: false
+  # Parent OpenBao namespace grouping tenant child namespaces. The tenant's data
+  # lives in <parentNamespace>/<tenant> (KV v2 mount `kv`). Used by the tenant
+  # SecretStore to address the data namespace. Only relevant when vault.enabled.
+  parentNamespace: tenants
 
 environmentPrefix: <upsert-in-env-values-file>
 

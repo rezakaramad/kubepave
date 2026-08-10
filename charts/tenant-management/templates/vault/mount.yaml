@@ -1,0 +1,34 @@
+{{- if .Values.vault.enabled }}
+{{- $tenant := .Values.tenant }}
+{{- $ns := printf "%s/%s" .Values.vault.parentNamespace ($tenant.name | lower) }}
+
+# KV v2 secret engine enabled INSIDE the tenant's child namespace
+# tenants/<tenant>. This is the per-tenant data store; a matching mount does NOT
+# exist at the root namespace, so tenants are isolated by namespace boundary.
+#
+# Enabled by crossplane provider-vault operating in the child namespace context
+# (forProvider.namespace: tenants/<tenant>), authorised by the root
+# openbao-admin-policy path `tenants/+/sys/mounts/*`. Crossplane retries until the
+# VaultNamespace above exists, so no explicit ordering annotation is required.
+apiVersion: vault.vault.m.upbound.io/v1alpha1
+kind: Mount
+metadata:
+  name: {{ printf "%s-kv" ($tenant.name | lower) }}
+  labels:
+    platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
+spec:
+  providerConfigRef:
+    kind: ClusterProviderConfig
+    name: {{ .Values.vault.providerConfigName | quote }}
+
+  managementPolicies: ["Create", "Observe", "Update", "Delete"]
+
+  forProvider:
+    # Child namespace context the mount is enabled in.
+    namespace: {{ $ns | quote }}
+    path: {{ .Values.vault.kvMount | quote }}
+    type: kv
+    options:
+      version: "2"
+    description: {{ printf "Tenant %s KV v2 store" ($tenant.name | lower) | quote }}
+{{- end }}

@@ -3,12 +3,16 @@ set -euo pipefail
 
 #-----------------------------------------------------------------------------
 # setup-secrets.sh
-# Writes secrets from 'pass' into Vault for use by external-secrets.
+# Writes secrets from 'pass' into OpenBao for use by external-secrets.
 #
 # Differences from the minikube version:
 #   - No 'update_hosts' (systemd-resolved handles DNS)
-#   - All vault commands run inside the pod to avoid CLI/server version mismatch
+#   - All bao commands run inside the pod to avoid CLI/server version mismatch
 #   - 'register_clusters_argocd' registers kind development clusters (pull model)
+#
+# All platform secrets are written into the OpenBao `platform` namespace under
+# the `kv` KV v2 mount (paths `kv/<component>/*`), matching the Pattern X
+# topology configured by the openbao chart postStart hook and setup-openbao.sh.
 # -----------------------------------------------------------------------------
 
 # Set the script directory to the current file's directory
@@ -23,17 +27,17 @@ SECRETS_FILE="$REPO_ROOT/.powerdns.env"
 
 
 # -----------------------------------------------------------------------------
-# Vault helpers
+# OpenBao helpers
 # -----------------------------------------------------------------------------
 
-# Write a KV v2 secret from key/value pairs.
-# Handles multiline values (e.g. private keys) by building a JSON payload with
-# Python3 and piping it into the pod over stdin.
+# Write a KV v2 secret from key/value pairs into the OpenBao `platform`
+# namespace. Handles multiline values (e.g. private keys) by building a JSON
+# payload with Python3 and piping it into the pod over stdin.
 #
-# Usage: vault_kv_put PATH KEY VALUE [KEY VALUE ...]
-vault_kv_put() {
+# Usage: bao_kv_put PATH KEY VALUE [KEY VALUE ...]
+bao_kv_put() {
   # Function arguments:
-  #   $1: path in Vault (e.g. local/shared/pki/root-ca)
+  #   $1: path in OpenBao (e.g. kv/shared/pki/root-ca)
   #   $2: first key
   #   $3: first value
   #   $4: second key (optional)
@@ -41,7 +45,7 @@ vault_kv_put() {
   local path="$1"
   shift  # remaining args are alternating: key value key value ...
 
-  # Build a JSON object from the key/value pairs using Python3 and pipe it into the Vault pod
+  # Build a JSON object from the key/value pairs using Python3 and pipe it into the OpenBao pod
   local json
   json=$(python3 -c "
 import json, sys
@@ -52,38 +56,40 @@ for i in range(0, len(args), 2):
 print(json.dumps(data))
 " "$@")
 
-  # Pipe the JSON into the Vault pod and write it to the specified path using 'vault kv put'
+  # Pipe the JSON into the OpenBao pod and write it to the specified path using 'bao kv put'
   printf '%s' "$json" | \
     kubectl --context "$(kind_context management)" \
-      -n "$VAULT_NAMESPACE" \
-      exec -i vault-0 -- \
+      -n "$OPENBAO_NAMESPACE" \
+      exec -i openbao-0 -- \
       sh -c "
-        export VAULT_ADDR=http://127.0.0.1:8200
-        export VAULT_TOKEN=\$(grep 'Initial Root Token:' /vault/data/init.txt | awk '{print \$4}')
+        export BAO_ADDR=http://127.0.0.1:8200
+        export BAO_TOKEN=\$(grep 'Initial Root Token:' /openbao/data/init.txt | awk '{print \$4}')
+        export BAO_NAMESPACE=platform
         cat > /tmp/vkv.json
-        vault kv put '$path' @/tmp/vkv.json
+        bao kv put '$path' @/tmp/vkv.json
         rm -f /tmp/vkv.json
       "
 }
 
-# Run any vault command inside the pod
-vault_exec() {
+# Run any bao command inside the pod (platform namespace)
+bao_exec() {
   kubectl --context "$(kind_context management)" \
-    -n "$VAULT_NAMESPACE" \
-    exec vault-0 -- \
+    -n "$OPENBAO_NAMESPACE" \
+    exec openbao-0 -- \
     sh -c "
-      export VAULT_ADDR=http://127.0.0.1:8200
-      export VAULT_TOKEN=\$(grep 'Initial Root Token:' /vault/data/init.txt | awk '{print \$4}')
+      export BAO_ADDR=http://127.0.0.1:8200
+      export BAO_TOKEN=\$(grep 'Initial Root Token:' /openbao/data/init.txt | awk '{print \$4}')
+      export BAO_NAMESPACE=platform
       $*
     "
 }
 
 
 # -----------------------------------------------------------------------------
-# Push 'root-ca' to Vault so any namespace can pull it via ExternalSecret
+# Push 'root-ca' to OpenBao so any namespace can pull it via ExternalSecret
 # -----------------------------------------------------------------------------
 push_root_ca_to_vault() {
-  log "Pushing root-ca into Vault..."
+  log "Pushing root-ca into OpenBao..."
 
   # Read the root CA from the management cluster's 'root-ca' secret
   local ca_crt tls_crt tls_key
@@ -97,13 +103,13 @@ push_root_ca_to_vault() {
     -n "$PLATFORM_NAMESPACE" get secret root-ca \
     -o jsonpath='{.data.tls\.key}' | base64 -d)
 
-  # Write the root CA and TLS cert/key to Vault under local/shared/pki/root-ca
-  vault_kv_put "local/shared/pki/root-ca" \
+  # Write the root CA and TLS cert/key to OpenBao under kv/shared/pki/root-ca
+  bao_kv_put "kv/shared/pki/root-ca" \
     "ca.crt"  "$ca_crt" \
     "tls.crt" "$tls_crt" \
     "tls.key" "$tls_key"
 
-  ok "root-ca pushed to Vault at local/shared/pki/root-ca"
+  ok "root-ca pushed to OpenBao at kv/shared/pki/root-ca"
 }
 
 
@@ -119,7 +125,7 @@ create_github_app_secret_argocd() {
   installation_id=$(pass show private/github/apps/rezakaramad-argocd/installation-id | head -n1)
   private_key=$(pass show private/github/apps/rezakaramad-argocd/private-key)
 
-  vault_kv_put "local/argocd/github/apps/rezakaramad" \
+  bao_kv_put "kv/argocd/github/apps/rezakaramad" \
     "app-id"          "$app_id" \
     "installation-id" "$installation_id" \
     "private-key"     "$private_key"
@@ -131,7 +137,7 @@ create_github_app_secret_argocd() {
   installation_id=$(pass show private/github/apps/talktorubberduckdev-argocd/installation-id | head -n1)
   private_key=$(pass show private/github/apps/talktorubberduckdev-argocd/private-key)
 
-  vault_kv_put "local/argocd/github/apps/talktorubberduckdev" \
+  bao_kv_put "kv/argocd/github/apps/talktorubberduckdev" \
     "app-id"          "$app_id" \
     "installation-id" "$installation_id" \
     "private-key"     "$private_key"
@@ -152,7 +158,7 @@ create_github_app_secret_crossplane() {
   installation_id=$(pass show private/github/apps/rezakaramad-crossplane/installation-id | head -n1)
   private_key=$(pass show private/github/apps/rezakaramad-crossplane/private-key)
 
-  vault_kv_put "local/crossplane/github/apps/org-rezakaramad" \
+  bao_kv_put "kv/crossplane/github/apps/org-rezakaramad" \
     "app-id"          "$app_id" \
     "installation-id" "$installation_id" \
     "private-key"     "$private_key"
@@ -164,7 +170,7 @@ create_github_app_secret_crossplane() {
   installation_id=$(pass show private/github/apps/talktorubberduckdev-crossplane/installation-id | head -n1)
   private_key=$(pass show private/github/apps/talktorubberduckdev-crossplane/private-key)
 
-  vault_kv_put "local/crossplane/github/apps/org-talktorubberduckdev" \
+  bao_kv_put "kv/crossplane/github/apps/org-talktorubberduckdev" \
     "app-id"          "$app_id" \
     "installation-id" "$installation_id" \
     "private-key"     "$private_key"
@@ -184,7 +190,7 @@ create_argocd_app_registration_azure() {
   tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
   client_secret=$(pass show private/azure/entraid/apps/argocd/client-secrets/argocd/value | head -n1)
 
-  vault_kv_put "local/argocd/azure/sso" \
+  bao_kv_put "kv/argocd/azure/sso" \
     "client_id"     "$client_id" \
     "tenant_id"     "$tenant_id" \
     "client_secret" "$client_secret"
@@ -204,7 +210,7 @@ create_crossplane_app_registration_azure() {
   tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
   client_secret=$(pass show private/azure/entraid/apps/crossplane/client-secrets/crossplane/value | head -n1)
 
-  vault_kv_put "local/crossplane/azure" \
+  bao_kv_put "kv/crossplane/azure" \
     "client_id"     "$client_id" \
     "tenant_id"     "$tenant_id" \
     "client_secret" "$client_secret"
@@ -215,17 +221,17 @@ create_crossplane_app_registration_azure() {
 
 # -----------------------------------------------------------------------------
 # Keycloak credentials
-# Pushed under local/keycloak/* so the keycloak chart's ExternalSecrets and
+# Pushed under kv/keycloak/* so the keycloak chart's ExternalSecrets and
 # the bootstrap Job (both using the `keycloak` SA, role `keycloak`) can read them.
 # -----------------------------------------------------------------------------
 
 # Returns 0 if a KV v2 secret already exists at the given path.
-vault_kv_exists() {
-  vault_exec "vault kv get '$1' >/dev/null 2>&1"
+bao_kv_exists() {
+  bao_exec "bao kv get '$1' >/dev/null 2>&1"
 }
 
 create_keycloak_secrets() {
-  log "Writing Keycloak secrets to Vault..."
+  log "Writing Keycloak secrets to OpenBao..."
 
   # Entra ID app registration used by Keycloak for Azure SSO
   local client_id tenant_id client_secret
@@ -233,7 +239,7 @@ create_keycloak_secrets() {
   tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
   client_secret=$(pass show private/azure/entraid/apps/keycloak/client-secrets/keycloak/value | head -n1)
 
-  vault_kv_put "local/keycloak/azure/apps/keycloak" \
+  bao_kv_put "kv/keycloak/azure/apps/keycloak" \
     "client_id"     "$client_id" \
     "tenant_id"     "$tenant_id" \
     "client_secret" "$client_secret"
@@ -241,10 +247,10 @@ create_keycloak_secrets() {
   ok "Keycloak Entra ID client secret written"
 
   # Admin user — generated once
-  if vault_kv_exists "local/keycloak/admin"; then
+  if bao_kv_exists "kv/keycloak/admin"; then
     log "Keycloak admin secret already exists — skipping"
   else
-    vault_kv_put "local/keycloak/admin" \
+    bao_kv_put "kv/keycloak/admin" \
       "username" "admin" \
       "password" "$(openssl rand -hex 16)"
     ok "Keycloak admin credentials written"
@@ -255,7 +261,7 @@ create_keycloak_secrets() {
 # -----------------------------------------------------------------------------
 # Argo CD development cluster credentials (pull model)
 # Creates an 'argocd-manager' ServiceAccount with a long-lived token in each
-# development cluster and stores server + token in Vault. The argocd chart's
+# development cluster and stores server + token in OpenBao. The argocd chart's
 # 'clusters-credential' ExternalSecret then materialises the ArgoCD cluster
 # Secret so ArgoCD can connect out to the development cluster.
 #
@@ -314,11 +320,11 @@ EOF
 
     log "  server: $server"
 
-    vault_kv_put "local/argocd/clusters/${name}" \
+    bao_kv_put "kv/argocd/clusters/${name}" \
       "server" "$server" \
       "token"  "$token"
 
-    ok "$name registered in Vault"
+    ok "$name registered in OpenBao"
   done
 }
 
@@ -327,10 +333,10 @@ EOF
 # PowerDNS credentials for external-dns
 # Unlike minikube, we do NOT generate new keys here — PowerDNS is already
 # running with the values in .powerdns.env. We push those exact values to
-# Vault so baseline-management's ExternalSecret can materialise them.
+# OpenBao so baseline-management's ExternalSecret can materialise them.
 # -----------------------------------------------------------------------------
 create_powerdns_secrets() {
-  log "Writing PowerDNS credentials to Vault..."
+  log "Writing PowerDNS credentials to OpenBao..."
 
   if [[ ! -f "$SECRETS_FILE" ]]; then
     err "Secrets file not found: $SECRETS_FILE — run ./setup-dns.sh start first"
@@ -340,11 +346,11 @@ create_powerdns_secrets() {
   # shellcheck source=/dev/null
   source "$SECRETS_FILE"
 
-  vault_kv_put "local/powerdns/db" \
+  bao_kv_put "kv/powerdns/db" \
     "user"     "pdns" \
     "password" "$POWERDNS_DB_PASSWORD"
 
-  vault_kv_put "local/powerdns/api" \
+  bao_kv_put "kv/powerdns/api" \
     "key" "$POWERDNS_API_KEY"
 
   ok "PowerDNS credentials written"
@@ -353,18 +359,18 @@ create_powerdns_secrets() {
 
 # -----------------------------------------------------------------------------
 # Backstage — Entra ID app registration credentials
-# Pushed under local/backstage/* so the backstage chart's ExternalSecret
+# Pushed under kv/backstage/* so the backstage chart's ExternalSecret
 # (using the `backstage` SA, role `backstage`) can read them.
 # -----------------------------------------------------------------------------
 create_backstage_secrets() {
-  log "Writing Backstage secrets to Vault..."
+  log "Writing Backstage secrets to OpenBao..."
 
   local client_id client_secret tenant_id
   client_id=$(pass show private/azure/entraid/apps/backstage/client-id | head -n1)
   tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
   client_secret=$(pass show private/azure/entraid/apps/backstage/client-secrets/backstage/value | head -n1)
 
-  vault_kv_put "local/backstage/azure/app" \
+  bao_kv_put "kv/backstage/azure/app" \
     "client_id"     "$client_id" \
     "tenant_id"     "$tenant_id" \
     "client_secret" "$client_secret"
@@ -374,7 +380,7 @@ create_backstage_secrets() {
   local cookie_secret
   cookie_secret=$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')
 
-  vault_kv_put "local/backstage/oauth2-proxy" \
+  bao_kv_put "kv/backstage/oauth2-proxy" \
     "cookie_secret" "$cookie_secret"
 
   # Backstage Catalog Sync — reads users/groups from Entra ID into the catalog
@@ -382,7 +388,7 @@ create_backstage_secrets() {
   sync_client_id=$(pass show private/azure/entraid/apps/backstage-catalog-sync/client-id | head -n1)
   sync_client_secret=$(pass show private/azure/entraid/apps/backstage-catalog-sync/client-secrets/backstage-catalog-sync/value | head -n1)
 
-  vault_kv_put "local/backstage/msgraph/app" \
+  bao_kv_put "kv/backstage/msgraph/app" \
     "client_id"     "$sync_client_id" \
     "tenant_id"     "$tenant_id" \
     "client_secret" "$sync_client_secret"
@@ -395,10 +401,10 @@ create_backstage_secrets() {
 # Main
 # -----------------------------------------------------------------------------
 main() {
-  log "Waiting for Vault to be ready..."
+  log "Waiting for OpenBao to be ready..."
   kubectl --context "$(kind_context management)" \
-    -n "$VAULT_NAMESPACE" \
-    wait pod vault-0 \
+    -n "$OPENBAO_NAMESPACE" \
+    wait pod openbao-0 \
     --for=condition=Ready \
     --timeout=60s
 
@@ -413,7 +419,7 @@ main() {
   create_powerdns_secrets
 
   echo ""
-  ok "All secrets written to Vault"
+  ok "All secrets written to OpenBao"
 }
 
 main "$@"
