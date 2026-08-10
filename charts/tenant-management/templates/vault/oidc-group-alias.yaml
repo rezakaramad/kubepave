@@ -9,7 +9,7 @@
 # - name          MUST equal the app-role Value (tenant name) delivered in the
 #                 `roles` claim; Vault matches the alias by this name.
 # - mountAccessor pins the alias to the `oidc` auth method (captured by
-#                 setup-vault.sh as VAULT_OIDC_ACCESSOR).
+#                 setup-openbao.sh as OPENBAO_OIDC_ACCESSOR).
 # - canonicalIdRef references the Group MR so crossplane resolves the group's
 #                 canonical ID automatically once the group exists (no manual
 #                 status wait needed).

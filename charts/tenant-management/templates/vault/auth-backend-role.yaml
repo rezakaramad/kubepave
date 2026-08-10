@@ -1,17 +1,21 @@
 {{- if .Values.vault.enabled }}
 {{- $tenant := .Values.tenant }}
 
-# Per-tenant JWT auth role on the management Vault's jwt-development-tenants backend.
+# Per-tenant JWT auth role on the ROOT OpenBao namespace's jwt-development-tenants
+# backend.
 #
 # Created by crossplane provider-vault (which runs on the management cluster).
 # The role validates a ServiceAccount token minted in the tenant's WORKLOAD
-# namespace and attaches the shared, identity-templated tenant-policy.
+# namespace and attaches the shared, identity-templated tenant-policy. The role
+# lives at the ROOT namespace (no forProvider.namespace): tenant ESO authenticates
+# here and uses the resulting token against its own child data namespace.
 #
-# Isolation: userClaim is the namespace JSON pointer, so the Vault entity alias
-# resolves to the bare namespace name (== tenant name). tenant-policy then
-# expands {{`{{identity.entity.aliases[<accessor>].name}}`}} to that name, giving the
-# tenant access to only tenants/data/<tenant>/* — a hard, per-tenant boundary
-# derived from a cryptographically signed claim that a tenant cannot forge.
+# Isolation: userClaim is the namespace JSON pointer, so the OpenBao entity alias
+# resolves to the bare workload namespace name (== tenant name). tenant-policy
+# then expands {{`{{identity.entity.aliases[<accessor>].name}}`}} to that name,
+# giving the tenant access to only tenants/<tenant>/kv/* — a hard, per-tenant
+# boundary derived from a cryptographically signed claim that a tenant cannot
+# forge.
 #
 # boundSubject additionally restricts which ServiceAccount may assume the role.
 apiVersion: jwt.vault.m.upbound.io/v1alpha1

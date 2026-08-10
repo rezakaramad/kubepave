@@ -25,7 +25,7 @@ spec:
               KEYCLOAK_URL=http://$KEYCLOAK_SERVICE_NAME:$KEYCLOAK_SERVICE_PORT
               CLIENT_ID="crossplane-admin"
               REALM="master"
-              VAULT_PATH="local/keycloak/crossplane"
+              VAULT_PATH="kv/keycloak/crossplane"
 
               echo "🔐 Authenticate to Keycloak"
               LOGIN_SUCCESS=false
@@ -43,8 +43,12 @@ spec:
               done
               [ "$LOGIN_SUCCESS" != "true" ] && echo "🛑 ERROR: Keycloak not ready for authentication" && exit 1
 
-              echo "🔐 Login to Vault"
-              export VAULT_ADDR="http://vault.vault:8200"
+              echo "🔐 Login to OpenBao"
+              export VAULT_ADDR="http://openbao.openbao:8200"
+              # Platform-component secrets live in the OpenBao `platform` namespace.
+              # The vault CLI is API-compatible with OpenBao and forwards this as
+              # the X-Vault-Namespace header for both login and kv writes.
+              export VAULT_NAMESPACE="platform"
 
               # Wait for Vault API
               echo "⏳ Waiting for Vault API"

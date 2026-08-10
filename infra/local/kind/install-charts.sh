@@ -347,11 +347,11 @@ main() {
   echo "-------- Traefik (management) ----"
   install_traefik management
 
-  # Install Vault on management cluster so it can be used by ArgoCD and other components
-  echo "-------- Vault -------------------"
-  helm_install vault "$CHARTS_DIR/vault" \
-    "$VAULT_NAMESPACE" "$(kind_context management)" \
-    -f "$CHARTS_DIR/vault/values.yaml"
+  # Install OpenBao on management cluster so it can be used by ArgoCD and other components.
+  echo "-------- OpenBao -----------------"
+  helm_install openbao "$CHARTS_DIR/openbao" \
+    "$OPENBAO_NAMESPACE" "$(kind_context management)" \
+    -f "$CHARTS_DIR/openbao/values.yaml"
 
   # Install external-dns on management cluster so it can manage DNS records in PowerDNS
   echo "-------- external-dns (mgmt) -----"
