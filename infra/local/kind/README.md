@@ -96,7 +96,7 @@ the local root CA (trusted after `setup-trust.sh`):
 | Service | URL |
 |---------|-----|
 | ArgoCD | `https://argocd.mgmt.rezakara.demo` |
-| Vault | `https://vault.mgmt.rezakara.demo` |
+| Vault | `https://openbao.mgmt.rezakara.demo` |
 | PowerDNS API | `https://powerdns.mgmt.rezakara.demo` |
 
 ArgoCD supports both Azure AD SSO and the local `admin` account. Retrieve the

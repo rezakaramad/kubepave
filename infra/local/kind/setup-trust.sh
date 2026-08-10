@@ -4,7 +4,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # setup-trust.sh
 #
-# Trust the self-signed CA certificate from Vault in local trust stores
+# Trust the self-signed CA certificate from OpenBao in local trust stores
 # (Java, browser, system) and distribute to development clusters.
 # -----------------------------------------------------------------------------
 
@@ -20,7 +20,7 @@ MGMT_CONTEXT="$(kind_context management)"
 
 
 # ----------------------------------------------------------------------------
-# Trust self-signed CA certificate from Vault in local trust stores
+# Trust self-signed CA certificate from OpenBao in local trust stores
 # (Java, browser, system) and distribute to development clusters.
 # ----------------------------------------------------------------------------
 trust_self_signed_ca_certificate() {
@@ -39,8 +39,8 @@ trust_self_signed_ca_certificate() {
   NSS_PWFILE="$NSS_DIR/.nss-pwfile"
 
   SYS_CA_FILE="/usr/local/share/ca-certificates/rezakara-demo.crt"
-  # No Keycloak in the kind setup — verify against Vault's TLS endpoint instead.
-  VERIFY_HOST="vault.mgmt.rezakara.demo"
+  # No Keycloak in the kind setup — verify against OpenBao's TLS endpoint instead.
+  VERIFY_HOST="openbao.mgmt.rezakara.demo"
 
   mkdir -p "$BASE_DIR"
 
@@ -60,17 +60,17 @@ trust_self_signed_ca_certificate() {
   log "Verifying certificate files..."
 
   if ! openssl x509 -in "$CA_FILE" -noout >/dev/null 2>&1; then
-    err "Invalid CA certificate returned from Vault"
+    err "Invalid CA certificate returned from OpenBao"
     exit 1
   fi
 
   if ! openssl x509 -in "$CERT_FILE" -noout >/dev/null 2>&1; then
-    err "Invalid TLS certificate returned from Vault"
+    err "Invalid TLS certificate returned from OpenBao"
     exit 1
   fi
 
   if ! openssl rsa -in "$KEY_FILE" -check -noout >/dev/null 2>&1; then
-    err "Invalid TLS key returned from Vault"
+    err "Invalid TLS key returned from OpenBao"
     exit 1
   fi
 

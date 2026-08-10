@@ -61,7 +61,7 @@ tasks:
         bash install-gateway-api.sh
         bash setup-dns.sh start
         bash install-charts.sh
-        bash setup-vault.sh
+        bash setup-openbao.sh
         bash setup-secrets.sh
         bash setup-trust.sh
 
