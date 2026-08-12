@@ -45,11 +45,11 @@ spec:
           - name: vault-agent
             image: {{ .Values.vaultProvider.agentImage }}
             # Override the default entrypoint (docker-entrypoint.sh) which calls
-            # `setcap cap_ipc_lock=+ep /bin/bao` at startup. That requires CAP_SETFCAP,
+            # `setcap cap_ipc_lock=+ep /usr/bin/bao` at startup. That requires CAP_SETFCAP,
             # which kind clusters don't grant, causing an immediate crash. Invoking
-            # /bin/bao directly skips the setcap call entirely.
+            # /usr/bin/bao directly skips the setcap call entirely.
             command:
-            - /bin/bao
+            - /usr/bin/bao
             args:
             - agent
             - -config=/etc/vault-agent/config.hcl
