@@ -3,7 +3,7 @@ selfSignedRootCA:
   enabled: true
 
 secretStore:
-  name: vault-local
+  name: openbao-local
   provider:
     vault:
       caProvider:

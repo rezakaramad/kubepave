@@ -119,7 +119,7 @@ Vault (KV v2 at mount `local`) is the source of truth for all secrets. Bootstrap
 scripts write secrets from `pass`; external-secrets materialises them into
 Kubernetes as needed.
 
-- The **management** cluster uses a `ClusterSecretStore` (`vault-local`) that
+- The **management** cluster uses a `ClusterSecretStore` (`openbao-local`) that
   reaches Vault over its HTTPS route and authenticates via JWT auth.
 - The **development** cluster uses a `SecretStore` and its own Vault JWT auth backend
   (`jwt-development`) configured by `setup-vault.sh`.

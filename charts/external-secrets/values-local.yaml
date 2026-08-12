@@ -1,5 +1,5 @@
 clusterSecretStore:
-  name: vault-local
+  name: openbao-local
   provider:
     vault:
       server: "https://openbao.mgmt.rezakara.demo"
@@ -13,7 +13,7 @@ clusterSecretStore:
         namespace: platform-system
 
 secretStore:
-  name: vault-local
+  name: openbao-local
   provider:
     vault:
       server: "https://openbao.mgmt.rezakara.demo"

@@ -280,7 +280,7 @@ install_argocd() {
     -f "$CHARTS_DIR/argocd/values-local.yaml"
 
   # Copy 'root-ca' into argocd namespace immediately after the namespace is created
-  # so the 'vault-local' SecretStore finds it on its first reconcile and becomes Ready.
+  # so the 'openbao-local' SecretStore finds it on its first reconcile and becomes Ready.
   log "Copying root-ca secret into $ARGOCD_NAMESPACE..."
   kubectl --context "$context" \
     get secret root-ca -n "$PLATFORM_NAMESPACE" -o json \

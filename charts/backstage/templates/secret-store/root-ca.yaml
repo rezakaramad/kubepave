@@ -8,7 +8,7 @@ metadata:
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: vault-local
+    name: openbao-local
     kind: ClusterSecretStore
   target:
     name: root-ca
