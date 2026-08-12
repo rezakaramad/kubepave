@@ -33,10 +33,6 @@ DEPENDENCIES=(
   "pass|https://www.passwordstore.org/"
   "gpg|https://gnupg.org/download/"
 
-  # Secrets backend (OpenBao CLI; bootstrap uses it via kubectl exec into the
-  # openbao-0 pod, but it is handy for direct access from the host too)
-  "bao|https://github.com/openbao/openbao/releases (Arch AUR: openbao-bin)"
-
   # DNS (systemd-resolved drop-in is written via sudo)
   "dig|dnsutils package (apt install dnsutils)"
   "sudo|sudo package"

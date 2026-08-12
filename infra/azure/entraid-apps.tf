@@ -6,7 +6,7 @@ data "azuread_client_config" "current" {}
 
 # Return the information for the user "reza" in the tenant. This is used to assign app roles to the user.
 data "azuread_user" "reza" {
-  user_principal_name = "reza@yourtenant.onmicrosoft.com"
+  user_principal_name = azuread_user.reza.user_principal_name
 }
 
 # Microsoft Graph is just another app in Azure, owned by Microsoft.
@@ -550,17 +550,17 @@ output "backstage_catalog_sync_client_secret_value" {
 }
 
 # ---------------------------------------------------------------
-# Vault
+# OpenBao
 # ---------------------------------------------------------------
-# SSO login for human tenant operators. 
+# SSO login for human tenant operators.
 # Mirrors the Argo CD pattern:
 # per-tenant app roles (one per tenant) are created by the
 # xtenantentra Crossplane function, assigned to a per-tenant Entra group, and
-# surfaced to Vault in the "roles" claim of the ID token. Vault's OIDC auth
+# surfaced to OpenBao in the "roles" claim of the ID token. OpenBao's OIDC auth
 # method maps that claim (groups_claim = roles) to a per-tenant policy so each
-# operator can read/write only tenants/<tenant>/* in Vault.
-resource "azuread_application" "vault" {
-  display_name     = "Vault"
+# operator can read/write only tenants/<tenant>/* in OpenBao.
+resource "azuread_application" "openbao" {
+  display_name     = "OpenBao"
   sign_in_audience = "AzureADMyOrg"
   owners = [
     data.azuread_client_config.current.object_id,
@@ -573,12 +573,12 @@ resource "azuread_application" "vault" {
   # The redirect URIs are where Entra ID will send the user after they sign in.
   web {
     redirect_uris = [
-      # Vault UI OIDC callback (mount path "oidc", role "oidc").
-      "https://vault.mgmt.rezakara.demo/ui/vault/auth/oidc/oidc/callback",
+      # OpenBao UI OIDC callback (mount path "oidc", role "oidc").
+      # Note: OpenBao keeps the /ui/vault/... path for Vault compatibility.
+      "https://openbao.mgmt.rezakara.demo/ui/vault/auth/oidc/oidc/callback",
 
-      # Vault CLI OIDC callback (`vault login -method=oidc`).
-      # To remind, localhost is not the Vault server. It is the operator's laptop where they ran the command.
-      # Read './vault-oidc-login-flow.md' for details on how the CLI login works.
+      # OpenBao CLI OIDC callback (`bao login -method=oidc`).
+      # localhost here is the operator's laptop, not the OpenBao server.
       "http://localhost:8250/oidc/callback"
     ]
   }
@@ -592,15 +592,15 @@ resource "azuread_application" "vault" {
   }
 }
 
-resource "azuread_service_principal" "vault" {
-  client_id                    = azuread_application.vault.client_id
+resource "azuread_service_principal" "openbao" {
+  client_id                    = azuread_application.openbao.client_id
   app_role_assignment_required = true
   owners                       = [data.azuread_client_config.current.object_id]
 }
 
-resource "azuread_application_password" "vault" {
-  application_id = azuread_application.vault.id
-  display_name   = "Vault"
+resource "azuread_application_password" "openbao" {
+  application_id = azuread_application.openbao.id
+  display_name   = "OpenBao"
 
   lifecycle {
     ignore_changes = all
@@ -609,29 +609,29 @@ resource "azuread_application_password" "vault" {
 
 # Tenant-wide (AllPrincipals) admin consent for the OIDC sign-in scopes.
 #
-# The Vault app requests openid/profile/email dynamically at login time and does
+# The OpenBao app requests openid/profile/email dynamically at login time and does
 # not declare them in required_resource_access (same as the Argo CD app).
 # When the tenant disallows user self-consent, a login otherwise fails with
 # "needs permission that only an admin can grant". This grant is the Terraform
 # equivalent of clicking "Grant admin consent" once, so a fresh apply (or app
 # recreation) reproduces it automatically instead of requiring a manual step.
-resource "azuread_service_principal_delegated_permission_grant" "vault_oidc" {
-  service_principal_object_id          = azuread_service_principal.vault.object_id
+resource "azuread_service_principal_delegated_permission_grant" "openbao_oidc" {
+  service_principal_object_id          = azuread_service_principal.openbao.object_id
   resource_service_principal_object_id = data.azuread_service_principal.msgraph.object_id
   claim_values                         = ["openid", "profile", "email"]
 }
 
-# Vault outputs
-output "vault_client_id" {
-  value = azuread_application.vault.client_id
+# OpenBao outputs
+output "openbao_client_id" {
+  value = azuread_application.openbao.client_id
 }
 
-output "vault_client_secret_id" {
-  value = azuread_application_password.vault.key_id
+output "openbao_client_secret_id" {
+  value = azuread_application_password.openbao.key_id
 }
 
-output "vault_client_secret_value" {
-  value     = azuread_application_password.vault.value
+output "openbao_client_secret_value" {
+  value     = azuread_application_password.openbao.value
   sensitive = true
 }
 

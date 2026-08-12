@@ -23,6 +23,7 @@ WORKLOAD_CLUSTER="development"
 
 # Namespace for platform components
 PLATFORM_NAMESPACE="platform-system"
+# It's dead variable, but I keep it around for reference in case I need to switch back to Vault.
 VAULT_NAMESPACE="vault"
 OPENBAO_NAMESPACE="openbao"
 ARGOCD_NAMESPACE="argocd"

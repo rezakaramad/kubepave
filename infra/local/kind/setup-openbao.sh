@@ -3,14 +3,10 @@ set -euo pipefail
 
 # -----------------------------------------------------------------------------
 # setup-openbao.sh
-# Configures OpenBao JWT/OIDC auth for the namespaced (Pattern X) topology.
+# Configures OpenBao JWT/OIDC auth for the namespaced topology (Pattern X).
 #
-# This is the OpenBao counterpart of setup-vault.sh. Vault's bootstrap script is
-# left untouched; OpenBao gets its own script so the two can coexist in the repo
-# while only OpenBao is actively installed (see install-charts.sh / Taskfile).
-#
-# Namespaced topology (Pattern X — namespaces isolate DATA; auth + policy stay
-# centrally owned by the platform team, never self-administered by tenants):
+# Namespaced topology:
+# Namespaces isolate DATA; auth + policy stay centrally owned by the platform team, never self-administered by tenants):
 #
 #   root      — admin plane. Holds the crossplane provider-vault admin auth
 #               (jwt-management/provider-vault → openbao-admin-policy), the shared
