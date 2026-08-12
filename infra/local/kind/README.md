@@ -61,7 +61,7 @@ Run from `systems/local/kind/`. Each step is idempotent.
 3. **`install-gateway-api.sh`** — installs Gateway API CRDs (`v1.4.1`) on both
    clusters. Idempotent. Required before `setup-dns.sh` (PowerDNS HTTPRoute) and
    `install-charts.sh` (Traefik Gateway).
-4. **`setup-dns.sh start`** — generates `.powerdns.env` (gitignored), deploys the
+4. **`setup-dns.sh start`** — adds PowerDNS credentials to `.platform.env` (gitignored), deploys the
    PowerDNS chart with `hostNetwork: true` in the management cluster, and writes a
    systemd-resolved drop-in so the host resolves `*.rezakara.demo` via PowerDNS.
    `reset` reverts the host DNS change.

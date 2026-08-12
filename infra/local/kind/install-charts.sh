@@ -18,8 +18,8 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$DIR/libs/common.sh"
 source "$DIR/libs/utils.sh"
 
-# Local secrets file containing sensitive information like API keys
-SECRETS_FILE="$REPO_ROOT/.powerdns.env"
+# Shared platform credentials file containing sensitive values such as API keys
+SECRETS_FILE="$REPO_ROOT/.platform.env"
 
 
 # -----------------------------------------------------------------------------
@@ -107,7 +107,7 @@ install_platform_namespaces() {
 # -----------------------------------------------------------------------------
 # Create the 'powerdns-api-key' secret in 'platform-system' on all clusters
 # directly from the local secrets file.
-# It takes the '.powerdns.env' file and creates a Kubernetes secret with the key-value pair.
+# It takes the '.platform.env' file and creates a Kubernetes secret with the key-value pair.
 # -----------------------------------------------------------------------------
 create_powerdns_bootstrap_secret() {
   log "Creating bootstrap secrets..."
