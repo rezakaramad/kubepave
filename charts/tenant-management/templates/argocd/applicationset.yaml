@@ -13,6 +13,8 @@ metadata:
   namespace: "tn-{{ $tenant.name }}"
   labels:
     platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
+  annotations:
+    # A URL cannot be a label value (63-char/charset limits); annotations have none.
     platform.rezakara.demo/tenant-deploy-repo: "{{ $repoURL | lower }}"
 spec:
   goTemplate: true
