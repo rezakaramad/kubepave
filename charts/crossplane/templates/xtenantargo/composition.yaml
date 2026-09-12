@@ -41,7 +41,7 @@ spec:
               {{- end }}
 
         # The Applications deployed to the development clusters.
-        development:
+        workload:
           repoURL: https://github.com/rezakaramad/kubepave
           path: charts/tenant-workload
           targetRevision: HEAD
