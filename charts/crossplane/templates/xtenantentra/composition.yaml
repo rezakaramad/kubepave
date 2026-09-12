@@ -22,8 +22,8 @@ spec:
           enterpriseAppObjectID: 622026ce-04e7-4b50-be99-f4302860da61 # The ObjectID of the Enterprise App
 
         vaultApp:
-          appRegObjectID: 77b7f4b8-247d-4c83-a1c5-4feaea958525 # The ObjectID of the App Registration
-          enterpriseAppObjectID: 20661b7d-3f4e-4a6a-a681-ccf07438f105 # The ObjectID of the Enterprise App
+          appRegObjectID: ae09d0bb-9255-48f7-8237-0ecf24228334 # The ObjectID of the App Registration
+          enterpriseAppObjectID: 90335c29-5e38-4f3f-9f44-cfa9cb88cf1e # The ObjectID of the Enterprise App
 
         # The provider config all resources should reference.
         providerConfigRef:
