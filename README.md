@@ -155,6 +155,28 @@ kubectl rollout restart deployment argocd-server -n argocd
 ```
 > ⚠️ This is a one-time requirement after bootstrap or whenever the OIDC client secret changes.
 
+#### OpenBao OIDC mount accessor
+Every `task kind:up` recreates the OpenBao instance from scratch, and enabling
+the `oidc` auth method assigns a **new, random mount accessor** (`auth_oidc_<id>`).
+The per-tenant Vault `GroupAlias` is pinned to this accessor, so a value left
+over from a previous run is stale and the alias fails to reconcile with:
+```
+Code: 400. Errors: * invalid mount accessor "auth_oidc_xxxxxxxx"
+```
+
+After each bootstrap, copy the freshly captured accessor into the crossplane
+values and re-apply:
+```bash
+# The bootstrap saved the current accessor to .platform.env
+grep OPENBAO_OIDC_ACCESSOR .platform.env
+```
+Paste that value into `vaultProvider.oidcAccessor` in
+[`charts/crossplane/values-local-management.yaml`](charts/crossplane/values-local-management.yaml),
+then sync the crossplane release so the tenant `GroupAlias` picks it up.
+
+> ⚠️ Required after every `task kind:up` (or any time OpenBao is recreated),
+> because the mount accessor is regenerated each time.
+
 ## Why Task
 
 Task lets you define:
