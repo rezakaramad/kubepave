@@ -346,9 +346,9 @@ configure_oidc() {
   log "Configuring OpenBao OIDC auth (Entra ID) for human tenant operators..."
 
   local client_id tenant_id client_secret
-  client_id=$(pass show private/azure/entraid/apps/vault/client-id | head -n1)
+  client_id=$(pass show private/azure/entraid/apps/openbao/client-id | head -n1)
   tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
-  client_secret=$(pass show private/azure/entraid/apps/vault/client-secrets/vault/value | head -n1)
+  client_secret=$(pass show private/azure/entraid/apps/openbao/client-secrets/vault/value | head -n1)
 
   if [ -z "$client_id" ] || [ -z "$tenant_id" ] || [ -z "$client_secret" ]; then
     err "Missing OpenBao Entra ID credentials in pass (vault client-id / tenant-id / client-secret)"
