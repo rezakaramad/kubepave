@@ -27,8 +27,7 @@ spec:
   managementPolicies: ["Create", "Observe", "Update", "Delete"]
 
   forProvider:
-    # Alias name MUST equal the app-role Value (tenant name) in the roles claim.
-    name: {{ $tenant.name | lower }}
+    name: {{ printf "oidc-%s" ($tenant.name | lower) }}
     mountAccessor: {{ required "vault.oidc.mountAccessor is required when vault.oidc.enabled is true" .Values.vault.oidc.mountAccessor | quote }}
     canonicalIdRef:
       name: {{ printf "oidc-%s" ($tenant.name | lower) }}
