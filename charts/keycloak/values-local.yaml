@@ -25,7 +25,6 @@ secretStore:
         name: root-ca
         namespace: keycloak
         type: Secret
-      namespace: platform
       path: kv
       server: https://openbao.mgmt.rezakara.demo
       version: v2

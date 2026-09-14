@@ -45,10 +45,8 @@ spec:
 
               echo "🔐 Login to OpenBao"
               export VAULT_ADDR="http://openbao.openbao:8200"
-              # Platform-component secrets live in the OpenBao `platform` namespace.
-              # The vault CLI is API-compatible with OpenBao and forwards this as
-              # the X-Vault-Namespace header for both login and kv writes.
-              export VAULT_NAMESPACE="platform"
+              # Platform-component secrets live in the root `kv` mount; there is no
+              # OpenBao namespace, so no X-Vault-Namespace header is set.
 
               # Wait for Vault API
               echo "⏳ Waiting for Vault API"

@@ -10,9 +10,9 @@ set -euo pipefail
 #   - All bao commands run inside the pod to avoid CLI/server version mismatch
 #   - 'register_clusters_argocd' registers kind development clusters (pull model)
 #
-# All platform secrets are written into the OpenBao `platform` namespace under
-# the `kv` KV v2 mount (paths `kv/<component>/*`), matching the Pattern X
-# topology configured by the openbao chart postStart hook and setup-openbao.sh.
+# All platform secrets are written into the root OpenBao `kv` KV v2 mount (paths
+# `kv/<component>/*`), matching the path-based topology configured by the openbao
+# chart postStart hook and setup-openbao.sh.
 # -----------------------------------------------------------------------------
 
 # Set the script directory to the current file's directory
@@ -30,9 +30,9 @@ SECRETS_FILE="$REPO_ROOT/.platform.env"
 # OpenBao helpers
 # -----------------------------------------------------------------------------
 
-# Write a KV v2 secret from key/value pairs into the OpenBao `platform`
-# namespace. Handles multiline values (e.g. private keys) by building a JSON
-# payload with Python3 and piping it into the pod over stdin.
+# Write a KV v2 secret from key/value pairs into the root OpenBao `kv` mount.
+# Handles multiline values (e.g. private keys) by building a JSON payload with
+# Python3 and piping it into the pod over stdin.
 #
 # Usage: bao_kv_put PATH KEY VALUE [KEY VALUE ...]
 bao_kv_put() {
@@ -64,14 +64,13 @@ print(json.dumps(data))
       sh -c "
         export BAO_ADDR=http://127.0.0.1:8200
         export BAO_TOKEN=\$(grep 'Initial Root Token:' /openbao/data/init.txt | awk '{print \$4}')
-        export BAO_NAMESPACE=platform
         cat > /tmp/vkv.json
         bao kv put '$path' @/tmp/vkv.json
         rm -f /tmp/vkv.json
       "
 }
 
-# Run any bao command inside the pod (platform namespace)
+# Run any bao command inside the pod (root namespace)
 bao_exec() {
   kubectl --context "$(kind_context management)" \
     -n "$OPENBAO_NAMESPACE" \
@@ -79,7 +78,6 @@ bao_exec() {
     sh -c "
       export BAO_ADDR=http://127.0.0.1:8200
       export BAO_TOKEN=\$(grep 'Initial Root Token:' /openbao/data/init.txt | awk '{print \$4}')
-      export BAO_NAMESPACE=platform
       $*
     "
 }

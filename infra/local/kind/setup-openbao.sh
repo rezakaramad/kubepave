@@ -3,30 +3,32 @@ set -euo pipefail
 
 # -----------------------------------------------------------------------------
 # setup-openbao.sh
-# Configures OpenBao JWT/OIDC auth for the namespaced topology (Pattern X).
+# Configures OpenBao JWT/OIDC auth for the path-based tenancy topology.
 #
-# Namespaced topology:
-# Namespaces isolate DATA; auth + policy stay centrally owned by the platform team, never self-administered by tenants):
+# Path-based topology (single root namespace; tenants isolated by PATH + ACL,
+# auth + policy stay centrally owned by the platform team, never self-administered
+# by tenants):
 #
-#   root      — admin plane. Holds the crossplane provider-vault admin auth
-#               (jwt-management/provider-vault → openbao-admin-policy), the shared
-#               tenant JWT backend (jwt-development-tenants) + the identity-
-#               templated tenant-policy, and the central human OIDC method.
-#   platform  — all platform-component secrets under KV `kv`. Holds the
-#               jwt-management + jwt-development backends with the ESO roles.
-#   tenants   — parent namespace; each tenant becomes a child namespace
-#               `tenants/<tenant>` created by crossplane provider-vault. Tenant
-#               secrets live in `tenants/<tenant>/kv`. There is NO per-tenant auth
-#               backend: tenant ESO authenticates against the shared root
-#               jwt-development-tenants backend (auth.namespace="") and uses the
-#               resulting token against its own namespace (data namespace),
-#               which ESO supports natively.
+#   Everything lives in the root namespace. Three root KV v2 mounts:
+#     kv/              — platform-component secrets (kv/data/<component>/*).
+#     kv-management/   — management-cluster tenant secrets.
+#     kv-development/  — development-cluster tenant secrets (kv-development/data/<tenant>/*).
+#
+#   Auth backends (all root):
+#     jwt-management / jwt-development — platform-component + provider-vault
+#         admin roles, bound to the `kv` platform policies.
+#     jwt-development-tenants — validates development-cluster tenant ServiceAccount
+#         tokens. A SINGLE shared role (`tenant`) attaches the identity-templated
+#         tenant-policy; the tenant segment is resolved from the caller's alias
+#         name, so every tenant self-scopes to kv-development/data/<tenant>/* with
+#         NO per-tenant role, mount, or namespace to provision.
+#     oidc — central human-operator method (Entra ID).
 #
 # Like setup-vault.sh, OpenBao validates pod JWTs by fetching each cluster's
 # public signing keys (JWKS) DIRECTLY from that cluster's API server
-# (https://<node-ip>:6443/openid/v1/jwks). The namespace + KV bootstrap
-# (init/unseal/namespaces/policies) is done by the chart postStart hook; this
-# script only adds the parts that need cluster API access (JWKS) plus OIDC.
+# (https://<node-ip>:6443/openid/v1/jwks). The KV bootstrap (init/unseal/mounts/
+# policies) is done by the chart postStart hook; this script only adds the parts
+# that need cluster API access (JWKS) plus OIDC.
 # -----------------------------------------------------------------------------
 
 # Set the script directory to the current file's directory
@@ -112,12 +114,11 @@ copy_cluster_ca() {
 
 
 # -----------------------------------------------------------------------------
-# Configure the platform-namespace JWT auth backend for a cluster.
+# Configure the platform JWT auth backend for a cluster (root namespace).
 #
 # Platform-component ESO SecretStores (management + development clusters) read
-# their secrets from the `platform` namespace, so their JWT auth backends live
-# there too. One backend per cluster (jwt-management / jwt-development), mounted
-# inside the platform namespace.
+# their secrets from the root `kv` mount, so their JWT auth backends live at the
+# root namespace too. One backend per cluster (jwt-management / jwt-development).
 # -----------------------------------------------------------------------------
 configure_platform_cluster_jwt() {
   # Function arguments:
@@ -128,17 +129,17 @@ configure_platform_cluster_jwt() {
   api_url="$(cluster_api_url "$cluster")"
   jwks_url="${api_url}/openid/v1/jwks"
 
-  log "Configuring platform JWT auth for $cluster (path: platform/$auth_path, JWKS: $jwks_url)..."
+  log "Configuring platform JWT auth for $cluster (path: $auth_path, JWKS: $jwks_url)..."
 
   grant_anonymous_oidc_discovery "$cluster"
   ca_path="$(copy_cluster_ca "$cluster" "platform-${cluster}")"
 
-  bao_exec "bao auth enable -namespace=platform -path=${auth_path} jwt 2>/dev/null || true"
+  bao_exec "bao auth enable -path=${auth_path} jwt 2>/dev/null || true"
 
-  log "Configuring platform/$auth_path backend..."
+  log "Configuring $auth_path backend..."
   local ok=false
   for i in $(seq 1 20); do
-    if bao_exec "bao write -namespace=platform auth/${auth_path}/config \
+    if bao_exec "bao write auth/${auth_path}/config \
         jwks_url='${jwks_url}' \
         jwks_ca_pem=@${ca_path} \
         bound_issuer='https://kubernetes.default.svc.cluster.local'" >/dev/null 2>&1; then
@@ -148,11 +149,11 @@ configure_platform_cluster_jwt() {
     sleep 3
   done
   if [ "$ok" != "true" ]; then
-    err "Failed to configure platform/$auth_path — API server not reachable at $jwks_url"
+    err "Failed to configure $auth_path — API server not reachable at $jwks_url"
     exit 1
   fi
 
-  bao_exec "bao write -namespace=platform auth/${auth_path}/role/eso-shared \
+  bao_exec "bao write auth/${auth_path}/role/eso-shared \
     role_type=jwt \
     bound_audiences='https://kubernetes.default.svc.cluster.local' \
     user_claim=sub \
@@ -160,7 +161,7 @@ configure_platform_cluster_jwt() {
     policies=eso-shared-policy \
     ttl=1h"
 
-  bao_exec "bao write -namespace=platform auth/${auth_path}/role/eso-platform-system \
+  bao_exec "bao write auth/${auth_path}/role/eso-platform-system \
     role_type=jwt \
     bound_audiences='https://kubernetes.default.svc.cluster.local' \
     user_claim=sub \
@@ -168,7 +169,7 @@ configure_platform_cluster_jwt() {
     policies=eso-platform-system-policy \
     ttl=1h"
 
-  bao_exec "bao write -namespace=platform auth/${auth_path}/role/crossplane \
+  bao_exec "bao write auth/${auth_path}/role/crossplane \
     role_type=jwt \
     bound_audiences='https://kubernetes.default.svc.cluster.local' \
     user_claim=sub \
@@ -176,7 +177,7 @@ configure_platform_cluster_jwt() {
     policies=crossplane-policy \
     ttl=1h"
 
-  bao_exec "bao write -namespace=platform auth/${auth_path}/role/eso-argocd \
+  bao_exec "bao write auth/${auth_path}/role/eso-argocd \
     role_type=jwt \
     bound_audiences='https://kubernetes.default.svc.cluster.local' \
     user_claim=sub \
@@ -186,7 +187,7 @@ configure_platform_cluster_jwt() {
 
   # keycloak and backstage only run on the management cluster.
   if [ "$cluster" = "management" ]; then
-    bao_exec "bao write -namespace=platform auth/${auth_path}/role/keycloak \
+    bao_exec "bao write auth/${auth_path}/role/keycloak \
       role_type=jwt \
       bound_audiences='https://kubernetes.default.svc.cluster.local' \
       user_claim=sub \
@@ -194,7 +195,7 @@ configure_platform_cluster_jwt() {
       policies=keycloak-policy \
       ttl=1h"
 
-    bao_exec "bao write -namespace=platform auth/${auth_path}/role/backstage \
+    bao_exec "bao write auth/${auth_path}/role/backstage \
       role_type=jwt \
       bound_audiences='https://kubernetes.default.svc.cluster.local' \
       user_claim=sub \
@@ -262,19 +263,18 @@ configure_provider_admin_auth() {
 
 
 # -----------------------------------------------------------------------------
-# Configure the shared tenant JWT auth backend + tenant-policy (ROOT namespace).
+# Configure the shared tenant JWT auth backend + tenant-policy (root namespace).
 #
-# A single backend (jwt-development-tenants) at the root namespace validates
-# tenant ServiceAccount tokens minted on the development cluster. There is one
-# per-tenant role (added later by crossplane provider-vault) that attaches the
-# shared, identity-templated tenant-policy.
+# A single backend (jwt-development-tenants) validates tenant ServiceAccount
+# tokens minted on the development cluster. A SINGLE shared role (`tenant`)
+# attaches the identity-templated tenant-policy — there are NO per-tenant roles.
 #
 # user_claim is the namespace JSON pointer so the entity alias == the tenant's
 # namespace name (== tenant name). tenant-policy then expands
 # {{identity.entity.aliases[<accessor>].name}} to that name, scoping the tenant
-# to its own child namespace's KV mount: tenants/<tenant>/kv/*. Tenant ESO
-# authenticates here (auth.namespace="") and uses the token against its data
-# namespace tenants/<tenant>.
+# to its own path prefix in the development KV mount: kv-development/data/<tenant>/*.
+# A pod in namespace <t> can only ever resolve the template to <t>, so it reaches
+# its own prefix and nothing else. New tenants need no provisioning here.
 # -----------------------------------------------------------------------------
 configure_tenant_jwt() {
   local cluster="development"
@@ -313,18 +313,32 @@ configure_tenant_jwt() {
 
   log "Writing tenant-policy (accessor: $accessor)..."
 
-  # Paths reach into each tenant's child namespace KV mount. A token minted for
-  # tenant <t> can only ever resolve the template to its own namespace, so it
-  # can access tenants/<t>/kv/* and nothing else.
+  # The template resolves the tenant segment from the caller's alias name, so a
+  # token minted for tenant <t> can only ever reach kv-development/data/<t>/* and
+  # kv-development/metadata/<t>/*. No list/read is granted at the mount root, so
+  # tenants cannot enumerate other tenants' prefixes.
   bao_exec "bao policy write tenant-policy - <<EOF
-path \"tenants/{{identity.entity.aliases[${accessor}].name}}/kv/data/*\" {
+path \"kv-development/data/{{identity.entity.aliases[${accessor}].name}}/*\" {
   capabilities = [\"read\", \"list\", \"create\", \"update\", \"delete\"]
 }
 
-path \"tenants/{{identity.entity.aliases[${accessor}].name}}/kv/metadata/*\" {
+path \"kv-development/metadata/{{identity.entity.aliases[${accessor}].name}}/*\" {
   capabilities = [\"read\", \"list\", \"delete\"]
 }
 EOF"
+
+  # Single shared role. user_claim is the namespace JSON pointer, so each tenant
+  # pod's alias == its namespace == its tenant name, and tenant-policy self-scopes
+  # it. No bound_subject: any development-cluster SA that presents a valid,
+  # audience-bound token is scoped to ITS OWN namespace path and can reach nothing
+  # else, so a single role safely serves every current and future tenant.
+  bao_exec "bao write auth/${auth_path}/role/tenant \
+    role_type=jwt \
+    bound_audiences='https://kubernetes.default.svc.cluster.local' \
+    user_claim=/kubernetes.io/namespace \
+    user_claim_json_pointer=true \
+    policies=tenant-policy \
+    ttl=1h"
 
   bao_exec "rm -f ${ca_path}"
 
@@ -335,12 +349,12 @@ EOF"
 # -----------------------------------------------------------------------------
 # Enable + configure the central OIDC auth method for HUMAN tenant operators.
 #
-# One OIDC method at the ROOT namespace (one Entra ID app registration + redirect
+# One OIDC method at the root namespace (one Entra ID app registration + redirect
 # URI). A human logs in once; their Entra `roles` claim (== tenant name) maps
-# them to a per-tenant external Identity Group whose policy grants access into
-# that tenant's child namespace. The per-tenant Group/GroupAlias + policy are
-# provisioned by the tenant-management chart; here we only stand up the method
-# and a single `default` role.
+# them to a per-tenant external Identity Group whose policy grants access to that
+# tenant's path prefix (kv-development/data/<tenant>/*). The per-tenant
+# Group/GroupAlias + policy are provisioned by the tenant-management chart; here
+# we only stand up the method and a single `default` role.
 # -----------------------------------------------------------------------------
 configure_oidc() {
   log "Configuring OpenBao OIDC auth (Entra ID) for human tenant operators..."
@@ -395,13 +409,13 @@ configure_oidc() {
 }
 
 
-# Wait for the OpenBao postStart bootstrap to complete (platform KV mount 'kv').
-# postStart runs init/unseal, creates the namespaces + platform KV engine, and
-# writes the ACL policies. Everything below depends on that being done.
+# Wait for the OpenBao postStart bootstrap to complete (tenant KV mounts).
+# postStart runs init/unseal, enables the kv / kv-management / kv-development
+# engines, and writes the ACL policies. Everything below depends on that.
 wait_for_openbao_bootstrap() {
-  log "Waiting for OpenBao postStart bootstrap to complete (platform KV mount 'kv')..."
+  log "Waiting for OpenBao postStart bootstrap to complete (KV mount 'kv-development')..."
   for i in $(seq 1 60); do
-    if bao_exec "bao secrets list -namespace=platform" 2>/dev/null | grep -q '^kv/'; then
+    if bao_exec "bao secrets list" 2>/dev/null | grep -q '^kv-development/'; then
       ok "OpenBao bootstrap complete"
       return 0
     fi

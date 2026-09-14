@@ -1,8 +1,8 @@
 # OpenBao
 
 Standalone OpenBao bootstrapped via a `postStart` hook (init, unseal, policies, KV
-engine). JWT auth backends and roles are configured afterwards by
-[`setup-vault.sh`](../../infra/local/kind/setup-vault.sh).
+engines). JWT auth backends and roles are configured afterwards by
+[`setup-openbao.sh`](../../infra/local/kind/setup-openbao.sh).
 
 OpenBao is an open-source fork of Vault; the chart, CLI (`bao`), and API are
 drop-in compatible. This chart mirrors the [`vault`](../vault) chart so the two
@@ -37,17 +37,36 @@ from `https://<cluster-node-ip>:6443/openid/v1/jwks` at setup time.
 No shared secret or long-lived credential is involved. OpenBao only holds public
 keys; the pod proves its identity with a token signed by its own cluster.
 
+## Mounts
+
+Everything lives in a single (root) namespace; isolation is by **path + ACL**, never
+by namespace. There are three root KV v2 mounts:
+
+| Mount | Purpose | Path convention |
+| --- | --- | --- |
+| `kv` | Platform-component secrets | `kv/data/<component>/*` |
+| `kv-management` | Management-cluster tenant secrets | `kv-management/data/<tenant>/*` |
+| `kv-development` | Development-cluster tenant secrets | `kv-development/data/<tenant>/*` |
+
+Tenants are confined to their own `<tenant>/*` prefix by a single identity-templated
+policy; see [`TENANCY.md`](TENANCY.md) for the path-based isolation design.
+
 ## Policies
 
-All paths are under the `local` KV v2 mount.
+Platform-component secrets live under the root `kv` mount.
 
 | Policy | Paths | Capabilities |
 | --- | --- | --- |
-| `eso-shared-policy` | `shared/*` | read |
-| `eso-platform-system-policy` | `platform/*` | read |
-| `eso-argocd-policy` | `argocd/*` | read |
-| `crossplane-policy` | `crossplane/*`, `shared/*` | read |
-| `keycloak-policy` | `keycloak/*` | read, create, update, patch |
+| `eso-shared-policy` | `kv/data/shared/*` | read |
+| `eso-platform-system-policy` | `kv/data/platform/*` | read |
+| `eso-argocd-policy` | `kv/data/argocd/*` | read |
+| `backstage-policy` | `kv/data/backstage/*` | read |
+| `crossplane-policy` | `kv/data/crossplane/*`, `kv/data/shared/*` | read |
+| `keycloak-policy` | `kv/data/keycloak/*` | read, create, update, patch |
+
+Tenants share one identity-templated `tenant-policy` that resolves to
+`kv-<cluster>/data/<tenant>/*` from the caller's verified auth alias name, so a new
+tenant needs no new policy.
 
 ## Roles
 
@@ -61,3 +80,8 @@ every cluster's `jwt-<cluster>` backend, except `keycloak` (management only).
 | `eso-argocd` | `argocd:argocd-server` | `eso-argocd-policy` |
 | `crossplane` | `crossplane-system:crossplane` | `crossplane-policy` |
 | `keycloak` | `keycloak:keycloak` | `keycloak-policy` |
+
+Tenants use a single shared `tenant` role on the `jwt-development-tenants` backend.
+It has no `bound_subject`; the issued token self-scopes to the calling tenant via
+its verified alias name (the workload namespace), so one role serves every tenant
+with zero per-tenant provisioning.

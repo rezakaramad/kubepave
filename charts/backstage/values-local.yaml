@@ -3,7 +3,6 @@ secretStore:
   provider:
     vault:
       server: https://openbao.mgmt.rezakara.demo
-      namespace: platform
       path: kv
       version: v2
       caProvider:

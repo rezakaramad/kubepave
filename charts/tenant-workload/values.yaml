@@ -18,10 +18,15 @@ configConnector:
 
 vault:
   enabled: false
-  # Parent OpenBao namespace grouping tenant child namespaces. The tenant's data
-  # lives in <parentNamespace>/<tenant> (KV v2 mount `kv`). Used by the tenant
-  # SecretStore to address the data namespace. Only relevant when vault.enabled.
-  parentNamespace: tenants
+  # Shared per-cluster KV v2 mount (at the ROOT namespace) holding every
+  # development tenant's secrets. The tenant SecretStore addresses this mount;
+  # the token is path-scoped to <kvMount>/data/<tenant>/* by tenant-policy.
+  # Only relevant when vault.enabled.
+  kvMount: kv-development
+  # Shared, identity-templated JWT role on the jwt-development-tenants backend.
+  # The issued token self-scopes to the calling tenant's prefix via its alias
+  # name, so a single role serves all tenants.
+  role: tenant
 
 environmentPrefix: <upsert-in-env-values-file>
 

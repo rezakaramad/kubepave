@@ -11,7 +11,6 @@ secretStore:
         name: root-ca
         namespace: crossplane-system
         type: Secret
-      namespace: platform
       path: kv
       server: https://openbao.mgmt.rezakara.demo
       version: v2

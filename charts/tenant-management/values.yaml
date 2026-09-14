@@ -3,42 +3,22 @@ configConnector:
 
 vault:
   enabled: false
-  # JWT auth backend on the ROOT OpenBao namespace that validates development
-  # cluster tenant ServiceAccount tokens. Created by setup-openbao.sh
-  # (configure_tenant_jwt). Tenant ESO authenticates here (auth.namespace="")
-  # and uses the resulting token against its own child data namespace, which
-  # External Secrets supports natively.
-  authBackend: jwt-development-tenants
-  # Shared identity-templated policy scoping each tenant to
-  # tenants/<tenant>/kv/*. Authored centrally by setup-openbao.sh.
-  policy: tenant-policy
-  # ServiceAccount (in the tenant's workload namespace) allowed to assume the role.
-  # Must match the ServiceAccount created by the tenant-workload chart.
-  serviceAccountName: tenant-eso
-  # Audience the development SA token is minted with (must match the projected token
-  # audience requested by the consumer, e.g. the tenant SecretStore).
-  audience: https://kubernetes.default.svc.cluster.local
   # provider-vault ClusterProviderConfig name (defined in the crossplane chart).
   # The provider authenticates at the ROOT namespace with openbao-admin-policy
-  # and provisions the tenant plane across namespaces via X-Vault-Namespace.
+  # and writes the tenant's placeholder secret under its own path prefix.
   providerConfigName: vault
-  # TTL (seconds) for tokens issued under this role.
-  tokenTtl: 3600
-  # Parent OpenBao namespace that groups all tenant child namespaces. Each tenant
-  # gets an isolated child namespace <parentNamespace>/<tenant>. Created once by
-  # setup-openbao.sh / the openbao chart postStart.
-  parentNamespace: tenants
-  # KV v2 mount enabled INSIDE each tenant's child namespace. A placeholder
-  # secret is written under <kvMount>/welcome so the path exists on first login.
-  kvMount: kv
+  # Shared per-cluster KV v2 mount (at the ROOT namespace) that holds every
+  # development tenant's secrets. Each tenant owns the path prefix
+  # <kvMount>/data/<tenant>/*. A placeholder secret is written under
+  # <kvMount>/data/<tenant>/welcome so the path exists on first login.
+  kvMount: kv-development
 
   # Human tenant-operator SSO into OpenBao via Entra ID OIDC. When enabled, the
   # chart provisions a per-tenant ACL Policy + external Identity Group + Group
   # Alias so a user whose Entra ID token carries this tenant's app-role value
   # (the `roles` claim) can log into OpenBao and access ONLY
-  # tenants/<tenant>/kv/*. The Policy, Group and GroupAlias live in the ROOT
-  # namespace (where the central OIDC method is mounted); the policy grants
-  # cross-namespace access to the tenant's child-namespace KV paths.
+  # <kvMount>/data/<tenant>/*. The Policy, Group and GroupAlias live in the ROOT
+  # namespace (where the central OIDC method is mounted).
   oidc:
     enabled: false
     # Mount accessor of the `oidc` auth method on the management OpenBao. Captured

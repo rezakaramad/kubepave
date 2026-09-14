@@ -40,21 +40,21 @@ into the token's `roles` claim. That is the same label ArgoCD SSO already uses.
 
 ```yaml
 # 1. Policy — the actual permissions
-kind: Policy            # tenant-pillow-factory
+kind: Policy            # oidc-pillow-factory
 policy: |
-  path "tenants/data/pillow-factory/*"     { capabilities = [read,list,create,update,delete] }
-  path "tenants/metadata/pillow-factory/*" { capabilities = [read,list,delete] }
+  path "kv-development/data/pillow-factory/*"     { capabilities = [read,list,create,update,delete] }
+  path "kv-development/metadata/pillow-factory/*" { capabilities = [read,list,delete] }
 
 # 2. Group — carries the policy, membership decided at login (type: external)
-kind: Group             # vault-tenant-pillow-factory
+kind: Group             # oidc-pillow-factory
 type: external
-policies: [tenant-pillow-factory]
+policies: [oidc-pillow-factory]
 
 # 3. GroupAlias — matches the Entra label to the group
 kind: GroupAlias
 name: pillow-factory              # MUST equal the roles-claim value
 mountAccessor: <oidc accessor>    # only for the 'oidc' login method
-canonicalIdRef: vault-tenant-pillow-factory
+canonicalIdRef: oidc-pillow-factory
 ```
 
 # The entire flow in one picture
@@ -64,7 +64,7 @@ Entra returns a signed token whose `roles` claim contains the tenant name.
 Vault's `oidc` role reads that claim (`groups_claim=roles`) and looks for a
 GroupAlias with the same name on the `oidc` method. If it matches, the user's
 entity joins the external Group for this session, which attaches the tenant
-Policy — so the token can touch only `tenants/.../pillow-factory/*`.
+Policy — so the token can touch only `kv-development/data/pillow-factory/*`.
 No match means only the built-in `default` policy: no tenant access at all.
 
 ```
@@ -100,15 +100,15 @@ No match means only the built-in `default` policy: no tenant access at all.
                 ▼
 ┌───────────────────────────────┐
 │ External Group                │
-│ vault-tenant-pillow-factory   │
-│ policies = [tenant-...]       │
+│ oidc-pillow-factory           │
+│ policies = [oidc-...]         │
 └───────────────┬───────────────┘
                 │ attaches
                 ▼
 ┌───────────────────────────────┐
-│ Policy tenant-pillow-factory  │
+│ Policy oidc-pillow-factory    │
 │                               │
-│ Access: tenants/data/         │
+│ Access: kv-development/data/  │
 │         pillow-factory/*      │
 └───────────────────────────────┘
 
@@ -126,7 +126,7 @@ Each answers a different question, and Vault won't let you merge them:
 Chained together:
 
 ```
-Entra label "pillow-factory" → GroupAlias → Group → Policy → tenants/pillow-factory/*
+Entra label "pillow-factory" → GroupAlias → Group → Policy → kv-development/data/pillow-factory/*
 ```
 
 # How this differs from AuthBackendRole
@@ -136,7 +136,7 @@ Entra label "pillow-factory" → GroupAlias → Group → Policy → tenants/pil
 | Who logs in | A pod's ServiceAccount | A person via Entra ID SSO |
 | Login method | `jwt-development-tenants` backend | `oidc` auth method |
 | Identity source | Namespace claim in the SA token | `roles` claim in the Entra token |
-| How tenant is scoped | Identity-template on one shared `tenant-policy` | A dedicated per-tenant `tenant-<t>` policy via the group |
+| How tenant is scoped | Identity-template on one shared `tenant-policy` | A dedicated per-tenant `oidc-<t>` policy via the group |
 
 Same goal — a hard, per-tenant boundary — but one is for workloads and one is
 for the people who operate them.

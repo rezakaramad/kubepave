@@ -2,12 +2,13 @@
 {{- $tenant := .Values.tenant }}
 
 # Per-tenant OpenBao ACL Policy for HUMAN tenant operators logging in via Entra ID OIDC
-# Grants the tenant read/write on ONLY their own child-namespace KV path.
+# Grants the tenant read/write on ONLY their own path prefix in the shared
+# per-cluster `kv-development` mount at the ROOT namespace.
 #
 # This Policy lives in the ROOT namespace (where the central OIDC method and the
-# tenant's Identity Group are), but its paths are fully qualified with the child
-# namespace prefix tenants/<tenant>/kv/*, so a root-context OIDC token resolves
-# cross-namespace into the tenant's isolated data (validated: Risk A).
+# tenant's Identity Group are). Isolation is enforced entirely by the path prefix
+# kv-development/*/<tenant>/*; no list/read is granted at the mount root, so a
+# tenant cannot enumerate other tenants' prefixes.
 
 apiVersion: vault.vault.m.upbound.io/v1alpha1
 kind: Policy
@@ -25,15 +26,10 @@ spec:
   forProvider:
     name: {{ printf "oidc-%s" ($tenant.name | lower) | quote }}
     policy: |
-      # The OpenBao UI lists the KV mount metadata when opening the tenant's
-      # namespace. Grant list on the mount root so the UI can render.
-      path "tenants/{{ $tenant.name | lower }}/kv/metadata" {
-        capabilities = ["list"]
-      }
-      path "tenants/{{ $tenant.name | lower }}/kv/data/*" {
+      path "{{ .Values.vault.kvMount }}/data/{{ $tenant.name | lower }}/*" {
         capabilities = ["read", "list", "create", "update", "delete"]
       }
-      path "tenants/{{ $tenant.name | lower }}/kv/metadata/*" {
+      path "{{ .Values.vault.kvMount }}/metadata/{{ $tenant.name | lower }}/*" {
         capabilities = ["read", "list", "delete"]
       }
 {{- end }}

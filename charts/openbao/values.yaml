@@ -53,59 +53,58 @@ openbao:
         # 4. Authenticated configuration
         ########################################
         #
-        # Namespaced topology (Pattern X — namespaces isolate DATA; auth + policy
-        # stay centrally owned by the platform team):
+        # Path-based topology (single root namespace; tenants are isolated by
+        # PATH + ACL, never by namespace):
         #
-        #   root      — admin plane. Holds the provider-vault admin auth + the
-        #               openbao-admin-policy that lets crossplane provider-vault
-        #               create/manage tenant namespaces and their mounts/policies.
-        #               The shared tenant JWT backend, the central human OIDC
-        #               method, and the tenant-policy also live here (added by
-        #               setup-openbao.sh, which needs cluster API access for JWKS).
-        #   platform  — all platform-component secrets live here under KV `kv`.
-        #               Its jwt-management / jwt-development auth backends + roles
-        #               are added by setup-openbao.sh.
-        #   tenants   — parent namespace; each tenant becomes a child namespace
-        #               `tenants/<tenant>` created later by crossplane provider-vault.
+        #   Everything lives in the root namespace. There are three root KV v2
+        #   mounts:
+        #     kv/              — platform-component secrets (paths kv/data/<component>/*).
+        #     kv-management/   — tenant secrets for management-cluster tenants
+        #                        (kv-management/data/<tenant>/*).
+        #     kv-development/  — tenant secrets for development-cluster tenants
+        #                        (kv-development/data/<tenant>/*).
+        #
+        #   Auth + policy stay centrally owned by the platform team, never
+        #   self-administered by tenants. The jwt-management / jwt-development
+        #   platform backends, the shared jwt-development-tenants backend + the
+        #   identity-templated tenant-policy, and the central human OIDC method are
+        #   all added by setup-openbao.sh (which needs cluster API access for JWKS).
         #
         # This postStart hook only handles the parts that need no cluster API
-        # access: init/unseal, namespace creation, the platform KV engine, and all
-        # ACL policies. JWT/JWKS/OIDC configuration is done by setup-openbao.sh.
+        # access: init/unseal, the KV engines, and all ACL policies. JWT/JWKS/OIDC
+        # configuration is done by setup-openbao.sh.
 
         export BAO_TOKEN="$ROOT_TOKEN"
 
         ########################################
-        # 4a. Namespaces
+        # 4a. KV engines (root namespace)
         ########################################
 
-        echo "Ensuring namespaces exist..."
+        echo "Ensuring KV engines exist..."
 
-        bao namespace list -format=json 2>/dev/null | grep -q '"platform/"' || \
-          bao namespace create platform
+        # Platform-component secrets.
+        bao secrets list 2>/dev/null | grep -q '^kv/' || \
+          bao secrets enable -path=kv kv-v2
 
-        bao namespace list -format=json 2>/dev/null | grep -q '"tenants/"' || \
-          bao namespace create tenants
+        # Per-cluster tenant secret stores. Tenants are isolated by path prefix
+        # (kv-<cluster>/data/<tenant>/*), enforced by the identity-templated
+        # tenant-policy — not by a namespace boundary.
+        bao secrets list 2>/dev/null | grep -q '^kv-management/' || \
+          bao secrets enable -path=kv-management kv-v2
 
-        ########################################
-        # 4b. Platform KV engine
-        ########################################
-
-        echo "Ensuring platform KV engine exists..."
-
-        bao secrets list -namespace=platform 2>/dev/null | grep -q '^kv/' || \
-          bao secrets enable -namespace=platform -path=kv kv-v2
+        bao secrets list 2>/dev/null | grep -q '^kv-development/' || \
+          bao secrets enable -path=kv-development kv-v2
 
         ########################################
-        # 4c. Platform ACL policies (in the platform namespace)
+        # 4c. Platform ACL policies (root namespace)
         #
-        # All platform secrets live under the `kv` KV v2 mount in the platform
-        # namespace, so paths are `kv/data/<component>/*` (read) and
-        # `kv/metadata/<component>/*` (list).
+        # All platform secrets live under the root `kv` KV v2 mount, so paths are
+        # `kv/data/<component>/*` (read) and `kv/metadata/<component>/*` (list).
         ########################################
 
-        echo "Writing ESO shared policy (platform)..."
+        echo "Writing ESO shared policy..."
 
-        bao policy write -namespace=platform eso-shared-policy - <<EOF
+        bao policy write eso-shared-policy - <<EOF
         path "kv/metadata/shared/*" {
           capabilities = ["read", "list"]
         }
@@ -115,9 +114,9 @@ openbao:
         }
         EOF
 
-        echo "Writing platform-system policy (platform)..."
+        echo "Writing platform-system policy..."
 
-        bao policy write -namespace=platform eso-platform-system-policy - <<EOF
+        bao policy write eso-platform-system-policy - <<EOF
         path "kv/metadata/platform/*" {
           capabilities = ["read", "list"]
         }
@@ -127,9 +126,9 @@ openbao:
         }
         EOF
 
-        echo "Writing Keycloak ESO policy (platform)..."
+        echo "Writing Keycloak ESO policy..."
 
-        bao policy write -namespace=platform keycloak-policy - <<'EOF'
+        bao policy write keycloak-policy - <<'EOF'
         path "kv/data/keycloak/*" {
           capabilities = ["read", "create", "update", "patch"]
         }
@@ -139,9 +138,9 @@ openbao:
         }
         EOF
 
-        echo "Writing Crossplane policy (platform)..."
+        echo "Writing Crossplane policy..."
 
-        bao policy write -namespace=platform crossplane-policy - <<'EOF'
+        bao policy write crossplane-policy - <<'EOF'
         path "kv/data/crossplane/*" {
           capabilities = ["read"]
         }
@@ -159,9 +158,9 @@ openbao:
         }
         EOF
 
-        echo "Writing Backstage policy (platform)..."
+        echo "Writing Backstage policy..."
 
-        bao policy write -namespace=platform backstage-policy - <<'EOF'
+        bao policy write backstage-policy - <<'EOF'
         path "kv/data/backstage/*" {
           capabilities = ["read"]
         }
@@ -171,9 +170,9 @@ openbao:
         }
         EOF
 
-        echo "Writing ArgoCD ESO policy (platform)..."
+        echo "Writing ArgoCD ESO policy..."
 
-        bao policy write -namespace=platform eso-argocd-policy - <<EOF
+        bao policy write eso-argocd-policy - <<EOF
         path "kv/metadata/argocd/*" {
           capabilities = ["read", "list"]
         }
@@ -186,73 +185,40 @@ openbao:
         ########################################
         # 4d. Root admin policy for crossplane provider-vault
         #
-        # provider-vault authenticates at the ROOT namespace (via its vault-agent
+        # provider-vault authenticates at the root namespace (via its vault-agent
         # sidecar → jwt-management/provider-vault role, configured by
-        # setup-openbao.sh) and manages the tenant plane: it creates each tenant's
-        # child namespace, the KV mount inside it, a placeholder secret, and the
-        # per-tenant human-OIDC identity Group/Alias + policy.
+        # setup-openbao.sh) and manages ONLY the per-tenant human-OIDC plane: the
+        # Identity Group/Alias that map a human's Entra `roles` claim to the
+        # tenant, the per-tenant OIDC ACL policy, and a browsable placeholder
+        # secret under the tenant's path.
         #
-        # Paths use `tenants/+/...` so a single wildcard covers every current and
-        # future tenant child namespace without re-writing the policy.
+        # The MACHINE plane needs no per-tenant provisioning: tenant ESO logs in
+        # through the shared jwt-development-tenants backend + shared `tenant` role
+        # and is self-scoped to kv-development/data/<tenant>/* by the identity-
+        # templated tenant-policy. There are no per-tenant namespaces, mounts, or
+        # JWT roles to create, so those grants are gone.
         ########################################
 
         echo "Writing openbao-admin-policy (root)..."
 
         bao policy write openbao-admin-policy - <<'EOF'
-        # Create and manage tenant child namespaces (tenants/<tenant>).
-        #
-        # OpenBao rejects a create call whose namespace name contains a slash, so
-        # nested namespaces MUST be created from the PARENT namespace context
-        # (X-Vault-Namespace: tenants, path sys/namespaces/<tenant>). A root token
-        # is authorised against the fully-qualified path `tenants/sys/namespaces/*`.
-        path "tenants/sys/namespaces/*" {
-          capabilities = ["create", "read", "update", "delete", "list"]
+        # Write the per-tenant placeholder secret + browse it back. Scoped to the
+        # development tenant KV mount where tenant data lives.
+        path "kv-development/data/*" {
+          capabilities = ["create", "read", "update", "delete"]
         }
-        path "tenants/sys/namespaces" {
-          capabilities = ["read", "list"]
-        }
-        # List root namespaces (to observe that the `tenants` parent exists).
-        path "sys/namespaces" {
-          capabilities = ["list"]
+        path "kv-development/metadata/*" {
+          capabilities = ["read", "list", "delete"]
         }
 
-        # Enable/tune the KV mount inside each tenant namespace.
-        path "tenants/+/sys/mounts/*" {
-          capabilities = ["create", "read", "update", "delete", "list"]
-        }
-        path "tenants/+/sys/mounts" {
-          capabilities = ["read", "list"]
-        }
-
-        # Write the placeholder secret + manage tenant KV data.
-        path "tenants/+/kv/*" {
-          capabilities = ["create", "read", "update", "delete", "list"]
-        }
-
-        # The shared, identity-templated tenant-policy is read back for drift
-        # detection when reconciling the tenant JWT auth role. It is authored by
-        # setup-openbao.sh, not by the provider.
-        path "sys/policies/acl/tenant-policy" {
-          capabilities = ["read"]
-        }
-
-        # Per-tenant human-operator ACL policies (tenant-<t> / oidc-<t>) managed by
+        # Per-tenant human-operator OIDC ACL policies (oidc-<tenant>) managed by
         # provider-vault from the tenant-management chart (central OpenBao OIDC SSO).
-        path "sys/policies/acl/tenant-*" {
-          capabilities = ["create", "read", "update", "delete", "list"]
-        }
         path "sys/policies/acl/oidc-*" {
           capabilities = ["create", "read", "update", "delete", "list"]
         }
 
-        # Per-tenant JWT auth role on the shared jwt-development-tenants backend
-        # that binds the tenant's ServiceAccount to the tenant-policy.
-        path "auth/jwt-development-tenants/role/*" {
-          capabilities = ["create", "read", "update", "delete", "list"]
-        }
-
         # Per-tenant external Identity Groups + Group Aliases that map the Entra ID
-        # `roles` claim to the tenant policy (central root OIDC SSO).
+        # `roles` claim to the tenant's OIDC policy (central root OIDC SSO).
         path "identity/group" {
           capabilities = ["create", "read", "update", "delete", "list"]
         }

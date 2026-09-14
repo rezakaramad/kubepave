@@ -5,7 +5,7 @@ version: 0.0.1
 
 # Crossplane
 #     - GitHub DEPLOY Repository/RespositoryFile + SUPPORT.md
-#     - Vault path at `tenants/<ENV>/<TenantName>
+#     - Vault path at `kv-<ENV>/data/<TenantName>`
 #     - XtenantEntra --> Entra ID resources (Group + AppReg.) for Argo CD and Vault and Keycloak
 
 # Argo CD
