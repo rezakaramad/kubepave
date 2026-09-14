@@ -176,7 +176,7 @@ Path-based isolation optimizes for simplicity. Mount-based isolation trades some
 
 # Chosen approach: path-based isolation
 
-In *kubepave* uses **path-based isolation within a single namespace**, not
+*kubepave* uses **path-based isolation within a single namespace**, not
 namespaces-per-tenant.
 
 **Layout**
@@ -188,6 +188,36 @@ namespaces-per-tenant.
 - Tenants are confined to their prefix by a single **identity-templated ACL policy**;
   the tenant segment is resolved from the caller's verified identity, not from user input.
 
+**Tenant identity source: the auth alias name (decided)**
+
+The tenant segment in the templated policy is filled from the caller's **auth-mount
+alias name** — `{{identity.entity.aliases.<accessor>.name}}` — *not* from entity
+metadata. When a caller logs in through the `jwt-<cluster>` backend, OpenBao creates
+an alias on that mount whose name is the token's `user_claim` value (the tenant's
+Kubernetes namespace, which in kubepave equals the tenant name). The shared policy
+resolves to that value at request time:
+
+```
+kv-<cluster>/data/{{identity.entity.aliases.<accessor>.name}}/*
+```
+
+Why the alias name and not `{{identity.entity.metadata.tenant}}`:
+- **Zero per-tenant provisioning.** The alias is created automatically on first
+  login and its name comes straight from the verified token, so a new tenant is
+  scoped the moment it authenticates — nothing is pre-created in OpenBao. This is
+  what makes the "no per-tenant provisioning" goal actually hold.
+- **Entity metadata is *not* auto-populated from token claims.** Only alias metadata
+  is (via `claim_mappings`). Using `{{identity.entity.metadata.tenant}}` would
+  require creating an entity per tenant and setting its metadata first — i.e. exactly
+  the per-tenant provisioning we are removing. The alias name avoids that.
+- It is already how the current `tenant-policy` scopes machine logins, so the
+  approach is proven in this repo.
+
+*Machine vs. human:* the alias name self-scopes the **machine/ESO** path cleanly
+(the ServiceAccount token's namespace identifies the tenant). **Human SSO logins**
+are tenant-scoped centrally via per-tenant Identity Groups mapping the IdP `roles`
+claim to the tenant's path — group mapping managed by the platform, not by tenants.
+
 **Why this approach**
 - **Developers only need CRUD on their own secrets.** They do not create mounts,
   policies, auth methods, or child namespaces; so the main reason to adopt
@@ -196,7 +226,7 @@ namespaces-per-tenant.
   land directly on their secrets. There is no "authenticate at root, then switch
   namespace" step, and no per-namespace auth mounts to provision.
 - **Zero-touch onboarding + scaling.** A new tenant needs no new mount and no new
-  policy; the templated policy (`kv-<cluster>/data/{{identity.entity.metadata.tenant}}/*`)
+  policy; the templated policy (`kv-<cluster>/data/{{identity.entity.aliases.<accessor>.name}}/*`)
   already scopes every tenant automatically. This scales to many tenants cheaply,
   without per-mount overhead.
 - **Simplicity of operation.** One engine, one policy template, one login path.
@@ -211,7 +241,8 @@ namespaces-per-tenant.
 **Trade-off we accept**
 Path-based isolation is enforced **entirely by ACL policy** (namespaces isolate
 structurally). That places the burden on getting the policy right:
-- the tenant segment MUST come from a trusted claim mapped into entity metadata;
+- the tenant segment MUST come from the caller's verified auth alias name
+  (`{{identity.entity.aliases.<accessor>.name}}`), never from user input;
 - **no** `list`/`read` may be granted at or above the mount root (in KV v2 that is
   `kv-<cluster>/metadata/`), or tenants could enumerate other tenants' prefixes;
 - **no** bare wildcards (`kv-<cluster>/data/*`) — the tenant segment always precedes the
