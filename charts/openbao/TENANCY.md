@@ -219,6 +219,7 @@ are tenant-scoped centrally via per-tenant Identity Groups mapping the IdP `role
 claim to the tenant's path — group mapping managed by the platform, not by tenants.
 
 **Why this approach**
+
 - **Developers only need CRUD on their own secrets.** They do not create mounts,
   policies, auth methods, or child namespaces; so the main reason to adopt
   namespaces (administration *delegation*) does not apply here.
@@ -232,6 +233,7 @@ claim to the tenant's path — group mapping managed by the platform, not by ten
 - **Simplicity of operation.** One engine, one policy template, one login path.
 
 **Why not the alternatives**
+
 - *Namespace-per-tenant*: strongest isolation and delegation, but heavier; a full
   mini-Vault per tenant, per-namespace auth, and the login-then-switch UX. Overkill
   for a CRUD-only IDP.
@@ -239,6 +241,7 @@ claim to the tenant's path — group mapping managed by the platform, not by ten
   requires provisioning a mount per tenant and it becomes more cumbersome to manage as the number of tenants grows. Not needed when every tenant uses the same KV v2 configuration.
 
 **Trade-off we accept**
+
 Path-based isolation is enforced **entirely by ACL policy** (namespaces isolate
 structurally). That places the burden on getting the policy right:
 - the tenant segment MUST come from the caller's verified auth alias name
