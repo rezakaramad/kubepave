@@ -1,6 +1,15 @@
 Before diving into tenancy strategy, let's review some fundamental concepts in Vault/OpenBao:
 **mount**, **paths** and **namespaces**.
 
+**Contents**:
+- [Mount](#mount)
+- [Path](#path)
+- [Namespace](#namespace)
+- [Isolation strategies](#isolation-strategies)
+  - [Namespace-based isolation](#namespace-based-isolation)
+  - [Mount/path-based isolation](#mountpath-based-isolation)
+- [Chosen approach: path-based isolation](#chosen-approach-path-based-isolation)
+
 # Mount
 In Vault/OpenBao, a mount is a entry point to a *secrets engine* or *auth method*.
 
