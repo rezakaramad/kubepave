@@ -12,12 +12,12 @@ vaultProvider:
   agentImage: quay.io/openbao/openbao:2.6.1
   address: http://openbao.openbao.svc.cluster.local:8200
   caCertSecret: root-ca
-  # Mount accessor of the Vault `oidc` auth method, captured at bootstrap by
-  # setup-vault.sh and saved to .platform.env as VAULT_OIDC_ACCESSOR. Paste it
+  # Mount accessor of the OpenBao `oidc` auth method, captured at bootstrap by
+  # setup-openbao.sh and saved to .platform.env as OPENBAO_OIDC_ACCESSOR. Paste it
   # here once after the first bootstrap and commit. When set, the xtenantargo
-  # composition turns on per-tenant Vault OIDC SSO (Policy/Group/GroupAlias) in
+  # composition turns on per-tenant OpenBao OIDC SSO (Policy/Group/GroupAlias) in
   # the tenant-management chart. Leave empty to keep human SSO objects off.
-  oidcAccessor: "auth_oidc_2dcdc274"
+  oidcAccessor: "auth_oidc_186556c3"
 
 entraIdProvider:
   enabled: true
