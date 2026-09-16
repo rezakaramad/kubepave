@@ -6,9 +6,13 @@
 # per-cluster `kv-development` mount at the ROOT namespace.
 #
 # This Policy lives in the ROOT namespace (where the central OIDC method and the
-# tenant's Identity Group are). Isolation is enforced entirely by the path prefix
-# kv-development/*/<tenant>/*; no list/read is granted at the mount root, so a
-# tenant cannot enumerate other tenants' prefixes.
+# tenant's Identity Group are). Secret VALUES are isolated by the path prefix
+# kv-development/{data,metadata}/<tenant>/*. A single `list` on the mount root
+# (exact path, NO wildcard) lets the UI render the engine so operators can browse
+# to their own folder; because internal tenants are trusted to see each other's
+# folder NAMES, this is acceptable. It exposes only the top-level tenant names —
+# not any secret names or values inside other tenants' folders (opening another
+# tenant's folder is denied). The machine `tenant-policy` is NOT granted this.
 
 apiVersion: vault.vault.m.upbound.io/v1alpha1
 kind: Policy
@@ -26,6 +30,12 @@ spec:
   forProvider:
     name: {{ printf "oidc-%s" ($tenant.name | lower) | quote }}
     policy: |
+      # List the mount root ONE level so the UI can render the engine. Exact
+      # path, no wildcard: reveals top-level tenant names only, never the
+      # contents of another tenant's folder.
+      path "{{ .Values.vault.kvMount }}/metadata" {
+        capabilities = ["list"]
+      }
       path "{{ .Values.vault.kvMount }}/data/{{ $tenant.name | lower }}/*" {
         capabilities = ["read", "list", "create", "update", "delete"]
       }

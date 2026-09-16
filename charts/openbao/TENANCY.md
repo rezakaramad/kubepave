@@ -237,10 +237,22 @@ Path-based isolation is enforced **entirely by ACL policy** (namespaces isolate
 structurally). That places the burden on getting the policy right:
 - the tenant segment MUST come from the caller's verified auth alias name
   (`{{identity.entity.aliases.<accessor>.name}}`), never from user input;
-- **no** `list`/`read` may be granted at or above the mount root (in KV v2 that is
-  `kv-<cluster>/metadata/`), or tenants could enumerate other tenants' prefixes;
+- the machine `tenant-policy` (ESO) grants **no** `list`/`read` at or above the mount
+  root (in KV v2 that is `kv-<cluster>/metadata/`), so a workload token can never
+  enumerate other tenants' prefixes;
 - **no** bare wildcards (`kv-<cluster>/data/*`) — the tenant segment always precedes the
   glob.
+
+**Human-UI exception (internal tenants).** The OpenBao UI can only browse a KV
+engine by listing the mount root, which the rules above forbid. Because kubepave's
+tenants are **internal teams** (trusted to know each other exist), the *human*
+`oidc-<tenant>` policy adds a single `list` on the mount root as an **exact path with
+no wildcard** (`kv-<cluster>/metadata`). This exposes only the **top-level tenant
+folder names** so operators can browse to their own folder; it does **not** grant
+`read`, and opening another tenant's folder (which needs `list` one level deeper) is
+still denied — so no secret names or values leak across tenants. The machine
+`tenant-policy` is deliberately **not** given this grant. If tenants were ever
+external, this exception would be unacceptable and mount-per-tenant would be required.
 
 With those rules, one tenant has no path by which to reach another's secrets. See
 the isolation policy and verification steps in the setup for the enforced template.
