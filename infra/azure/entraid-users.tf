@@ -40,8 +40,10 @@ resource "azuread_invitation" "reza_personal" {
   }
 }
 
-resource "azuread_app_role_assignment" "argocd_personal_admin" {
-  app_role_id         = azuread_application_app_role.argocd_admin.role_id
-  principal_object_id = azuread_invitation.reza_personal.user_id
-  resource_object_id  = azuread_service_principal.argocd.object_id
+# The r.karamad@gmail.com guest is a platform admin via group membership: it
+# inherits every app's admin role from the platform-admins group assignment
+# (entraid-apps.tf), so no direct per-app assignment is needed.
+resource "azuread_group_member" "reza_personal_platform_admin" {
+  group_object_id  = azuread_group.platform_admins.object_id
+  member_object_id = azuread_invitation.reza_personal.user_id
 }

@@ -405,7 +405,71 @@ configure_oidc() {
 
   save_oidc_accessor "$accessor"
 
-  ok "OpenBao OIDC auth configured (accessor: $accessor)"
+  # Human OpenBao roles map from the Entra `roles` claim (values 'admin' and
+  # 'viewer', from the OpenBao app's admin/viewer app roles) to external Identity
+  # Groups. Unlike tenants, these are platform-level, so their policy + group +
+  # alias live here rather than in the tenant-management chart. The GROUP-ALIAS
+  # name MUST equal the roles claim value; policy/group names are descriptive.
+  log "Writing platform-admin + platform-viewer policies and identity groups..."
+
+  bao_exec "bao policy write platform-admin - <<EOF
+path \"auth/*\"                 { capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\", \"sudo\"] }
+path \"sys/auth\"               { capabilities = [\"read\"] }
+path \"sys/auth/*\"             { capabilities = [\"create\", \"read\", \"update\", \"delete\", \"sudo\"] }
+path \"sys/policies/acl\"       { capabilities = [\"list\"] }
+path \"sys/policies/acl/*\"     { capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"] }
+path \"sys/mounts\"             { capabilities = [\"read\"] }
+path \"sys/mounts/*\"           { capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\", \"sudo\"] }
+path \"sys/remount\"            { capabilities = [\"create\", \"update\"] }
+path \"sys/leases/*\"           { capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\", \"sudo\"] }
+path \"sys/health\"             { capabilities = [\"read\", \"sudo\"] }
+path \"sys/capabilities\"       { capabilities = [\"create\", \"update\"] }
+path \"sys/capabilities-self\"  { capabilities = [\"create\", \"update\"] }
+path \"sys/tools/*\"            { capabilities = [\"update\"] }
+path \"sys/internal/ui/*\"      { capabilities = [\"read\", \"list\"] }
+path \"identity/*\"             { capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"] }
+path \"kv/*\"                   { capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"] }
+path \"kv-management/*\"        { capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"] }
+path \"kv-development/*\"       { capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"] }
+EOF"
+
+  bao_exec "bao policy write platform-viewer - <<EOF
+path \"sys/mounts\"             { capabilities = [\"read\"] }
+path \"sys/mounts/*\"           { capabilities = [\"read\", \"list\"] }
+path \"sys/auth\"               { capabilities = [\"read\"] }
+path \"sys/auth/*\"             { capabilities = [\"read\", \"list\"] }
+path \"sys/policies/acl\"       { capabilities = [\"list\"] }
+path \"sys/policies/acl/*\"     { capabilities = [\"read\", \"list\"] }
+path \"sys/capabilities-self\"  { capabilities = [\"create\", \"update\"] }
+path \"sys/internal/ui/*\"      { capabilities = [\"read\", \"list\"] }
+path \"identity/*\"             { capabilities = [\"read\", \"list\"] }
+path \"kv/*\"                   { capabilities = [\"read\", \"list\"] }
+path \"kv-management/*\"        { capabilities = [\"read\", \"list\"] }
+path \"kv-development/*\"       { capabilities = [\"read\", \"list\"] }
+EOF"
+
+  # External groups + aliases. Alias name == roles claim value ('admin'/'viewer').
+  # Aliases created once; re-runs detect the existing one via the group's alias.
+  bao_exec "
+    bao write identity/group/name/platform-admin type=external policies=platform-admin >/dev/null
+    gid=\$(bao read -field=id identity/group/name/platform-admin)
+    if bao read identity/group/name/platform-admin 2>/dev/null | grep -q mount_accessor; then
+      echo 'admin group-alias already present'
+    else
+      bao write identity/group-alias name=admin mount_accessor=${accessor} canonical_id=\$gid >/dev/null
+      echo 'created admin group-alias'
+    fi
+    bao write identity/group/name/platform-viewer type=external policies=platform-viewer >/dev/null
+    vid=\$(bao read -field=id identity/group/name/platform-viewer)
+    if bao read identity/group/name/platform-viewer 2>/dev/null | grep -q mount_accessor; then
+      echo 'viewer group-alias already present'
+    else
+      bao write identity/group-alias name=viewer mount_accessor=${accessor} canonical_id=\$vid >/dev/null
+      echo 'created viewer group-alias'
+    fi
+  "
+
+  ok "OpenBao OIDC auth configured (accessor: $accessor); admin + viewer groups ready"
 }
 
 

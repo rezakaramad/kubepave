@@ -125,18 +125,17 @@ resource "azuread_application_app_role" "argocd_viewer" {
 }
 
 # Role assignments
-# Free tier of Azure AD doesn't support group-based app role assignments,
-# so we have to assign the app roles directly to the user. 
-# In a production environment, you would typically assign the app roles to groups, and then add users to those groups.
+# Assign the app roles to the platform groups; group members inherit the role.
+# Users are managed via group membership (entraid-users.tf), not assigned directly.
 resource "azuread_app_role_assignment" "argocd_platform_admin" {
   app_role_id         = azuread_application_app_role.argocd_admin.role_id
-  principal_object_id = data.azuread_user.reza.object_id
+  principal_object_id = azuread_group.platform_admins.object_id
   resource_object_id  = azuread_service_principal.argocd.object_id
 }
 
 resource "azuread_app_role_assignment" "argocd_platform_viewer" {
   app_role_id         = azuread_application_app_role.argocd_viewer.role_id
-  principal_object_id = data.azuread_user.reza.object_id
+  principal_object_id = azuread_group.platform_viewers.object_id
   resource_object_id  = azuread_service_principal.argocd.object_id
 }
 
@@ -439,11 +438,10 @@ resource "azuread_application_app_role" "backstage_platform_admin" {
   value                = "platform-admin"
 }
 
-# Assign platform-admin role directly to reza (free-tier Azure AD workaround —
-# in production assign to the platform-admins group instead)
+# Assign the platform-admin role to the platform-admins group.
 resource "azuread_app_role_assignment" "backstage_platform_admin" {
   app_role_id         = azuread_application_app_role.backstage_platform_admin.role_id
-  principal_object_id = data.azuread_user.reza.object_id
+  principal_object_id = azuread_group.platform_admins.object_id
   resource_object_id  = azuread_service_principal.backstage.object_id
 }
 
@@ -619,6 +617,48 @@ resource "azuread_service_principal_delegated_permission_grant" "openbao_oidc" {
   service_principal_object_id          = azuread_service_principal.openbao.object_id
   resource_service_principal_object_id = data.azuread_service_principal.msgraph.object_id
   claim_values                         = ["openid", "profile", "email"]
+}
+
+# Define app roles for OpenBao (mirrors the Argo CD admin/viewer pattern).
+# The role `value` is delivered in the `roles` claim and mapped by
+# setup-openbao.sh to an OpenBao external Identity Group (admin → full access,
+# viewer → read-only). These are static platform roles, separate from the
+# per-tenant roles crossplane manages inline (hence the app's
+# ignore_changes = [app_role]).
+resource "azuread_application_app_role" "openbao_admin" {
+  application_id = azuread_application.openbao.id
+  role_id        = "b7c81f3a-2d64-4e8a-9f15-6c0a2b3d4e5f"
+
+  allowed_member_types = ["User"]
+  description          = "OpenBao administrators: full access to all secrets engines, policies, auth methods, and system configuration."
+  display_name         = "OpenBao Admin"
+  value                = "admin"
+}
+
+resource "azuread_application_app_role" "openbao_viewer" {
+  application_id = azuread_application.openbao.id
+  role_id        = "c8d92a4b-3e75-4f9c-8a06-1d2e3f4a5b6c"
+
+  allowed_member_types = ["User"]
+  description          = "OpenBao viewers: read-only access to all secrets engines and configuration."
+  display_name         = "OpenBao Viewer"
+  value                = "viewer"
+}
+
+# Role assignments
+# Assign the app roles to the platform groups; group members inherit the role.
+# admin role -> platform-admins, viewer role -> platform-viewers. Membership
+# (including the r.karamad@gmail.com guest) is managed in entraid-users.tf.
+resource "azuread_app_role_assignment" "openbao_platform_admin" {
+  app_role_id         = azuread_application_app_role.openbao_admin.role_id
+  principal_object_id = azuread_group.platform_admins.object_id
+  resource_object_id  = azuread_service_principal.openbao.object_id
+}
+
+resource "azuread_app_role_assignment" "openbao_platform_viewer" {
+  app_role_id         = azuread_application_app_role.openbao_viewer.role_id
+  principal_object_id = azuread_group.platform_viewers.object_id
+  resource_object_id  = azuread_service_principal.openbao.object_id
 }
 
 # OpenBao outputs
