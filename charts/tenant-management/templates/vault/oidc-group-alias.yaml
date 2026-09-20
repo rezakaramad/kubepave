@@ -27,7 +27,10 @@ spec:
   managementPolicies: ["Create", "Observe", "Update", "Delete"]
 
   forProvider:
-    name: {{ printf "oidc-%s" ($tenant.name | lower) }}
+    # MUST equal the `roles` claim value Entra sends (the app-role value == bare
+    # tenant name), not the oidc-<tenant> resource name, or the external-group
+    # match fails and the user lands with only the `default` policy.
+    name: {{ $tenant.name | lower | quote }}
     mountAccessor: {{ required "vault.oidc.mountAccessor is required when vault.oidc.enabled is true" .Values.vault.oidc.mountAccessor | quote }}
     canonicalIdRef:
       name: {{ printf "oidc-%s" ($tenant.name | lower) }}
