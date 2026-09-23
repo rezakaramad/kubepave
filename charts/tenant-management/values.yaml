@@ -24,7 +24,7 @@ vault:
     # Mount accessor of the `oidc` auth method on the management OpenBao. Captured
     # by setup-openbao.sh (OPENBAO_OIDC_ACCESSOR) and injected via the crossplane
     # composition. Required when oidc.enabled is true.
-    mountAccessor: ""
+    mountAccessor: "auth_oidc_6b46d0ee"
 
 grafana:
   enabled: false
