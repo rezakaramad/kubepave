@@ -266,6 +266,21 @@ install_external_secrets() {
 
 
 # -----------------------------------------------------------------------------
+# Install Kafka (Strimzi operator + a Kafka cluster) on the management cluster.
+# The operator ships the Kafka CRDs; Helm installs those first, then creates the
+# Kafka/KafkaNodePool resources that the operator reconciles into running pods.
+# -----------------------------------------------------------------------------
+install_kafka() {
+  # Function arguments:
+  #   $1: cluster name (management or development)
+  local cluster=$1
+  helm_install kafka "$CHARTS_DIR/kafka" \
+    "$KAFKA_NAMESPACE" "$(kind_context "$cluster")" \
+    -f "$CHARTS_DIR/kafka/values.yaml"
+}
+
+
+# -----------------------------------------------------------------------------
 # Install ArgoCD in the management cluster
 # -----------------------------------------------------------------------------
 install_argocd() {
@@ -356,6 +371,10 @@ main() {
   # Install external-dns on management cluster so it can manage DNS records in PowerDNS
   echo "-------- external-dns (mgmt) -----"
   install_external_dns management
+
+  # Install Kafka (Strimzi operator + Kafka cluster) on the management cluster
+  echo "-------- Kafka -------------------"
+  install_kafka management
 
   # Install Argo CD on management cluster
   echo "-------- ArgoCD ------------------"

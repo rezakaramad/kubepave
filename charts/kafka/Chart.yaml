@@ -1,0 +1,12 @@
+apiVersion: v2
+name: kafka
+description: Platform chart that installs the Strimzi Kafka operator as a dependency.
+type: application
+version: 0.0.1
+home: "https://strimzi.io/"
+sources:
+  - https://github.com/strimzi/strimzi-kafka-operator
+dependencies:
+  - name: strimzi-kafka-operator
+    version: "1.2.0"
+    repository: "https://strimzi.io/charts/"

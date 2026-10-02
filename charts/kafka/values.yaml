@@ -1,0 +1,40 @@
+# Kafka cluster provisioned by the bundled Strimzi operator (KRaft mode, no ZooKeeper).
+# Operator settings live under the `strimzi-kafka-operator` key (the dependency subchart).
+cluster:
+  # Set to false to install the operator only, without a Kafka cluster.
+  enabled: true
+  name: kafka
+  version: 4.3.1
+
+  # A controller runs the KRaft metadata quorum that tracks cluster state.
+  controller:
+    replicas: 3
+    storage:
+      size: 10Gi
+      deleteClaim: false
+
+  # A broker stores topic partitions on disk and serves produce/consume traffic to clients.
+  broker:
+    replicas: 3
+    storage:
+      size: 10Gi
+      deleteClaim: false
+
+  # A listener is a network endpoint (port + protocol) that clients use to connect to brokers.
+  listeners:
+    - name: tls
+      port: 9093
+      type: internal
+      tls: true
+
+  config:
+    # How many copies of the internal consumer-offsets topic are kept across brokers.
+    offsets.topic.replication.factor: 3
+    # How many copies of the internal transaction-state topic are kept across brokers.
+    transaction.state.log.replication.factor: 3
+    # Minimum in-sync copies required to write to the transaction-state topic.
+    transaction.state.log.min.isr: 2
+    # Default number of copies for new topics when the client doesn't specify one.
+    default.replication.factor: 3
+    # Minimum in-sync copies a producer needs before a write is acknowledged.
+    min.insync.replicas: 2

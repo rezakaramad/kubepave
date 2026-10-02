@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-management
+  namespace: argocd
+spec:
+  project: platform-system
+  source:
+    repoURL: https://github.com/rezakaramad/kubepave
+    targetRevision: HEAD
+    path: charts/kafka
+  destination:
+    name: in-cluster
+    namespace: kafka-system
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true
+    - ApplyOutOfSyncOnly=true
+    - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      jsonPointers:
+        - /spec/versions
+        - /spec/conversion
