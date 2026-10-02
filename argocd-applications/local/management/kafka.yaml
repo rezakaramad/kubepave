@@ -9,6 +9,10 @@ spec:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
     path: charts/kafka
+    helm:
+      # Strimzi's CRDs are managed out-of-band (pre-applied bundle in install-charts.sh).
+      # Skipping them here avoids rendering them twice (parent crds/ + subchart crds/).
+      skipCrds: true
   destination:
     name: in-cluster
     namespace: kafka-system
@@ -16,10 +20,4 @@ spec:
     syncOptions:
     - ServerSideApply=true
     - ApplyOutOfSyncOnly=true
-    - RespectIgnoreDifferences=true
-  ignoreDifferences:
-    - group: apiextensions.k8s.io
-      kind: CustomResourceDefinition
-      jsonPointers:
-        - /spec/versions
-        - /spec/conversion
+    - SkipDryRunOnMissingResource=true
