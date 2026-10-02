@@ -1,0 +1,9 @@
+[private]
+default:
+  @just --list
+
+chart-version := `yq '.dependencies[] | select(.name=="strimzi-kafka-operator") | .version' Chart.yaml`
+
+# Download the CRDs matching the Strimzi Kafka operator chart version.
+get-crds:
+  curl -L https://github.com/strimzi/strimzi-kafka-operator/releases/download/{{chart-version}}/strimzi-crds-{{chart-version}}.yaml -o ./crds/bundle.yaml

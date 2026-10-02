@@ -116,12 +116,14 @@ create_powerdns_bootstrap_secret() {
   source "$SECRETS_FILE"
 
   for cluster in management development; do
-    kubectl --context "$(kind_context "$cluster")" \
+    local context
+    context="$(kind_context "$cluster")"
+    kubectl --context "$context" \
       -n "$PLATFORM_NAMESPACE" \
       create secret generic powerdns-api-key \
       --from-literal=key="$POWERDNS_API_KEY" \
       --dry-run=client -o yaml \
-      | kubectl --context "$(kind_context "$cluster")" apply -f -
+      | kubectl --context "$context" apply -f -
   done
 
   ok "Bootstrap secrets created on all clusters"
@@ -196,6 +198,24 @@ install_external_dns() {
 
 
 # -----------------------------------------------------------------------------
+# Install OpenBao so it can be used by ArgoCD and other components.
+# -----------------------------------------------------------------------------
+install_openbao() {
+  # Function arguments:
+  #   $1: cluster name (management or development)
+  # Local variables:
+  #   context: kube context derived from cluster name
+  local cluster=$1
+  local context
+  context="$(kind_context "$cluster")"
+
+  helm_install openbao "$CHARTS_DIR/openbao" \
+    "$OPENBAO_NAMESPACE" "$context" \
+    -f "$CHARTS_DIR/openbao/values.yaml"
+}
+
+
+# -----------------------------------------------------------------------------
 # Install CRDs for cert-manager and external-secrets.
 # CRDs are installed separately (server-side apply) before the controllers
 # so Helm doesn't need to manage them (avoids CRD upgrade conflicts).
@@ -227,15 +247,20 @@ install_crds() {
 install_cert_manager() {
   # Function arguments:
   #   $1: cluster name (management or development)
+  # Local variables:
+  #   context: kube context derived from cluster name
   local cluster=$1
+  local context
+  context="$(kind_context "$cluster")"
+
   helm_install cert-manager "$CHARTS_DIR/cert-manager" \
-    "$PLATFORM_NAMESPACE" "$(kind_context "$cluster")" \
+    "$PLATFORM_NAMESPACE" "$context" \
     -f "$CHARTS_DIR/cert-manager/values.yaml" \
     -f "$CHARTS_DIR/cert-manager/values-local.yaml" \
     -f "$CHARTS_DIR/cert-manager/values-local-management.yaml"
 
   # Wait for webhook to be ready before anything tries to create cert-manager resources
-  kubectl --context "$(kind_context "$cluster")" \
+  kubectl --context "$context" \
     -n "$PLATFORM_NAMESPACE" \
     wait deployment cert-manager-webhook \
     --for=condition=Available \
@@ -249,15 +274,20 @@ install_cert_manager() {
 install_external_secrets() {
   # Function arguments:
   #   $1: cluster name (management or development)
+  # Local variables:
+  #   context: kube context derived from cluster name
   local cluster=$1
+  local context
+  context="$(kind_context "$cluster")"
+
   helm_install external-secrets "$CHARTS_DIR/external-secrets" \
-    "$PLATFORM_NAMESPACE" "$(kind_context "$cluster")" \
+    "$PLATFORM_NAMESPACE" "$context" \
     -f "$CHARTS_DIR/external-secrets/values.yaml" \
     -f "$CHARTS_DIR/external-secrets/values-local.yaml" \
     -f "$CHARTS_DIR/external-secrets/values-local-management.yaml"
 
   # Wait for webhook to be ready before anything tries to create external-secrets resources
-  kubectl --context "$(kind_context "$cluster")" \
+  kubectl --context "$context" \
     -n "$PLATFORM_NAMESPACE" \
     wait deployment external-secrets-webhook \
     --for=condition=Available \
@@ -267,15 +297,28 @@ install_external_secrets() {
 
 # -----------------------------------------------------------------------------
 # Install Kafka (Strimzi operator + a Kafka cluster) on the management cluster.
-# The operator ships the Kafka CRDs; Helm installs those first, then creates the
-# Kafka/KafkaNodePool resources that the operator reconciles into running pods.
+# Strimzi ships its CRDs inside the operator *subchart*, which Helm does not
+# register before the parent chart's Kafka/KafkaNodePool resources render. We
+# therefore pre-apply the CRD bundle (server-side) and run Helm with --skip-crds,
+# mirroring the cert-manager/external-secrets pattern. Refresh the bundle with
+# `just get-crds` in charts/kafka.
 # -----------------------------------------------------------------------------
 install_kafka() {
   # Function arguments:
   #   $1: cluster name (management or development)
   local cluster=$1
+  local context
+  context="$(kind_context "$cluster")"
+
+  kubectl --context "$context" apply --server-side \
+    -f "$CHARTS_DIR/kafka/crds/bundle.yaml"
+
+  # --skip-crds: Strimzi's CRDs live in the subchart's reserved crds/ dir (no
+  # values toggle to disable them), so this is the only way to stop Helm from
+  # managing them — we applied them above instead.
   helm_install kafka "$CHARTS_DIR/kafka" \
-    "$KAFKA_NAMESPACE" "$(kind_context "$cluster")" \
+    "$KAFKA_NAMESPACE" "$context" \
+    --skip-crds \
     -f "$CHARTS_DIR/kafka/values.yaml"
 }
 
@@ -284,10 +327,13 @@ install_kafka() {
 # Install ArgoCD in the management cluster
 # -----------------------------------------------------------------------------
 install_argocd() {
+  # Function arguments:
+  #   $1: cluster name (management or development)
   # Local variables:
   #   context: kube context derived from cluster name
+  local cluster=$1
   local context
-  context="$(kind_context "$1")"
+  context="$(kind_context "$cluster")"
 
   helm_install argocd "$CHARTS_DIR/argocd" \
     "$ARGOCD_NAMESPACE" "$context" \
@@ -364,9 +410,7 @@ main() {
 
   # Install OpenBao on management cluster so it can be used by ArgoCD and other components.
   echo "-------- OpenBao -----------------"
-  helm_install openbao "$CHARTS_DIR/openbao" \
-    "$OPENBAO_NAMESPACE" "$(kind_context management)" \
-    -f "$CHARTS_DIR/openbao/values.yaml"
+  install_openbao management
 
   # Install external-dns on management cluster so it can manage DNS records in PowerDNS
   echo "-------- external-dns (mgmt) -----"
