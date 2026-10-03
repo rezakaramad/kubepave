@@ -320,19 +320,6 @@ install_kafka() {
     "$KAFKA_NAMESPACE" "$context" \
     --skip-crds \
     -f "$CHARTS_DIR/kafka/values.yaml"
-
-  # OAuth listener trust: give the broker the kube API CA so it can TLS-verify the
-  # OIDC JWKS endpoint used to validate ServiceAccount JWTs. The CA is cluster-specific
-  # (not in Git), so it is created here from the auto-published kube-root-ca.crt configmap.
-  local ca_tmp
-  ca_tmp="$(mktemp)"
-  kubectl --context "$context" -n kube-system \
-    get configmap kube-root-ca.crt -o jsonpath='{.data.ca\.crt}' > "$ca_tmp"
-  kubectl --context "$context" -n "$KAFKA_NAMESPACE" \
-    create secret generic kafka-oidc-ca --from-file=ca.crt="$ca_tmp" \
-    --dry-run=client -o yaml \
-    | kubectl --context "$context" apply -f -
-  rm -f "$ca_tmp"
 }
 
 

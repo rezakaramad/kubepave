@@ -29,29 +29,30 @@ cluster:
       type: internal
       tls: true
       authentication:
-        # Turns on OAuth authentication for this listener; so clients must present 
-        # a valid JWT instead of a traditional username/password.
-        type: oauth
-        # The URI of the issuer, iss claim, that issued the JWTs the broker should accept.
-        # Anything else is rejected.
-        validIssuerUri: https://kubernetes.default.svc.cluster.local
-        # The URI of the JWKS endpoint where the broker can fetch the public keys to validate JWTs.
-        jwksEndpointUri: https://kubernetes.default.svc/openid/v1/jwks
-        # The claim within the JWT that becomes the Kafka principal.
-        # For K8s SA tokens, sub = system:serviceaccount:<namespace>:<serviceaccount>
-        userNameClaim: sub
-        # Token audience must contain this value (checkAudience), e.g. aud: ["kafka"].
-        clientId: kafka
-        checkAudience: true
-        # CA the broker uses to TLS-verify the JWKS endpoint.
-        # Secret is created out-of-band (scripted) from the cluster CA; see install-charts.sh.
-        # This is not needed if the endpoint uses a public CA-signed certificate which
-        # is the case in GKE clusters for example.
-        tlsTrustedCertificates:
-          - secretName: kafka-oidc-ca
-            certificate: ca.crt
-        # Force periodic re-authentication so rotated/expired SA tokens are re-validated.
-        maxSecondsWithoutReauthentication: 3600
+        # Strimzi 1.2.0 (API v1) removed the built-in `oauth` type. OAuth/OIDC is now wired
+        # via `custom` authentication using Strimzi's bundled OAuth library.
+        type: custom
+        # Enable SASL on this (TLS) listener -> SASL_SSL.
+        sasl: true
+        listenerConfig:
+          # Clients authenticate with an OAuth bearer token (a JWT).
+          sasl.enabled.mechanisms: OAUTHBEARER
+          # Server-side validator from Strimzi's OAuth library.
+          oauthbearer.sasl.server.callback.handler.class: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+          # Validate the JWT: pin the issuer, fetch signing keys from the K8s JWKS endpoint,
+          # take the principal from `sub`, and require the token audience to contain "kafka".
+          # TLS trust for the JWKS endpoint uses the broker's own mounted cluster CA, so no
+          # extra CA secret is needed. In GKE the JWKS is public HTTPS — drop the two
+          # oauth.ssl.truststore.* lines there.
+          oauthbearer.sasl.jaas.config: >-
+            org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
+            oauth.valid.issuer.uri="https://kubernetes.default.svc.cluster.local"
+            oauth.jwks.endpoint.uri="https://kubernetes.default.svc/openid/v1/jwks"
+            oauth.username.claim="sub"
+            oauth.check.audience="true"
+            oauth.client.id="kafka"
+            oauth.ssl.truststore.location="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+            oauth.ssl.truststore.type="PEM" ;
 
   # Topics created declaratively via the Topic Operator.
   topics:
