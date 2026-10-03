@@ -34,13 +34,19 @@ data:
     CFG=/config/client.properties
     echo "pingkaf starting: bootstrap=$BS topic=$TOPIC sa=$(cat /var/run/secrets/tokens/kafka-token | cut -d. -f2 | base64 -d 2>/dev/null | grep -o '\"sub\":\"[^\"]*\"' || true)"
 
-    # One long-lived consumer in the background prints each new message as it arrives
-    # (consumer group tracks offsets, so no re-reading and no --timeout-ms exit).
-    # sed -u keeps output unbuffered so consumed lines appear immediately in the pod log.
-    /opt/kafka/bin/kafka-console-consumer.sh \
-      --bootstrap-server "$BS" --topic "$TOPIC" \
-      --group pingkaf --consumer.config "$CFG" \
-      --property print.timestamp=true | sed -u 's/^/[consumed] /' &
+    # Long-lived consumer in the background, wrapped in a restart loop so a transient
+    # failure (e.g. a broker rolling restart) doesn't kill it permanently. The consumer
+    # group tracks offsets, so it resumes where it left off. sed -u keeps output unbuffered.
+    (
+      while true; do
+        /opt/kafka/bin/kafka-console-consumer.sh \
+          --bootstrap-server "$BS" --topic "$TOPIC" \
+          --group pingkaf --consumer.config "$CFG" \
+          --property print.timestamp=true 2>&1 | sed -u 's/^/[consumed] /'
+        echo "[consumer exited — restarting in 5s]"
+        sleep 5
+      done
+    ) &
     trap 'kill $! 2>/dev/null || true' EXIT INT TERM
 
     # Producer loop in the foreground.
