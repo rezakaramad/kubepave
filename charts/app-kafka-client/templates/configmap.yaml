@@ -36,10 +36,11 @@ data:
 
     # One long-lived consumer in the background prints each new message as it arrives
     # (consumer group tracks offsets, so no re-reading and no --timeout-ms exit).
+    # sed -u keeps output unbuffered so consumed lines appear immediately in the pod log.
     /opt/kafka/bin/kafka-console-consumer.sh \
       --bootstrap-server "$BS" --topic "$TOPIC" \
       --group app-kafka-client --consumer.config "$CFG" \
-      --property print.timestamp=true | sed 's/^/[consumed] /' &
+      --property print.timestamp=true | sed -u 's/^/[consumed] /' &
     trap 'kill $! 2>/dev/null || true' EXIT INT TERM
 
     # Producer loop in the foreground.
