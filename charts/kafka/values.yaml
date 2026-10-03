@@ -53,7 +53,7 @@ cluster:
             org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
             unsecuredLoginStringClaim_sub="kafka-broker"
             oauth.valid.issuer.uri="https://kubernetes.default.svc.cluster.local"
-            oauth.jwks.endpoint.uri="http://kafka-jwks-proxy:8080/openid/v1/jwks"
+            oauth.jwks.endpoint.uri="http://jwks-proxy:8080/openid/v1/jwks"
             oauth.username.claim="['kubernetes.io']['serviceaccount']['name']"
             oauth.check.audience="true"
             oauth.client.id="kafka"
