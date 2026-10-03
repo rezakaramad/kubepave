@@ -33,14 +33,20 @@ data:
     TOPIC="{{ .Values.kafka.topic }}"
     CFG=/config/client.properties
     echo "app-kafka-client starting: bootstrap=$BS topic=$TOPIC sa=$(cat /var/run/secrets/tokens/kafka-token | cut -d. -f2 | base64 -d 2>/dev/null | grep -o '\"sub\":\"[^\"]*\"' || true)"
+
+    # One long-lived consumer in the background prints each new message as it arrives
+    # (consumer group tracks offsets, so no re-reading and no --timeout-ms exit).
+    /opt/kafka/bin/kafka-console-consumer.sh \
+      --bootstrap-server "$BS" --topic "$TOPIC" \
+      --group app-kafka-client --consumer.config "$CFG" \
+      --property print.timestamp=true | sed 's/^/[consumed] /' &
+    trap 'kill $! 2>/dev/null || true' EXIT INT TERM
+
+    # Producer loop in the foreground.
     while true; do
       MSG="hello from $HOSTNAME at $(date -u +%FT%TZ)"
       echo "$MSG" | /opt/kafka/bin/kafka-console-producer.sh \
         --bootstrap-server "$BS" --topic "$TOPIC" --producer.config "$CFG"
       echo "[produced] $MSG"
-      echo "[consuming last messages]"
-      /opt/kafka/bin/kafka-console-consumer.sh \
-        --bootstrap-server "$BS" --topic "$TOPIC" --from-beginning \
-        --timeout-ms 8000 --consumer.config "$CFG" || true
       sleep {{ .Values.loopIntervalSeconds }}
     done
