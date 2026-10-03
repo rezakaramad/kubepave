@@ -44,7 +44,7 @@ through `type: custom` using Strimzi's bundled OAuth library (see
 checks the audience contains `kafka`, and derives the Kafka principal from the `sub`
 claim (`system:serviceaccount:<ns>:<sa>`).
 
-### Why the `kafka-jwks-proxy` (nginx) exists
+### Why the `jwks-proxy` (nginx) exists
 
 To verify a token's signature, the broker fetches the cluster's public keys from the
 Kubernetes JWKS endpoint `…/openid/v1/jwks`. Two things collide locally:
@@ -60,7 +60,7 @@ relay that one request with the correct `Accept: application/jwk-set+json` heade
 `oauth.jwks.endpoint.uri` points at the proxy over plain in-cluster HTTP:
 
 ```
-broker --HTTP--> kafka-jwks-proxy:8080 --HTTPS (Accept: jwk-set+json)--> apiserver /openid/v1/jwks
+broker --HTTP--> jwks-proxy:8080 --HTTPS (Accept: jwk-set+json)--> apiserver /openid/v1/jwks
 ```
 
 This is a workaround for the **raw kube-apiserver's strict content negotiation**, which
