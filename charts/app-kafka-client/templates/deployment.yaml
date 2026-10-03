@@ -48,10 +48,11 @@ spec:
               - key: ca.crt
                 path: ca.crt
         # Projected SA token: the credential the broker validates via the K8s OIDC/JWKS endpoint.
+        # Left at the default mode (0644): the token is owned by root but the image runs non-root,
+        # so a stricter 0600 would make it unreadable. Strimzi's "loose permissions" warning is
+        # benign here since a projected token is already isolated to this pod.
         - name: kafka-token
           projected:
-            # Owner-only so Strimzi's token provider doesn't warn about loose permissions.
-            defaultMode: 0600
             sources:
               - serviceAccountToken:
                   audience: {{ .Values.kafka.tokenAudience }}
