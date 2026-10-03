@@ -1,0 +1,81 @@
+{{- if .Values.cluster.jwksProxy.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-jwks-proxy
+  namespace: {{ .Release.Namespace }}
+data:
+  nginx.conf: |
+    events {}
+    http {
+      access_log /dev/stdout;
+      error_log  /dev/stderr;
+      server {
+        listen 8080;
+        location = /openid/v1/jwks {
+          proxy_pass https://kubernetes.default.svc/openid/v1/jwks;
+          # The one thing this proxy exists for: ask the API server for the format it serves.
+          proxy_set_header Accept "application/jwk-set+json";
+          # Verify the API server TLS using this pod's own mounted cluster CA.
+          proxy_ssl_trusted_certificate /var/run/secrets/kubernetes.io/serviceaccount/ca.crt;
+          proxy_ssl_verify on;
+          proxy_ssl_server_name on;
+          proxy_ssl_name kubernetes.default.svc;
+          # Hand the body back as application/json for the OAuth client.
+          proxy_hide_header Content-Type;
+          add_header Content-Type application/json always;
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-jwks-proxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: kafka-jwks-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-jwks-proxy
+  template:
+    metadata:
+      labels:
+        app: kafka-jwks-proxy
+    spec:
+      containers:
+        - name: nginx
+          image: {{ .Values.cluster.jwksProxy.image }}
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      volumes:
+        - name: config
+          configMap:
+            name: kafka-jwks-proxy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-jwks-proxy
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: kafka-jwks-proxy
+  ports:
+    - port: 8080
+      targetPort: 8080
+{{- end }}

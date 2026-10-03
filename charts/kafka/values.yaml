@@ -41,18 +41,23 @@ cluster:
           oauthbearer.sasl.server.callback.handler.class: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
           # Validate the JWT: pin the issuer, fetch signing keys from the K8s JWKS endpoint,
           # take the principal from `sub`, and require the token audience to contain "kafka".
-          # TLS trust for the JWKS endpoint uses the broker's own mounted cluster CA, so no
-          # extra CA secret is needed. In GKE the JWKS is public HTTPS — drop the two
-          # oauth.ssl.truststore.* lines there.
+          # The JWKS URL points at the in-cluster jwks-proxy (see jwksProxy below): Kubernetes'
+          # /openid/v1/jwks returns 406 unless Accept: application/jwk-set+json, which the
+          # Strimzi OAuth library does not send. Against a public OIDC provider (GKE) you'd
+          # point oauth.jwks.endpoint.uri straight at the provider and drop the proxy.
           oauthbearer.sasl.jaas.config: >-
             org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
             oauth.valid.issuer.uri="https://kubernetes.default.svc.cluster.local"
-            oauth.jwks.endpoint.uri="https://kubernetes.default.svc/openid/v1/jwks"
+            oauth.jwks.endpoint.uri="http://kafka-jwks-proxy:8080/openid/v1/jwks"
             oauth.username.claim="sub"
             oauth.check.audience="true"
-            oauth.client.id="kafka"
-            oauth.ssl.truststore.location="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-            oauth.ssl.truststore.type="PEM" ;
+            oauth.client.id="kafka" ;
+
+  # Fixes the Accept header on requests to Kubernetes' /openid/v1/jwks (406 otherwise).
+  # Not needed against public OIDC providers such as GKE.
+  jwksProxy:
+    enabled: true
+    image: nginx:1.27-alpine
 
   # Topics created declaratively via the Topic Operator.
   topics:
