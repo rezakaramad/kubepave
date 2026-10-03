@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app-kafka-client
+  name: pingkaf
   namespace: {{ .Release.Namespace }}
   labels:
-    app: app-kafka-client
+    app: pingkaf
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: app-kafka-client
+      app: pingkaf
   template:
     metadata:
       labels:
-        app: app-kafka-client
+        app: pingkaf
     spec:
       serviceAccountName: {{ .Values.serviceAccountName }}
       containers:
-        - name: app-kafka-client
+        - name: pingkaf
           image: {{ .Values.image }}
           command: ["/bin/sh", "/config/run.sh"]
           volumeMounts:
@@ -39,7 +39,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: app-kafka-client
+            name: pingkaf
             defaultMode: 0555
         - name: cluster-ca
           secret:

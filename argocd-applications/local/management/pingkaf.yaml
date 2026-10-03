@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app-kafka-client-management
+  name: pingkaf-management
   namespace: argocd
 spec:
   project: platform-system
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/app-kafka-client
+    path: charts/pingkaf
   destination:
     name: in-cluster
     namespace: kafka-system

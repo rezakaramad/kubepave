@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: app-kafka-client
+  name: pingkaf
   namespace: {{ .Release.Namespace }}
 data:
   # Kafka client config: TLS to the broker + OAUTHBEARER using the SA token file.
@@ -32,14 +32,14 @@ data:
     BS="{{ .Values.kafka.bootstrapServer }}"
     TOPIC="{{ .Values.kafka.topic }}"
     CFG=/config/client.properties
-    echo "app-kafka-client starting: bootstrap=$BS topic=$TOPIC sa=$(cat /var/run/secrets/tokens/kafka-token | cut -d. -f2 | base64 -d 2>/dev/null | grep -o '\"sub\":\"[^\"]*\"' || true)"
+    echo "pingkaf starting: bootstrap=$BS topic=$TOPIC sa=$(cat /var/run/secrets/tokens/kafka-token | cut -d. -f2 | base64 -d 2>/dev/null | grep -o '\"sub\":\"[^\"]*\"' || true)"
 
     # One long-lived consumer in the background prints each new message as it arrives
     # (consumer group tracks offsets, so no re-reading and no --timeout-ms exit).
     # sed -u keeps output unbuffered so consumed lines appear immediately in the pod log.
     /opt/kafka/bin/kafka-console-consumer.sh \
       --bootstrap-server "$BS" --topic "$TOPIC" \
-      --group app-kafka-client --consumer.config "$CFG" \
+      --group pingkaf --consumer.config "$CFG" \
       --property print.timestamp=true | sed -u 's/^/[consumed] /' &
     trap 'kill $! 2>/dev/null || true' EXIT INT TERM
 

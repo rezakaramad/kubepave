@@ -40,7 +40,8 @@ cluster:
           # Server-side validator from Strimzi's OAuth library.
           oauthbearer.sasl.server.callback.handler.class: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
           # Validate the JWT: pin the issuer, fetch signing keys from the K8s JWKS endpoint,
-          # take the principal from `sub`, and require the token audience to contain "kafka".
+          # derive the principal from the SA *name* via JsonPath (so it is a valid KafkaUser name
+          # for ACLs — the full `sub` has colons), and require the audience to contain "kafka".
           # The JWKS URL points at the in-cluster jwks-proxy (see jwksProxy below): Kubernetes'
           # /openid/v1/jwks returns 406 unless Accept: application/jwk-set+json, which the
           # Strimzi OAuth library does not send. Against a public OIDC provider (GKE) you'd
@@ -53,7 +54,7 @@ cluster:
             unsecuredLoginStringClaim_sub="kafka-broker"
             oauth.valid.issuer.uri="https://kubernetes.default.svc.cluster.local"
             oauth.jwks.endpoint.uri="http://kafka-jwks-proxy:8080/openid/v1/jwks"
-            oauth.username.claim="sub"
+            oauth.username.claim="['kubernetes.io']['serviceaccount']['name']"
             oauth.check.audience="true"
             oauth.client.id="kafka"
             oauth.validation.skip.type.check="true" ;
@@ -64,13 +65,36 @@ cluster:
     enabled: true
     image: nginx:1.27-alpine
 
+  # Authorization: deny-by-default ACLs. Each workload is identified by its principal
+  # (= its ServiceAccount name, per the username claim above) and only gets what its
+  # KafkaUser ACLs grant. Strimzi auto-manages ACLs for its own internal components.
+  authorization:
+    enabled: true
+    superUsers: []
+
   # Topics created declaratively via the Topic Operator.
   topics:
-    - name: demo-topic
+    - name: pingkaf
       # split the topic into multiple partitions for parallelism
       partitions: 3
       # keep multiple copies of the topic across brokers for fault tolerance
       replicas: 3
+
+  # Users (ACLs) managed by the User Operator. The user name is the Kafka principal and
+  # must match the workload's ServiceAccount name.
+  users:
+    - name: pingkaf
+      acls:
+        # Produce to and consume from the pingkaf topic.
+        - resourceType: topic
+          name: pingkaf
+          patternType: literal
+          operations: [Read, Write, Describe, Create]
+        # Join the pingkaf consumer group.
+        - resourceType: group
+          name: pingkaf
+          patternType: literal
+          operations: [Read]
 
   config:
     # How many copies of the internal consumer-offsets topic are kept across brokers.
