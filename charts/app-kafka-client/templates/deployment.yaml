@@ -50,6 +50,8 @@ spec:
         # Projected SA token: the credential the broker validates via the K8s OIDC/JWKS endpoint.
         - name: kafka-token
           projected:
+            # Owner-only so Strimzi's token provider doesn't warn about loose permissions.
+            defaultMode: 0600
             sources:
               - serviceAccountToken:
                   audience: {{ .Values.kafka.tokenAudience }}
