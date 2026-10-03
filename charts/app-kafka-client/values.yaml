@@ -1,0 +1,16 @@
+# Demo app that authenticates to Kafka with its Kubernetes ServiceAccount JWT.
+serviceAccountName: app-kafka-client
+
+image: quay.io/strimzi/kafka:1.2.0-kafka-4.3.1
+
+kafka:
+  # Internal TLS bootstrap service of the `kafka` cluster in this namespace.
+  bootstrapServer: kafka-kafka-bootstrap:9093
+  topic: demo-topic
+  # Audience requested for the projected SA token; must match the broker's clientId.
+  tokenAudience: kafka
+  # Strimzi-generated cluster CA secret the client uses to trust the broker's TLS.
+  clusterCaSecret: kafka-cluster-ca-cert
+
+# Seconds between each produce/consume cycle.
+loopIntervalSeconds: 20

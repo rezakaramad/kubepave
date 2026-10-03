@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-kafka-client
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: app-kafka-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-kafka-client
+  template:
+    metadata:
+      labels:
+        app: app-kafka-client
+    spec:
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      containers:
+        - name: app-kafka-client
+          image: {{ .Values.image }}
+          command: ["/bin/sh", "/config/run.sh"]
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: cluster-ca
+              mountPath: /opt/kafka/ca
+              readOnly: true
+            - name: kafka-token
+              mountPath: /var/run/secrets/tokens
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: app-kafka-client
+            defaultMode: 0555
+        - name: cluster-ca
+          secret:
+            secretName: {{ .Values.kafka.clusterCaSecret }}
+            items:
+              - key: ca.crt
+                path: ca.crt
+        # Projected SA token: the credential the broker validates via the K8s OIDC/JWKS endpoint.
+        - name: kafka-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: {{ .Values.kafka.tokenAudience }}
+                  expirationSeconds: 3600
+                  path: kafka-token

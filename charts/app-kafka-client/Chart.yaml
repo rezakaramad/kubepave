@@ -1,0 +1,7 @@
+apiVersion: v2
+name: app-kafka-client
+description: >-
+  Demo workload that authenticates to Kafka with its Kubernetes ServiceAccount
+  JWT (SASL_SSL / OAUTHBEARER) and runs a produce/consume loop against demo-topic.
+type: application
+version: 0.0.1

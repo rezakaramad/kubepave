@@ -21,11 +21,45 @@ cluster:
       deleteClaim: false
 
   # A listener is a network endpoint (port + protocol) that clients use to connect to brokers.
+  # OAuth authentication: clients present a JWT and the broker validates it against the
+  # Kubernetes API's OIDC/JWKS endpoint — i.e. a pod's ServiceAccount token is the credential.
   listeners:
     - name: tls
       port: 9093
       type: internal
       tls: true
+      authentication:
+        # Turns on OAuth authentication for this listener; so clients must present 
+        # a valid JWT instead of a traditional username/password.
+        type: oauth
+        # The URI of the issuer, iss claim, that issued the JWTs the broker should accept.
+        # Anything else is rejected.
+        validIssuerUri: https://kubernetes.default.svc.cluster.local
+        # The URI of the JWKS endpoint where the broker can fetch the public keys to validate JWTs.
+        jwksEndpointUri: https://kubernetes.default.svc/openid/v1/jwks
+        # The claim within the JWT that becomes the Kafka principal.
+        # For K8s SA tokens, sub = system:serviceaccount:<namespace>:<serviceaccount>
+        userNameClaim: sub
+        # Token audience must contain this value (checkAudience), e.g. aud: ["kafka"].
+        clientId: kafka
+        checkAudience: true
+        # CA the broker uses to TLS-verify the JWKS endpoint.
+        # Secret is created out-of-band (scripted) from the cluster CA; see install-charts.sh.
+        # This is not needed if the endpoint uses a public CA-signed certificate which
+        # is the case in GKE clusters for example.
+        tlsTrustedCertificates:
+          - secretName: kafka-oidc-ca
+            certificate: ca.crt
+        # Force periodic re-authentication so rotated/expired SA tokens are re-validated.
+        maxSecondsWithoutReauthentication: 3600
+
+  # Topics created declaratively via the Topic Operator.
+  topics:
+    - name: demo-topic
+      # split the topic into multiple partitions for parallelism
+      partitions: 3
+      # keep multiple copies of the topic across brokers for fault tolerance
+      replicas: 3
 
   config:
     # How many copies of the internal consumer-offsets topic are kept across brokers.

@@ -63,6 +63,19 @@ spec:
   entityOperator:
     topicOperator: {}
     userOperator: {}
+{{- range .Values.cluster.topics }}
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    strimzi.io/cluster: {{ $.Values.cluster.name }}
+spec:
+  partitions: {{ .partitions }}
+  replicas: {{ .replicas }}
+{{- end }}
 {{- end }}
 
 ---
