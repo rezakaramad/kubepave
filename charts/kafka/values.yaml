@@ -45,6 +45,9 @@ cluster:
           # /openid/v1/jwks returns 406 unless Accept: application/jwk-set+json, which the
           # Strimzi OAuth library does not send. Against a public OIDC provider (GKE) you'd
           # point oauth.jwks.endpoint.uri straight at the provider and drop the proxy.
+          # oauth.validation.skip.type.check: K8s SA tokens carry no `typ` header/claim, which
+          # the library otherwise requires; unsecuredLoginStringClaim_sub satisfies the broker's
+          # own (unused) login on this client-facing listener.
           oauthbearer.sasl.jaas.config: >-
             org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
             unsecuredLoginStringClaim_sub="kafka-broker"
@@ -52,7 +55,8 @@ cluster:
             oauth.jwks.endpoint.uri="http://kafka-jwks-proxy:8080/openid/v1/jwks"
             oauth.username.claim="sub"
             oauth.check.audience="true"
-            oauth.client.id="kafka" ;
+            oauth.client.id="kafka"
+            oauth.validation.skip.type.check="true" ;
 
   # Fixes the Accept header on requests to Kubernetes' /openid/v1/jwks (406 otherwise).
   # Not needed against public OIDC providers such as GKE.
