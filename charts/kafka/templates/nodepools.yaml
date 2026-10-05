@@ -1,0 +1,41 @@
+{{- if .Values.cluster.enabled }}
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.cluster.name }}
+spec:
+  replicas: {{ .Values.cluster.controller.replicas }}
+  roles:
+    - controller
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: {{ .Values.cluster.controller.storage.size }}
+        deleteClaim: {{ .Values.cluster.controller.storage.deleteClaim }}
+        kraftMetadata: shared
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: broker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.cluster.name }}
+spec:
+  replicas: {{ .Values.cluster.broker.replicas }}
+  roles:
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: {{ .Values.cluster.broker.storage.size }}
+        deleteClaim: {{ .Values.cluster.broker.storage.deleteClaim }}
+        kraftMetadata: shared
+{{- end }}

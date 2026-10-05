@@ -1,0 +1,29 @@
+{{- if .Values.cluster.enabled }}
+apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: {{ .Values.cluster.name }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+spec:
+  kafka:
+    version: {{ .Values.cluster.version }}
+    # metadataVersion is defaulted by the operator to match `version` when omitted.
+    listeners:
+      {{- toYaml .Values.cluster.listeners | nindent 6 }}
+    config:
+      {{- toYaml .Values.cluster.config | nindent 6 }}
+    {{- if .Values.cluster.authorization.enabled }}
+    authorization:
+      type: simple
+      {{- with .Values.cluster.authorization.superUsers }}
+      superUsers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+{{- end }}
