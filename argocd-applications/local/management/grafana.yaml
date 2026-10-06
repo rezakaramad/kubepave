@@ -9,10 +9,6 @@ spec:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
     path: charts/grafana
-    helm:
-      valueFiles:
-        - values.yaml
-        - values-local.yaml
   destination:
     name: in-cluster
     namespace: observability

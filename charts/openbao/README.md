@@ -63,8 +63,7 @@ Platform-component secrets live under the root `kv` mount.
 | `backstage-policy` | `kv/data/backstage/*` | read |
 | `crossplane-policy` | `kv/data/crossplane/*`, `kv/data/shared/*` | read |
 | `keycloak-policy` | `kv/data/keycloak/*` | read, create, update, patch |
-| `grafana-policy` | `kv/data/grafana/*` | read |
-| `seaweedfs-policy` | `kv/data/seaweedfs/*` | read |
+| `seaweedfs-policy` | `kv/data/seaweedfs/*`, `kv/data/grafana/*` | read |
 
 Tenants share one identity-templated `tenant-policy` that resolves to
 `kv-<cluster>/data/<tenant>/*` from the caller's verified auth alias name, so a new
@@ -83,7 +82,6 @@ every cluster's `jwt-<cluster>` backend, except `keycloak` (management only).
 | `crossplane` | `crossplane-system:crossplane` | `crossplane-policy` |
 | `keycloak` | `keycloak:keycloak` | `keycloak-policy` |
 | `seaweedfs` | `observability:seaweedfs` | `seaweedfs-policy` |
-| `grafana` | `observability:grafana` | `grafana-policy` |
 
 Tenants use a single shared `tenant` role on the `jwt-development-tenants` backend.
 It has no `bound_subject`; the issued token self-scopes to the calling tenant via
