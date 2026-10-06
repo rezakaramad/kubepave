@@ -53,6 +53,13 @@ store "argocd/client-secrets/argocd/value" "argocd_client_secret_value"
 store "argocd/client-secrets/argocd/id" "argocd_client_secret_id"
 
 # -------------------------------
+# Grafana
+# -------------------------------
+store "grafana/client-id" "grafana_client_id"
+store "grafana/client-secrets/grafana/value" "grafana_client_secret_value"
+store "grafana/client-secrets/grafana/id" "grafana_client_secret_id"
+
+# -------------------------------
 # Crossplane
 # -------------------------------
 store "crossplane/client-id" "crossplane_client_id"

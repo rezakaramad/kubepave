@@ -428,6 +428,33 @@ create_seaweedfs_sts_secrets() {
   ok "SeaweedFS STS signing key written"
 }
 
+create_grafana_secrets() {
+  log "Writing Grafana secrets to OpenBao..."
+
+  # Entra ID app registration used for Grafana SSO
+  local client_id tenant_id client_secret
+  client_id=$(pass show private/azure/entraid/apps/grafana/client-id | head -n1)
+  tenant_id=$(pass show private/azure/entraid/apps/tenant-id | head -n1)
+  client_secret=$(pass show private/azure/entraid/apps/grafana/client-secrets/grafana/value | head -n1)
+
+  bao_kv_put "kv/grafana/azure/app" \
+    "client_id"     "$client_id" \
+    "tenant_id"     "$tenant_id" \
+    "client_secret" "$client_secret"
+
+  ok "Grafana Entra ID client secret written"
+
+  # Break-glass local admin — generated once
+  if bao_kv_exists "kv/grafana/admin"; then
+    log "Grafana admin credentials already exist — skipping"
+  else
+    bao_kv_put "kv/grafana/admin" \
+      "user"     "admin" \
+      "password" "$(openssl rand -hex 16)"
+    ok "Grafana admin credentials written"
+  fi
+}
+
 
 # -----------------------------------------------------------------------------
 # Main
@@ -449,6 +476,7 @@ main() {
   create_backstage_secrets
   create_seaweedfs_secrets
   create_seaweedfs_sts_secrets
+  create_grafana_secrets
   register_clusters_argocd
   create_powerdns_secrets
 

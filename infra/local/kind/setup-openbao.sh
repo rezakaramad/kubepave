@@ -185,7 +185,7 @@ configure_platform_cluster_jwt() {
     policies=eso-argocd-policy \
     ttl=1h"
 
-  # keycloak, backstage and seaweedfs only run on the management cluster.
+  # keycloak, backstage, seaweedfs and grafana only run on the management cluster.
   if [ "$cluster" = "management" ]; then
     bao_exec "bao write auth/${auth_path}/role/keycloak \
       role_type=jwt \
@@ -209,6 +209,14 @@ configure_platform_cluster_jwt() {
       user_claim=sub \
       bound_subject='system:serviceaccount:observability:seaweedfs' \
       policies=seaweedfs-policy \
+      ttl=1h"
+
+    bao_exec "bao write auth/${auth_path}/role/grafana \
+      role_type=jwt \
+      bound_audiences='https://kubernetes.default.svc.cluster.local' \
+      user_claim=sub \
+      bound_subject='system:serviceaccount:observability:grafana' \
+      policies=grafana-policy \
       ttl=1h"
   fi
 

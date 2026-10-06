@@ -167,6 +167,98 @@ output "argocd_client_secret_value" {
 }
 
 # ---------------------------------------------------------------
+# Grafana
+# ---------------------------------------------------------------
+# SSO login for the observability stack.
+resource "azuread_application" "grafana" {
+  display_name     = "Grafana"
+  sign_in_audience = "AzureADMyOrg"
+  owners           = [data.azuread_client_config.current.object_id]
+
+  web {
+    redirect_uris = [
+      "https://grafana.mgmt.rezakara.demo/login/azuread"
+    ]
+  }
+
+  lifecycle {
+    ignore_changes = [
+      app_role
+    ]
+  }
+}
+
+resource "azuread_service_principal" "grafana" {
+  client_id                    = azuread_application.grafana.client_id
+  app_role_assignment_required = true
+  owners                       = [data.azuread_client_config.current.object_id]
+}
+
+resource "azuread_application_password" "grafana" {
+  application_id = azuread_application.grafana.id
+  display_name   = "Grafana"
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+# Grafana reads these exact values (case-sensitive) from the `roles` claim.
+resource "azuread_application_app_role" "grafana_admin" {
+  application_id = azuread_application.grafana.id
+  role_id        = "d4a7c2e1-5b38-4f96-9e0a-7c1b3d5f8a24"
+
+  allowed_member_types = ["User"]
+  description          = "Grafana administrators: manage dashboards, datasources, users and settings."
+  display_name         = "Grafana Admin"
+  value                = "Admin"
+}
+
+resource "azuread_application_app_role" "grafana_viewer" {
+  application_id = azuread_application.grafana.id
+  role_id        = "e5b8d3f2-6c49-4a07-8f1b-8d2c4e6a9b35"
+
+  allowed_member_types = ["User"]
+  description          = "Grafana viewers: read-only access to dashboards and Explore."
+  display_name         = "Grafana Viewer"
+  value                = "Viewer"
+}
+
+# Group members inherit the role; users are managed in entraid-users.tf.
+resource "azuread_app_role_assignment" "grafana_platform_admin" {
+  app_role_id         = azuread_application_app_role.grafana_admin.role_id
+  principal_object_id = azuread_group.platform_admins.object_id
+  resource_object_id  = azuread_service_principal.grafana.object_id
+}
+
+resource "azuread_app_role_assignment" "grafana_platform_viewer" {
+  app_role_id         = azuread_application_app_role.grafana_viewer.role_id
+  principal_object_id = azuread_group.platform_viewers.object_id
+  resource_object_id  = azuread_service_principal.grafana.object_id
+}
+
+# Tenant-wide consent for the sign-in scopes, so login does not need a manual "Grant admin consent".
+resource "azuread_service_principal_delegated_permission_grant" "grafana_oidc" {
+  service_principal_object_id          = azuread_service_principal.grafana.object_id
+  resource_service_principal_object_id = data.azuread_service_principal.msgraph.object_id
+  claim_values                         = ["openid", "profile", "email"]
+}
+
+# Grafana outputs
+output "grafana_client_id" {
+  value = azuread_application.grafana.client_id
+}
+
+output "grafana_client_secret_id" {
+  value = azuread_application_password.grafana.key_id
+}
+
+output "grafana_client_secret_value" {
+  value     = azuread_application_password.grafana.value
+  sensitive = true
+}
+
+# ---------------------------------------------------------------
 # Crossplane
 # ---------------------------------------------------------------
 resource "azuread_application" "crossplane" {

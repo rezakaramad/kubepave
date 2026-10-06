@@ -1,0 +1,22 @@
+secretStore:
+  name: openbao-grafana
+  provider:
+    vault:
+      auth:
+        jwt:
+          path: jwt-management
+          role: grafana
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: grafana
+              namespace: observability
+            audiences:
+              - https://kubernetes.default.svc.cluster.local
+      caProvider:
+        key: tls.crt
+        name: root-ca
+        namespace: observability
+        type: Secret
+      path: kv
+      server: https://openbao.mgmt.rezakara.demo
+      version: v2

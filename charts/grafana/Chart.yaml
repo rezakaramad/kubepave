@@ -1,0 +1,8 @@
+apiVersion: v2
+name: grafana
+description: Grafana UI for the observability stack, with Mimir, Loki and Tempo datasources and Keycloak login.
+version: 0.0.1
+dependencies:
+  - name: grafana
+    version: 10.5.15
+    repository: https://grafana.github.io/helm-charts

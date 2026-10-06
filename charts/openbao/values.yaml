@@ -138,6 +138,18 @@ openbao:
         }
         EOF
 
+        echo "Writing Grafana ESO policy..."
+
+        bao policy write grafana-policy - <<'EOF'
+        path "kv/data/grafana/*" {
+          capabilities = ["read"]
+        }
+
+        path "kv/metadata/grafana/*" {
+          capabilities = ["read", "list"]
+        }
+        EOF
+
         echo "Writing SeaweedFS ESO policy..."
 
         bao policy write seaweedfs-policy - <<'EOF'
