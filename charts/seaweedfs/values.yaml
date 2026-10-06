@@ -34,8 +34,8 @@ seaweedfs:
       - -s3.iam.config=/etc/sw/iam/iam.json
     extraVolumes: |
       - name: iam-config
-        configMap:
-          name: seaweedfs-iam-config
+        secret:
+          secretName: seaweedfs-iam-config
     extraVolumeMounts: |
       - name: iam-config
         mountPath: /etc/sw/iam

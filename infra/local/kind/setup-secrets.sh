@@ -414,6 +414,20 @@ create_seaweedfs_secrets() {
   ok "SeaweedFS S3 credentials written"
 }
 
+create_seaweedfs_sts_secrets() {
+  log "Writing SeaweedFS STS signing key to OpenBao..."
+
+  if bao_kv_exists "kv/seaweedfs/sts"; then
+    log "SeaweedFS STS signing key already exists — skipping"
+    return 0
+  fi
+
+  bao_kv_put "kv/seaweedfs/sts" \
+    "signing_key" "$(openssl rand -base64 32)"
+
+  ok "SeaweedFS STS signing key written"
+}
+
 
 # -----------------------------------------------------------------------------
 # Main
@@ -434,6 +448,7 @@ main() {
   create_keycloak_secrets
   create_backstage_secrets
   create_seaweedfs_secrets
+  create_seaweedfs_sts_secrets
   register_clusters_argocd
   create_powerdns_secrets
 

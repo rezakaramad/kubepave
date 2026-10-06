@@ -1,15 +1,19 @@
-# Lets Loki, Tempo and Mimir trade a Kubernetes ServiceAccount token for short-lived S3 credentials
+# Lets Loki, Tempo and Mimir trade a Kubernetes ServiceAccount token for short-lived S3 credentials.
+# This ConfigMap is only the template; ESO renders it into Secret seaweedfs-iam-config with the signing key.
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: seaweedfs-iam-config
+  name: seaweedfs-iam-template
   namespace: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "-11"
 data:
   iam.json: |
     {
       "sts": {
         "tokenDuration": "1h",
-        "maxSessionLength": "12h"
+        "maxSessionLength": "12h",
+        "signingKey": "{{ "{{ .sts_signing_key }}" }}"
       },
       "providers": [
         {
@@ -123,3 +127,33 @@ data:
         }
       ]
     }
+{{- if .Capabilities.APIVersions.Has "external-secrets.io/v1" }}
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: seaweedfs-iam-config
+  namespace: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  refreshInterval: 20m
+  secretStoreRef:
+    name: {{ .Values.secretStore.name }}
+    kind: SecretStore
+  target:
+    name: seaweedfs-iam-config
+    creationPolicy: Owner
+    template:
+      templateFrom:
+        - configMap:
+            name: seaweedfs-iam-template
+            items:
+              - key: iam.json
+  data:
+    - secretKey: sts_signing_key
+      remoteRef:
+        key: seaweedfs/sts
+        property: signing_key
+{{- end }}
