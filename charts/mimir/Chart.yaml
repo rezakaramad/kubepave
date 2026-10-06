@@ -1,0 +1,8 @@
+apiVersion: v2
+name: mimir
+description: Grafana Mimir (metrics backend) in classic architecture, storing blocks in SeaweedFS.
+version: 0.0.1
+dependencies:
+  - name: mimir-distributed
+    version: 6.2.0
+    repository: https://grafana.github.io/helm-charts

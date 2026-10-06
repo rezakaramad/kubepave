@@ -1,0 +1,98 @@
+loki:
+  deploymentMode: SingleBinary
+
+  serviceAccount:
+    # Must match the subject in the LokiRole trust policy in the seaweedfs chart
+    name: loki
+
+  loki:
+    # Single tenant for now; no X-Scope-OrgID header needed
+    auth_enabled: false
+    commonConfig:
+      replication_factor: 1
+    schemaConfig:
+      configs:
+        - from: "2024-04-01"
+          store: tsdb
+          object_store: s3
+          schema: v13
+          index:
+            prefix: loki_index_
+            period: 24h
+    storage:
+      type: s3
+      bucketNames:
+        chunks: loki-chunks
+        ruler: loki-ruler
+      # The thanos client is the one that can exchange a ServiceAccount token through STS
+      use_thanos_objstore: true
+      object_store:
+        type: s3
+        s3:
+          endpoint: seaweedfs-all-in-one.observability.svc:8333
+          sts_endpoint: http://seaweedfs-all-in-one.observability.svc:8333
+          region: us-east-1
+          insecure: true
+
+  singleBinary:
+    replicas: 1
+    # Pods trade this projected ServiceAccount token for S3 credentials from SeaweedFS (STS)
+    extraEnv:
+      - name: AWS_ROLE_ARN
+        value: arn:aws:iam::role/LokiRole
+      - name: AWS_WEB_IDENTITY_TOKEN_FILE
+        value: /var/run/secrets/seaweedfs/token
+    extraVolumes:
+      - name: seaweedfs-token
+        projected:
+          sources:
+            - serviceAccountToken:
+                path: token
+                audience: seaweedfs-s3
+                expirationSeconds: 3600
+    extraVolumeMounts:
+      - name: seaweedfs-token
+        mountPath: /var/run/secrets/seaweedfs
+        readOnly: true
+
+  # Zero out the other deployment modes
+  backend:
+    replicas: 0
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+  ingester:
+    replicas: 0
+  querier:
+    replicas: 0
+  queryFrontend:
+    replicas: 0
+  queryScheduler:
+    replicas: 0
+  distributor:
+    replicas: 0
+  compactor:
+    replicas: 0
+  indexGateway:
+    replicas: 0
+  bloomCompactor:
+    replicas: 0
+  bloomGateway:
+    replicas: 0
+
+  minio:
+    enabled: false
+  gateway:
+    enabled: false
+  chunksCache:
+    enabled: false
+  resultsCache:
+    enabled: false
+  lokiCanary:
+    enabled: false
+  test:
+    enabled: false
+  sidecar:
+    rules:
+      enabled: false

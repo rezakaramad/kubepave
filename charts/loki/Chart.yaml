@@ -1,0 +1,8 @@
+apiVersion: v2
+name: loki
+description: Grafana Loki (logs backend) in single-binary mode, storing chunks in SeaweedFS.
+version: 0.0.1
+dependencies:
+  - name: loki
+    version: 7.3.0
+    repository: https://grafana.github.io/helm-charts

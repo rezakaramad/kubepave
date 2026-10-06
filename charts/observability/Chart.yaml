@@ -1,0 +1,4 @@
+apiVersion: v2
+name: observability
+description: Creates the observability namespace where the OTel collectors and the Grafana backend (Loki, Tempo, Mimir, Grafana) are installed
+version: 0.0.1

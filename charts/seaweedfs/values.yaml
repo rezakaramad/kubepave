@@ -1,0 +1,58 @@
+secretStore:
+  name: openbao-local
+  provider: {}
+
+seaweedfs:
+  global:
+    seaweedfs:
+      serviceAccountName: seaweedfs
+
+  # Single pod running master, volume, filer and S3 gateway
+  allInOne:
+    enabled: true
+    data:
+      type: persistentVolumeClaim
+      size: 10Gi
+    s3:
+      enabled: true
+      enableAuth: true
+      createBuckets:
+        - name: loki-chunks
+        - name: loki-ruler
+        - name: tempo
+        - name: mimir-blocks
+        - name: mimir-ruler
+        - name: mimir-alertmanager
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+
+    extraArgs:
+      - -s3.iam.config=/etc/sw/iam/iam.json
+    extraVolumes: |
+      - name: iam-config
+        configMap:
+          name: seaweedfs-iam-config
+    extraVolumeMounts: |
+      - name: iam-config
+        mountPath: /etc/sw/iam
+        readOnly: true
+
+  master:
+    enabled: false
+  volume:
+    enabled: false
+  filer:
+    enabled: false
+  s3:
+    enabled: false
+
+    # Keys come from the seaweedfs-s3 Secret (ExternalSecret from OpenBao)
+    credentials:
+      admin:
+        existingSecret: seaweedfs-s3
+        accessKeyKey: access_key_id
+        secretKeyKey: secret_access_key

@@ -138,6 +138,18 @@ openbao:
         }
         EOF
 
+        echo "Writing SeaweedFS ESO policy..."
+
+        bao policy write seaweedfs-policy - <<'EOF'
+        path "kv/data/seaweedfs/*" {
+          capabilities = ["read"]
+        }
+
+        path "kv/metadata/seaweedfs/*" {
+          capabilities = ["read", "list"]
+        }
+        EOF
+
         echo "Writing Crossplane policy..."
 
         bao policy write crossplane-policy - <<'EOF'

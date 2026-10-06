@@ -1,0 +1,26 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  labels:
+    external-dns-create: "true"
+  name: loki
+  namespace: observability
+spec:
+  hostnames:
+  - loki.mgmt.rezakara.demo
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: default-traefik
+    namespace: platform-system
+  rules:
+  - backendRefs:
+    - group: ""
+      kind: Service
+      name: loki
+      port: 3100
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /

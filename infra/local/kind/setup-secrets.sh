@@ -396,6 +396,26 @@ create_backstage_secrets() {
 
 
 # -----------------------------------------------------------------------------
+# SeaweedFS static admin S3 credentials (break-glass; Loki, Tempo and Mimir use STS).
+# Pushed under kv/seaweedfs/* (read by role `seaweedfs`); generated once.
+# -----------------------------------------------------------------------------
+create_seaweedfs_secrets() {
+  log "Writing SeaweedFS S3 credentials to OpenBao..."
+
+  if bao_kv_exists "kv/seaweedfs/s3"; then
+    log "SeaweedFS S3 credentials already exist — skipping"
+    return 0
+  fi
+
+  bao_kv_put "kv/seaweedfs/s3" \
+    "access_key_id"     "$(openssl rand -hex 10)" \
+    "secret_access_key" "$(openssl rand -hex 20)"
+
+  ok "SeaweedFS S3 credentials written"
+}
+
+
+# -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 main() {
@@ -413,6 +433,7 @@ main() {
   create_crossplane_app_registration_azure
   create_keycloak_secrets
   create_backstage_secrets
+  create_seaweedfs_secrets
   register_clusters_argocd
   create_powerdns_secrets
 

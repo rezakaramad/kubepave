@@ -1,0 +1,104 @@
+mimir-distributed:
+  # Classic architecture: no Kafka between distributors and ingesters
+  kafka:
+    enabled: false
+  minio:
+    enabled: false
+  rollout_operator:
+    enabled: false
+
+  serviceAccount:
+    # Must match the subject in the MimirRole trust policy in the seaweedfs chart
+    name: mimir
+
+  # Pods trade this projected ServiceAccount token for S3 credentials from SeaweedFS (STS)
+  global:
+    extraEnv:
+      - name: AWS_ROLE_ARN
+        value: arn:aws:iam::role/MimirRole
+      - name: AWS_WEB_IDENTITY_TOKEN_FILE
+        value: /var/run/secrets/seaweedfs/token
+    extraVolumes:
+      - name: seaweedfs-token
+        projected:
+          sources:
+            - serviceAccountToken:
+                path: token
+                audience: seaweedfs-s3
+                expirationSeconds: 3600
+    extraVolumeMounts:
+      - name: seaweedfs-token
+        mountPath: /var/run/secrets/seaweedfs
+        readOnly: true
+
+  mimir:
+    structuredConfig:
+      # Single tenant for now; no X-Scope-OrgID header needed
+      multitenancy_enabled: false
+      ingest_storage:
+        enabled: false
+        kafka:
+          address: null
+          topic: null
+          auto_create_topic_default_partitions: null
+      distributor:
+        remote_timeout: null
+      ingester:
+        push_grpc_method_enabled: null
+        ring:
+          replication_factor: 1
+      common:
+        storage:
+          backend: s3
+          s3:
+            endpoint: seaweedfs-all-in-one.observability.svc:8333
+            sts_endpoint: http://seaweedfs-all-in-one.observability.svc:8333
+            region: us-east-1
+            insecure: true
+            bucket_lookup_type: path
+      blocks_storage:
+        s3:
+          bucket_name: mimir-blocks
+      ruler_storage:
+        s3:
+          bucket_name: mimir-ruler
+      alertmanager_storage:
+        s3:
+          bucket_name: mimir-alertmanager
+      limits:
+        # OTLP metrics are accepted on /otlp/v1/metrics; keep resource attributes as labels
+        promote_otel_resource_attributes: k8s.cluster.name,k8s.namespace.name,k8s.pod.name,k8s.node.name,service.name,service.namespace
+
+  # Local footprint: one replica of everything, no caches
+  alertmanager:
+    replicas: 1
+  compactor:
+    replicas: 1
+  distributor:
+    replicas: 1
+  ingester:
+    replicas: 1
+    zoneAwareReplication:
+      enabled: false
+  overrides_exporter:
+    enabled: false
+  querier:
+    replicas: 1
+  query_frontend:
+    replicas: 1
+  query_scheduler:
+    replicas: 1
+  ruler:
+    replicas: 1
+  store_gateway:
+    replicas: 1
+    zoneAwareReplication:
+      enabled: false
+  chunks-cache:
+    enabled: false
+  index-cache:
+    enabled: false
+  metadata-cache:
+    enabled: false
+  results-cache:
+    enabled: false

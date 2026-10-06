@@ -1,0 +1,8 @@
+apiVersion: v2
+name: seaweedfs
+description: S3-compatible object store (SeaweedFS) backing Loki, Tempo and Mimir in the observability namespace.
+version: 0.0.1
+dependencies:
+  - name: seaweedfs
+    version: 4.48.0
+    repository: https://seaweedfs.github.io/seaweedfs/helm

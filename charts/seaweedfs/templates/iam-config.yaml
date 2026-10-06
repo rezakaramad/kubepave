@@ -1,0 +1,125 @@
+# Lets Loki, Tempo and Mimir trade a Kubernetes ServiceAccount token for short-lived S3 credentials
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seaweedfs-iam-config
+  namespace: observability
+data:
+  iam.json: |
+    {
+      "sts": {
+        "tokenDuration": "1h",
+        "maxSessionLength": "12h"
+      },
+      "providers": [
+        {
+          "name": "k8s",
+          "type": "oidc",
+          "enabled": true,
+          "config": {
+            "issuer": "https://kubernetes.default.svc.cluster.local",
+            "clientId": "seaweedfs-s3",
+            "jwksUri": "https://kubernetes.default.svc.cluster.local/openid/v1/jwks",
+            "tlsCaCert": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+          }
+        }
+      ],
+      "policies": [
+        {
+          "name": "LokiPolicy",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["s3:*"],
+                "Resource": [
+                  "arn:aws:s3:::loki-chunks", "arn:aws:s3:::loki-chunks/*",
+                  "arn:aws:s3:::loki-ruler", "arn:aws:s3:::loki-ruler/*"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "TempoPolicy",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["s3:*"],
+                "Resource": ["arn:aws:s3:::tempo", "arn:aws:s3:::tempo/*"]
+              }
+            ]
+          }
+        },
+        {
+          "name": "MimirPolicy",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["s3:*"],
+                "Resource": [
+                  "arn:aws:s3:::mimir-blocks", "arn:aws:s3:::mimir-blocks/*",
+                  "arn:aws:s3:::mimir-ruler", "arn:aws:s3:::mimir-ruler/*",
+                  "arn:aws:s3:::mimir-alertmanager", "arn:aws:s3:::mimir-alertmanager/*"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "roles": [
+        {
+          "roleName": "LokiRole",
+          "roleArn": "arn:aws:iam::role/LokiRole",
+          "attachedPolicies": ["LokiPolicy"],
+          "trustPolicy": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": { "Federated": "k8s" },
+                "Action": ["sts:AssumeRoleWithWebIdentity"],
+                "Condition": { "StringEquals": { "oidc:sub": "system:serviceaccount:observability:loki" } }
+              }
+            ]
+          }
+        },
+        {
+          "roleName": "TempoRole",
+          "roleArn": "arn:aws:iam::role/TempoRole",
+          "attachedPolicies": ["TempoPolicy"],
+          "trustPolicy": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": { "Federated": "k8s" },
+                "Action": ["sts:AssumeRoleWithWebIdentity"],
+                "Condition": { "StringEquals": { "oidc:sub": "system:serviceaccount:observability:tempo" } }
+              }
+            ]
+          }
+        },
+        {
+          "roleName": "MimirRole",
+          "roleArn": "arn:aws:iam::role/MimirRole",
+          "attachedPolicies": ["MimirPolicy"],
+          "trustPolicy": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": { "Federated": "k8s" },
+                "Action": ["sts:AssumeRoleWithWebIdentity"],
+                "Condition": { "StringEquals": { "oidc:sub": "system:serviceaccount:observability:mimir" } }
+              }
+            ]
+          }
+        }
+      ]
+    }

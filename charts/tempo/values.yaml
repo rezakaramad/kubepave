@@ -1,0 +1,57 @@
+tempo:
+  serviceAccount:
+    # Must match the subject in the TempoRole trust policy in the seaweedfs chart
+    name: tempo
+
+  persistence:
+    enabled: true
+    size: 5Gi
+
+  # Pods trade this projected ServiceAccount token for S3 credentials from SeaweedFS (STS)
+  extraVolumes:
+    - name: seaweedfs-token
+      projected:
+        sources:
+          - serviceAccountToken:
+              path: token
+              audience: seaweedfs-s3
+              expirationSeconds: 3600
+
+  tempo:
+    reportingEnabled: false
+    retention: 72h
+    extraEnv:
+      - name: AWS_ROLE_ARN
+        value: arn:aws:iam::role/TempoRole
+      - name: AWS_WEB_IDENTITY_TOKEN_FILE
+        value: /var/run/secrets/seaweedfs/token
+      # Tempo's S3 client has no STS setting; this is the endpoint its web-identity provider calls
+      - name: TEST_IAM_ENDPOINT
+        value: http://seaweedfs-all-in-one.observability.svc:8333
+    extraVolumeMounts:
+      - name: seaweedfs-token
+        mountPath: /var/run/secrets/seaweedfs
+        readOnly: true
+
+    storage:
+      trace:
+        backend: s3
+        s3:
+          bucket: tempo
+          endpoint: seaweedfs-all-in-one.observability.svc:8333
+          region: us-east-1
+          insecure: true
+          forcepathstyle: true
+        wal:
+          path: /var/tempo/wal
+
+    # RED metrics from spans, written to Mimir
+    metricsGenerator:
+      enabled: true
+      remoteWriteUrl: http://mimir-gateway.observability.svc/api/v1/push
+    overrides:
+      defaults:
+        metrics_generator:
+          processors:
+            - service-graphs
+            - span-metrics

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    # node-collector mounts hostPath (/var/log/pods), which the baseline profile rejects
+    pod-security.kubernetes.io/enforce: privileged
+  annotations:
+    helm.sh/resource-policy: keep
