@@ -5,10 +5,10 @@ secretStore:
       auth:
         jwt:
           path: jwt-management
-          role: seaweedfs
+          role: observability
           kubernetesServiceAccountToken:
             serviceAccountRef:
-              name: seaweedfs
+              name: observability
               namespace: observability
             audiences:
               - https://kubernetes.default.svc.cluster.local

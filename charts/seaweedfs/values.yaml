@@ -1,7 +1,3 @@
-secretStore:
-  name: openbao-local
-  provider: {}
-
 seaweedfs:
   global:
     seaweedfs:

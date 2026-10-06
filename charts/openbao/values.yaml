@@ -138,9 +138,9 @@ openbao:
         }
         EOF
 
-        echo "Writing SeaweedFS ESO policy..."
+        echo "Writing observability ESO policy..."
 
-        bao policy write seaweedfs-policy - <<'EOF'
+        bao policy write observability-policy - <<'EOF'
         path "kv/data/seaweedfs/*" {
           capabilities = ["read"]
         }

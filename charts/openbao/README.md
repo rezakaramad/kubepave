@@ -63,7 +63,7 @@ Platform-component secrets live under the root `kv` mount.
 | `backstage-policy` | `kv/data/backstage/*` | read |
 | `crossplane-policy` | `kv/data/crossplane/*`, `kv/data/shared/*` | read |
 | `keycloak-policy` | `kv/data/keycloak/*` | read, create, update, patch |
-| `seaweedfs-policy` | `kv/data/seaweedfs/*`, `kv/data/grafana/*` | read |
+| `observability-policy` | `kv/data/seaweedfs/*`, `kv/data/grafana/*` | read |
 
 Tenants share one identity-templated `tenant-policy` that resolves to
 `kv-<cluster>/data/<tenant>/*` from the caller's verified auth alias name, so a new
@@ -81,7 +81,7 @@ every cluster's `jwt-<cluster>` backend, except `keycloak` (management only).
 | `eso-argocd` | `argocd:argocd-server` | `eso-argocd-policy` |
 | `crossplane` | `crossplane-system:crossplane` | `crossplane-policy` |
 | `keycloak` | `keycloak:keycloak` | `keycloak-policy` |
-| `seaweedfs` | `observability:seaweedfs` | `seaweedfs-policy` |
+| `observability` | `observability:observability` | `observability-policy` |
 
 Tenants use a single shared `tenant` role on the `jwt-development-tenants` backend.
 It has no `bound_subject`; the issued token self-scopes to the calling tenant via

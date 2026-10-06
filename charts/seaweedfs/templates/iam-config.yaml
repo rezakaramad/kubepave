@@ -140,7 +140,7 @@ metadata:
 spec:
   refreshInterval: 20m
   secretStoreRef:
-    name: {{ .Values.secretStore.name }}
+    name: openbao-local
     kind: SecretStore
   target:
     name: seaweedfs-iam-config
