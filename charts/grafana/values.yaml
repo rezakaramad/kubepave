@@ -1,70 +1,11 @@
-grafana:
-  replicas: 1
-
-  testFramework:
-    enabled: false
-
-  persistence:
-    enabled: true
-    size: 2Gi
+grafana-operator:
+  # The chart only installs CRDs when this is false.
+  crds:
+    immutable: false
 
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 64Mi
     limits:
-      memory: 512Mi
-
-  # Break-glass local admin (from OpenBao); everyone else logs in through Keycloak.
-  admin:
-    existingSecret: grafana-admin
-    userKey: admin-user
-    passwordKey: admin-password
-
-  # Provides the Entra ID client id/secret and tenant URLs (GF_AUTH_AZUREAD_*).
-  envFromSecret: grafana-oidc
-
-  grafana.ini:
-    server:
-      root_url: https://grafana.mgmt.rezakara.demo
-    users:
-      auto_assign_org_role: Viewer
-    auth.azuread:
-      enabled: true
-      name: Microsoft
-      allow_sign_up: true
-      scopes: openid email profile
-      use_pkce: true
-      role_attribute_strict: true
-      allow_assign_grafana_admin: true
-
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-        - name: Mimir
-          uid: mimir
-          type: prometheus
-          access: proxy
-          url: http://mimir-gateway.observability.svc/prometheus
-          isDefault: true
-          jsonData:
-            httpMethod: POST
-            prometheusType: Mimir
-        - name: Loki
-          uid: loki
-          type: loki
-          access: proxy
-          url: http://loki.observability.svc:3100
-        - name: Tempo
-          uid: tempo
-          type: tempo
-          access: proxy
-          url: http://tempo.observability.svc:3200
-          jsonData:
-            tracesToLogsV2:
-              datasourceUid: loki
-            serviceMap:
-              datasourceUid: mimir
-            nodeGraph:
-              enabled: true
+      memory: 256Mi

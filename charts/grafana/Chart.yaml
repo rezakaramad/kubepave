@@ -1,8 +1,8 @@
 apiVersion: v2
 name: grafana
-description: Grafana UI for the observability stack, with Mimir, Loki and Tempo datasources and Keycloak login.
+description: Grafana operator with a Grafana instance, Mimir/Loki/Tempo datasources and Entra ID login.
 version: 0.0.1
 dependencies:
-  - name: grafana
-    version: 10.5.15
+  - name: grafana-operator
+    version: 5.25.0
     repository: https://grafana.github.io/helm-charts

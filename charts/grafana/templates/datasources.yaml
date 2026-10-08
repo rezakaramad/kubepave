@@ -1,0 +1,67 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: mimir
+  namespace: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  uid: mimir
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasource:
+    name: Mimir
+    type: prometheus
+    access: proxy
+    url: http://mimir-gateway.observability.svc/prometheus
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      prometheusType: Mimir
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: loki
+  namespace: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  uid: loki
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasource:
+    name: Loki
+    type: loki
+    access: proxy
+    url: http://loki.observability.svc:3100
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: tempo
+  namespace: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  uid: tempo
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  datasource:
+    name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo.observability.svc:3200
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+      serviceMap:
+        datasourceUid: mimir
+      nodeGraph:
+        enabled: true

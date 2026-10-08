@@ -1,0 +1,71 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: grafana
+  namespace: observability
+  labels:
+    dashboards: grafana
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  config:
+    log:
+      mode: console
+    server:
+      root_url: https://grafana.mgmt.rezakara.demo
+    users:
+      auto_assign_org_role: Viewer
+    # Client id/secret and tenant URLs come from env vars (GF_AUTH_AZUREAD_*) below.
+    auth.azuread:
+      enabled: "true"
+      name: Microsoft
+      allow_sign_up: "true"
+      scopes: openid email profile
+      use_pkce: "true"
+      role_attribute_strict: "true"
+      allow_assign_grafana_admin: "true"
+
+  # Admin credentials come from the grafana-admin Secret instead.
+  disableDefaultAdminSecret: true
+
+  persistentVolumeClaim:
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi
+
+  deployment:
+    spec:
+      strategy:
+        type: Recreate
+      template:
+        spec:
+          containers:
+            - name: grafana
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  memory: 512Mi
+              envFrom:
+                - secretRef:
+                    name: grafana-oidc
+              env:
+                - name: GF_SECURITY_ADMIN_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-admin
+                      key: admin-user
+                - name: GF_SECURITY_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-admin
+                      key: admin-password
+          volumes:
+            - name: grafana-data
+              persistentVolumeClaim:
+                claimName: grafana-pvc
