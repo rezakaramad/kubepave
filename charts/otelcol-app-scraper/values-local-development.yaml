@@ -1,0 +1,32 @@
+otelCollector:
+  # The management routes are only resolvable reliably without the search list (see README).
+  dnsConfig:
+    options:
+      - name: ndots
+        value: "1"
+
+  # Only the public certificate is mounted, never the private key in the same secret.
+  extraVolumes:
+    - name: root-ca
+      secret:
+        secretName: root-ca
+        items:
+          - key: ca.crt
+            path: ca.crt
+  extraVolumeMounts:
+    - name: root-ca
+      mountPath: /etc/root-ca
+      readOnly: true
+
+  alternateConfig:
+    processors:
+      resource/cluster:
+        attributes:
+          - key: k8s.cluster.name
+            value: development
+            action: upsert
+    exporters:
+      otlphttp/mimir:
+        endpoint: https://mimir.mgmt.rezakara.demo/otlp
+        tls:
+          ca_file: /etc/root-ca/ca.crt
