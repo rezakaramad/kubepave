@@ -1,14 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: mimir
+  name: lgtm-mimir
   namespace: argocd
 spec:
   project: platform-system
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/mimir
+    path: charts/lgtm-mimir
+    helm:
+      # Keeps the old release name so the StatefulSets and their volumes are not renamed.
+      releaseName: mimir
   destination:
     name: in-cluster
     namespace: observability

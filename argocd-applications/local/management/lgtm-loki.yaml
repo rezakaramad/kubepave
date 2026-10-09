@@ -1,14 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: loki
+  name: lgtm-loki
   namespace: argocd
 spec:
   project: platform-system
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/loki
+    path: charts/lgtm-loki
+    helm:
+      # Keeps the old release name so the StatefulSet and its volume are not renamed.
+      releaseName: loki
   destination:
     name: in-cluster
     namespace: observability

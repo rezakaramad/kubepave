@@ -1,14 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: tempo
+  name: lgtm-tempo
   namespace: argocd
 spec:
   project: platform-system
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/tempo
+    path: charts/lgtm-tempo
+    helm:
+      # Keeps the old release name so the StatefulSet and its volume are not renamed.
+      releaseName: tempo
   destination:
     name: in-cluster
     namespace: observability
