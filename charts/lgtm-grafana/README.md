@@ -1,4 +1,4 @@
-# grafana
+# lgtm-grafana
 
 This chart deploys the Grafana operator, one Grafana instance and its Mimir, Loki and Tempo datasources.
 

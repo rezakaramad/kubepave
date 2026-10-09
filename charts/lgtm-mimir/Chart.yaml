@@ -1,5 +1,5 @@
 apiVersion: v2
-name: mimir
+name: lgtm-mimir
 description: Grafana Mimir (metrics backend) in classic architecture, storing blocks in SeaweedFS.
 version: 0.0.1
 dependencies:

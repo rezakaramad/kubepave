@@ -1,5 +1,5 @@
 apiVersion: v2
-name: loki
+name: lgtm-loki
 description: Grafana Loki (logs backend) in single-binary mode, storing chunks in SeaweedFS.
 version: 0.0.1
 dependencies:

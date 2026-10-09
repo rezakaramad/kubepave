@@ -1,5 +1,5 @@
 apiVersion: v2
-name: grafana
+name: lgtm-grafana
 description: Grafana operator with a Grafana instance, Mimir/Loki/Tempo datasources and Entra ID login.
 version: 0.0.1
 dependencies:

@@ -1,5 +1,5 @@
 apiVersion: v2
-name: tempo
+name: lgtm-tempo
 description: Grafana Tempo (traces backend), monolithic mode, storing blocks in SeaweedFS.
 version: 0.0.1
 dependencies:
