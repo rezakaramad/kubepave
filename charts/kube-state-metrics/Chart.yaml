@@ -1,0 +1,8 @@
+apiVersion: v2
+name: kube-state-metrics
+description: Exposes the state of Kubernetes objects as metrics, scraped by the cluster-collector.
+version: 0.0.1
+dependencies:
+  - name: kube-state-metrics
+    version: 8.6.0
+    repository: https://prometheus-community.github.io/helm-charts

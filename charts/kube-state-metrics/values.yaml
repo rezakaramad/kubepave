@@ -1,0 +1,10 @@
+kube-state-metrics:
+  # The cluster-collector scrapes this Service by name.
+  fullnameOverride: kube-state-metrics
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

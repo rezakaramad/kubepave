@@ -1,0 +1,103 @@
+otelCollector:
+  mode: daemonset
+  nameOverride: node-collector
+  fullnameOverride: node-collector
+
+  image:
+    repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib
+  command:
+    name: otelcol-contrib
+
+  # Each preset adds its receiver, the host mounts it needs and the RBAC.
+  presets:
+    logsCollection:
+      enabled: true
+    hostMetrics:
+      enabled: true
+    kubeletMetrics:
+      enabled: true
+    kubernetesAttributes:
+      enabled: true
+
+  # Nothing sends to this collector, so no ports and no Service.
+  ports:
+    otlp:
+      enabled: false
+    otlp-http:
+      enabled: false
+    jaeger-compact:
+      enabled: false
+    jaeger-thrift:
+      enabled: false
+    jaeger-grpc:
+      enabled: false
+    zipkin:
+      enabled: false
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  # Container log files under /var/log/pods are root-owned, so this one has to run as root.
+  podSecurityContext:
+    runAsUser: 0
+    runAsGroup: 0
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+
+  alternateConfig:
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+
+    receivers:
+      # The kind kubelet serves a self-signed certificate.
+      kubeletstats:
+        insecure_skip_verify: true
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      batch:
+        send_batch_size: 800
+        send_batch_max_size: 1000
+        timeout: 10s
+
+    service:
+      extensions:
+        - health_check
+      # Internal metrics go to meta-collector, so this collector never monitors itself through itself.
+      telemetry:
+        resource:
+          service.name: node-collector
+          k8s.namespace.name: ${env:OTEL_K8S_NAMESPACE}
+          k8s.pod.name: ${env:OTEL_K8S_POD_NAME}
+          k8s.node.name: ${env:OTEL_K8S_NODE_NAME}
+        metrics:
+          level: detailed
+          readers:
+            - periodic:
+                interval: 60000
+                exporter:
+                  otlp:
+                    protocol: http/protobuf
+                    endpoint: http://meta-collector.observability.svc:4318/v1/metrics
+      # The presets add the filelog, hostmetrics and kubeletstats receivers to these pipelines.
+      pipelines:
+        logs:
+          processors: [memory_limiter, resource/cluster, batch]
+          exporters: [otlphttp/loki]
+        metrics:
+          processors: [memory_limiter, resource/cluster, batch]
+          exporters: [otlphttp/mimir]

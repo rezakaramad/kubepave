@@ -1,0 +1,126 @@
+otelCollector:
+  # One replica: a second would scrape every pod twice.
+  mode: deployment
+  replicaCount: 1
+  nameOverride: app-scraper
+  fullnameOverride: app-scraper
+
+  image:
+    repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib
+  command:
+    name: otelcol-contrib
+
+  # Nothing sends to this collector, so no ports and no Service.
+  service:
+    enabled: false
+  ports:
+    otlp:
+      enabled: false
+    otlp-http:
+      enabled: false
+    jaeger-compact:
+      enabled: false
+    jaeger-thrift:
+      enabled: false
+    jaeger-grpc:
+      enabled: false
+    zipkin:
+      enabled: false
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+
+  # Pod discovery for the scrape below.
+  clusterRole:
+    create: true
+    rules:
+      - apiGroups: [""]
+        resources: ["pods", "namespaces"]
+        verbs: ["get", "list", "watch"]
+
+  alternateConfig:
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+
+    receivers:
+      prometheus/pods:
+        config:
+          scrape_configs:
+            - job_name: pods
+              scrape_interval: 60s
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                # Infrastructure namespaces (kube-system, platform-system, ...) are not tenant workloads.
+                - source_labels: [__meta_kubernetes_namespace]
+                  regex: ".*-system"
+                  action: drop
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+                  regex: "true"
+                  action: keep
+                - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+                  regex: ([^:]+)(?::\d+)?;(\d+)
+                  replacement: $1:$2
+                  target_label: __address__
+                  action: replace
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                  regex: (.+)
+                  target_label: __metrics_path__
+                  action: replace
+                - source_labels: [__meta_kubernetes_namespace]
+                  target_label: namespace
+                  action: replace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  target_label: pod
+                  action: replace
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      batch:
+        send_batch_size: 800
+        send_batch_max_size: 1000
+        timeout: 10s
+
+    service:
+      extensions:
+        - health_check
+      # Internal metrics go to meta-collector, so this collector never monitors itself through itself.
+      telemetry:
+        resource:
+          service.name: app-scraper
+          k8s.namespace.name: ${env:OTEL_K8S_NAMESPACE}
+          k8s.pod.name: ${env:OTEL_K8S_POD_NAME}
+          k8s.node.name: ${env:OTEL_K8S_NODE_NAME}
+        metrics:
+          level: detailed
+          readers:
+            - periodic:
+                interval: 60000
+                exporter:
+                  otlp:
+                    protocol: http/protobuf
+                    endpoint: http://meta-collector.observability.svc:4318/v1/metrics
+      pipelines:
+        metrics:
+          receivers: [prometheus/pods]
+          processors: [memory_limiter, resource/cluster, batch]
+          exporters: [otlphttp/mimir]

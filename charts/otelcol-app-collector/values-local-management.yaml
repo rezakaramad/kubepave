@@ -1,0 +1,16 @@
+otelCollector:
+  # On the management cluster the backends are reached through their in-cluster services.
+  alternateConfig:
+    processors:
+      resource/cluster:
+        attributes:
+          - key: k8s.cluster.name
+            value: management
+            action: upsert
+    exporters:
+      otlphttp/tempo:
+        endpoint: http://tempo.observability.svc:4318
+      otlphttp/loki:
+        endpoint: http://loki.observability.svc:3100/otlp
+      otlphttp/mimir:
+        endpoint: http://mimir-gateway.observability.svc/otlp

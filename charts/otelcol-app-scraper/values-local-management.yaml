@@ -1,0 +1,11 @@
+otelCollector:
+  alternateConfig:
+    processors:
+      resource/cluster:
+        attributes:
+          - key: k8s.cluster.name
+            value: management
+            action: upsert
+    exporters:
+      otlphttp/mimir:
+        endpoint: http://mimir-gateway.observability.svc/otlp

@@ -1,0 +1,9 @@
+apiVersion: v2
+name: otelcol-app-scraper
+description: OpenTelemetry collector that scrapes metrics from pods annotated prometheus.io/scrape and ships them to Mimir.
+version: 0.0.1
+dependencies:
+  - name: opentelemetry-collector
+    alias: otelCollector
+    version: 0.175.1
+    repository: https://open-telemetry.github.io/opentelemetry-helm-charts

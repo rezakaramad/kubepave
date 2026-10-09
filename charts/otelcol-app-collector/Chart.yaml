@@ -1,0 +1,9 @@
+apiVersion: v2
+name: otelcol-app-collector
+description: OpenTelemetry collector that receives OTLP from applications and forwards it to Mimir, Loki and Tempo.
+version: 0.0.1
+dependencies:
+  - name: opentelemetry-collector
+    alias: otelCollector
+    version: 0.175.1
+    repository: https://open-telemetry.github.io/opentelemetry-helm-charts
