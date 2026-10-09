@@ -12,6 +12,8 @@ seaweedfs:
     s3:
       enabled: true
       enableAuth: true
+      # Rendered by ESO from OpenBao; the chart's own S3 Secret generates random keys on every render
+      existingConfigSecret: seaweedfs-s3
       createBuckets:
         - name: loki-chunks
         - name: loki-ruler
@@ -45,10 +47,3 @@ seaweedfs:
     enabled: false
   s3:
     enabled: false
-
-    # Keys come from the seaweedfs-s3 Secret (ExternalSecret from OpenBao)
-    credentials:
-      admin:
-        existingSecret: seaweedfs-s3
-        accessKeyKey: access_key_id
-        secretKeyKey: secret_access_key
