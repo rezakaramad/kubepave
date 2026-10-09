@@ -1,0 +1,18 @@
+opentelemetry-demo:
+  # The platform LGTM stack and collectors replace the demo's bundled observability backends.
+  opentelemetry-collector:
+    enabled: false
+  jaeger:
+    enabled: false
+  prometheus:
+    enabled: false
+  grafana:
+    enabled: false
+  opensearch:
+    enabled: false
+
+  default:
+    envOverrides:
+      # Every demo service builds its OTLP endpoint from this name.
+      - name: OTEL_COLLECTOR_NAME
+        value: app-collector.observability.svc.cluster.local
