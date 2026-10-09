@@ -1,6 +1,6 @@
 defaultGateway:
   hostname: '*.dev.rezakara.demo'
-  # In the development cluster, only allow routes from the same namespace 'platform-system'
+  # In the development cluster, allow routes from any namespace
   allowedRoutes:
     namespaces:
-      from: Same
+      from: All

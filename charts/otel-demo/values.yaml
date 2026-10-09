@@ -1,3 +1,6 @@
+route:
+  hostname: shop.dev.rezakara.demo
+
 opentelemetry-demo:
   # The platform LGTM stack and collectors replace the demo's bundled observability backends.
   opentelemetry-collector:

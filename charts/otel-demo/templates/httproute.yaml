@@ -1,0 +1,26 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: otel-demo
+  namespace: {{ .Release.Namespace }}
+  labels:
+    external-dns-create: "true"
+spec:
+  hostnames:
+    - {{ .Values.route.hostname | quote }}
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: default-traefik
+      namespace: platform-system
+  rules:
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: frontend-proxy
+          port: 8080
+          weight: 1
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
