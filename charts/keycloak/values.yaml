@@ -1,7 +1,7 @@
 bootstrap:
   image:
-    repository: ghcr.io/rezakaramad/keycloak-bootstrap
-    tag: sha-dd7c871
+    repository: ghcr.io/rezakaramad/dockerkit/keycloak-bootstrap
+    tag: sha-8e5fdbd
 
 secretStore: 
   name: <upsert-in-env-values-file>

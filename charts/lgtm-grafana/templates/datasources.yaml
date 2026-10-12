@@ -39,6 +39,14 @@ spec:
     type: loki
     access: proxy
     url: http://loki.observability.svc:3100
+    jsonData:
+      derivedFields:
+        # OTLP logs carry the trace id as structured metadata, not in the line.
+        - name: TraceID
+          datasourceUid: tempo
+          matcherType: label
+          matcherRegex: trace_id
+          url: "${__value.raw}"
 ---
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDatasource
@@ -61,6 +69,24 @@ spec:
     jsonData:
       tracesToLogsV2:
         datasourceUid: loki
+        filterByTraceID: true
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+        tags:
+          - key: service.name
+            value: service_name
+      tracesToMetrics:
+        datasourceUid: mimir
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+        tags:
+          - key: service.name
+            value: service_name
+        queries:
+          - name: Request rate
+            query: sum(rate(http_server_request_duration_count{$__tags}[$__rate_interval]))
+          - name: p95 latency
+            query: histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket{$__tags}[$__rate_interval])))
       serviceMap:
         datasourceUid: mimir
       nodeGraph:

@@ -9,3 +9,19 @@ grafana-operator:
       memory: 64Mi
     limits:
       memory: 256Mi
+
+# Dashboards published from https://github.com/rezakaramad/grafkit, pinned by digest.
+dashboards:
+  folder: OpenTelemetry
+  # Datasource variables the generic dashboards expect, set to the UIDs in templates/datasources.yaml.
+  variables:
+    ds_metrics: mimir
+    ds_logs: loki
+    ds_traces: tempo
+  oci:
+    otel-collector:
+      reference: ghcr.io/rezakaramad/grafkit/otel-collector@sha256:3f24ddbfd5d1db887723133554cde32dd57e44a9a85ca728f6b35e17c1826530
+      path: otel-collector.json
+    otel-services-red:
+      reference: ghcr.io/rezakaramad/grafkit/otel-services-red@sha256:bc0991d171285f1a4cacc50ab985a76ede4456a359225511b93a133c6d31e7aa
+      path: otel-services-red.json

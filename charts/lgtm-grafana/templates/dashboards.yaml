@@ -1,0 +1,24 @@
+{{- range $name, $d := .Values.dashboards.oci }}
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: {{ $name }}
+  namespace: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  folder: {{ $.Values.dashboards.folder }}
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  oci:
+    reference: {{ $d.reference }}
+    path: {{ $d.path }}
+  variables:
+    {{- range $var, $value := $.Values.dashboards.variables }}
+    - name: {{ $var }}
+      value: {{ $value }}
+    {{- end }}
+{{- end }}
