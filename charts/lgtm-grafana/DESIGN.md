@@ -281,3 +281,34 @@ OpenTelemetry does have a `headers_setter` extension that can set outgoing heade
 Another important detail is that a single OTLP request can contain telemetry from multiple tenants. So, the gateway needs to separate that data first and make sure each tenant's telemetry gets the correct `X-Scope-OrgID` header before forwarding it to LGTM.
 
 For a platform where tenants are created dynamically, I'd lean toward **Option B **in the long run, as long as you're comfortable maintaining a tenant-aware gateway or using an existing one.
+
+# 2. What we'll be doing
+
+We go with **Option B**, and the gateway turns out to need no custom code. The OpenTelemetry Collector contrib has a new `partitioning` processor (alpha) that splits a batch by an OTTL expression and puts the key into the request metadata. `headers_setter` can then read that metadata, which is the missing link described above.
+
+```text
+Tenant namespaces ──► Collectors (observability)     ──► Gateway collector            ──► Loki / Mimir / Tempo
+                      k8sattributes: namespace label     partitioning by tenant.id        one tenant ID per request
+                      → tenant.id, drop if missing       headers_setter: X-Scope-OrgID
+```
+
+**How it works**
+- Collectors derive `tenant.id` from the `platform.rezakara.demo/tenant` namespace label, overwrite anything the app sent, and drop telemetry with no tenant (fail closed). Platform namespaces map explicitly to a `platform` tenant.
+- The gateway is a central collector: `partitioning` splits by `tenant.id`, `headers_setter` sets `X-Scope-OrgID` from it, and the exporter batches per tenant (`sending_queue.batch.partition.metadata_keys`). Adding a tenant needs no collector change.
+- Loki, Mimir and Tempo run with native multi-tenancy. Only the gateway may write to them, enforced with NetworkPolicy. Collectors authenticate to the gateway, and the development cluster reaches it through a Traefik route with authentication.
+- Grafana has one organization per tenant. Each org gets datasources that send that tenant's `X-Scope-OrgID`. Users land in their org from the Entra `roles` claim. Only Grafana can read from the backends.
+- Each tenant gets one default dashboard, published from `grafkit` as an OCI artifact.
+
+**Order of work**
+1. Check the collector image includes the `partitioning` processor.
+2. Prove the gateway on one signal (metrics) and one tenant.
+3. Turn on tenancy in the backends and lock down write access.
+4. Add the remaining signals.
+5. Create the Grafana orgs, datasources and SSO mapping.
+6. Roll out the per-tenant default dashboard.
+
+**Risks**
+- The `partitioning` processor is new and alpha. If our image lacks it or it misbehaves, the fallback is Option A (generated per-tenant pipelines) or a third-party proxy.
+- Existing data sits under the default tenant IDs and will not be visible once tenancy is on. We accept resetting it.
+- Folder permissions do not protect data in Grafana OSS. Isolation comes from the org-per-tenant datasources.
+
