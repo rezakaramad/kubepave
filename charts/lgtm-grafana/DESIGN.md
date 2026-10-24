@@ -270,11 +270,11 @@ When a namespace is created with the label:
 platform.rezakara.demo/tenant: initech
 ```
 
-there is no need to add an initech exporter or pipeline to the Collector.
+there is no need to add an `initech` exporter or pipeline to the Collector.
 
 The gateway resolves the tenant dynamically from the trusted, enriched telemetry.
 
-One thing to keep in mind is that the gateway isn't something you get out of the box with OpenTelemetry. You either need to build it yourself or use an existing solution.
+**One thing to keep in mind** is that the gateway isn't something you get out of the box with OpenTelemetry. You either need to build it yourself or use an existing solution.
 
 OpenTelemetry does have a `headers_setter` extension that can set outgoing headers, but it works with request context or authentication attributes, not directly with arbitrary telemetry resource attributes.
 

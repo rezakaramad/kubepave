@@ -385,4 +385,3 @@ The nice thing about this approach is that each tenant gets its own Grafana expe
 But keep in mind that all organizations still share the same Grafana server and some global settings, so it's not the same as having separate infrastructure.
 
 One more thing worth mentioning is that, in Grafana OSS, folder permissions don't control access to data sources. If you need more fine-grained control over who can access which data sources, Grafana Enterprise and Cloud offer additional options.
-
