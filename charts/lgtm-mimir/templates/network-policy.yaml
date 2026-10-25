@@ -23,6 +23,9 @@ spec:
         - podSelector:
             matchLabels:
               app: grafana
+        - podSelector:
+            matchLabels:
+              platform.rezakara.demo/component: grafana
         # Writes: the span metrics Tempo generates.
         - podSelector:
             matchLabels:

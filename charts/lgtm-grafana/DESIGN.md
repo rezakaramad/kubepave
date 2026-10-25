@@ -296,7 +296,7 @@ Tenant namespaces ──► Collectors (observability)     ──► Gateway col
 - Collectors derive `tenant.id` from the `platform.rezakara.demo/tenant` namespace label, overwrite anything the app sent, and drop telemetry with no tenant (fail closed). Platform namespaces map explicitly to a `platform` tenant.
 - The gateway is a central collector: `partitioning` splits by `tenant.id`, `headers_setter` sets `X-Scope-OrgID` from it, and the exporter batches per tenant (`sending_queue.batch.partition.metadata_keys`). Adding a tenant needs no collector change.
 - Loki, Mimir and Tempo run with native multi-tenancy. Only the gateway may write to them, enforced with NetworkPolicy. Collectors authenticate to the gateway, and the development cluster reaches it through a Traefik route with authentication.
-- Grafana has one organization per tenant. Each org gets datasources that send that tenant's `X-Scope-OrgID`. Users land in their org from the Entra `roles` claim. Only Grafana can read from the backends.
+- Every tenant gets its own Grafana instance (a `Grafana` resource for the operator) with datasources that send only that tenant's `X-Scope-OrgID`. Users log in with Entra ID and the `roles` claim must carry the tenant name. Only Grafana can read from the backends. The shared Grafana stays for platform admins and reads all tenants. See "Why one Grafana per tenant" below.
 - Each tenant gets one default dashboard, published from `grafkit` as an OCI artifact.
 
 **Order of work**
@@ -304,11 +304,31 @@ Tenant namespaces ──► Collectors (observability)     ──► Gateway col
 2. Prove the gateway on one signal (metrics) and one tenant.
 3. Turn on tenancy in the backends and lock down write access.
 4. Add the remaining signals.
-5. Create the Grafana orgs, datasources and SSO mapping.
+5. Create a Grafana instance, datasources and SSO mapping per tenant.
 6. Roll out the per-tenant default dashboard.
 
 **Risks**
 - The `partitioning` processor is new and alpha. If our image lacks it or it misbehaves, the fallback is Option A (generated per-tenant pipelines) or a third-party proxy.
 - Existing data sits under the default tenant IDs and will not be visible once tenancy is on. We accept resetting it.
-- Folder permissions do not protect data in Grafana OSS. Isolation comes from the org-per-tenant datasources.
+- Folder permissions do not protect data in Grafana OSS. Isolation comes from the per-tenant datasources.
+
+## Why one Grafana per tenant
+
+The operator (v5.25) cannot manage Grafana organizations. Organizations, users and org membership have no CRDs, so datasources, dashboards and folders always land in the default org. We tested it: a `GrafanaDatasource` with `spec.datasource.orgId: 2` was reported as applied, but the datasource appeared in org 1 and org 2 stayed empty.
+
+The request for `GrafanaOrganization`, `GrafanaUser` and `GrafanaOrganizationMember` resources is [grafana-operator#2895](https://github.com/grafana/grafana-operator/issues/2895). It was closed as not planned. The maintainers point to the earlier discussion in [#408](https://github.com/grafana/grafana-operator/issues/408) and recommend running multiple Grafana instances instead. They also mention a workaround for orgs: a separate `Grafana` resource whose `spec.client.headers` sets `X-Grafana-Org-Id`.
+
+We chose one instance per tenant because it stays fully declarative and isolates tenants more strongly than orgs. Orgs would also be hard to undo: deleting one failed on Grafana 13.1.3 ("failed to delete dashboards for org"), which we hit while testing.
+
+Costs: one pod, one route and one Entra redirect URI per tenant.
+
+**How it is built**
+- The `tenant-management` chart creates, per tenant and only when `grafana.enabled` is true: a `Grafana`, three datasources that send only that tenant's ID, an ExternalSecret for the Entra client and an HTTPRoute. The instance runs in `observability` and is served at `<tenant>.grafana.mgmt.rezakara.demo`.
+- A dedicated Traefik gateway, `grafana-traefik` in `platform-system`, serves `*.grafana.mgmt.rezakara.demo` with its own wildcard certificate and accepts routes only from `observability`. The default wildcard certificate covers only one label, so it cannot serve that name.
+- Pods carry the label `platform.rezakara.demo/component: grafana`, which the Mimir, Loki and Tempo NetworkPolicies allow.
+- Login needs the tenant name in the `roles` claim (`role_attribute_strict`), and users get at most Editor, which cannot change datasources.
+
+**Before turning it on for a tenant** (`grafana.enabled` is off by default and not set in the `xtenantargo` composition yet)
+- Entra: an app role with `value = <tenant name>` on the Grafana app, assigned to the tenant's group. `xtenantentra` creates this role only on the Vault app today.
+- Entra: the callback URL `https://<tenant>.grafana.mgmt.rezakara.demo/login/azuread` as a redirect URI. The Grafana app's list lives in `infra/azure/entraid-apps.tf` and is not set to ignore changes, so a manual edit would be reverted by the next apply.
 

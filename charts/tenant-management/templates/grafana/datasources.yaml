@@ -1,0 +1,108 @@
+{{- if .Values.grafana.enabled }}
+{{- $tenant := .Values.tenant }}
+{{- $name := printf "grafana-%s" ($tenant.name | lower) }}
+# Same datasources as the shared Grafana (charts/lgtm-grafana), but every request carries only this tenant's ID.
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: {{ $name }}-mimir
+  namespace: {{ .Values.grafana.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  uid: mimir
+  instanceSelector:
+    matchLabels:
+      dashboards: {{ $name }}
+  datasource:
+    name: Mimir
+    type: prometheus
+    access: proxy
+    url: http://mimir-gateway.observability.svc/prometheus
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      prometheusType: Mimir
+      httpHeaderName1: X-Scope-OrgID
+    secureJsonData:
+      httpHeaderValue1: {{ $tenant.name | lower | quote }}
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: {{ $name }}-loki
+  namespace: {{ .Values.grafana.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  uid: loki
+  instanceSelector:
+    matchLabels:
+      dashboards: {{ $name }}
+  datasource:
+    name: Loki
+    type: loki
+    access: proxy
+    url: http://loki.observability.svc:3100
+    jsonData:
+      httpHeaderName1: X-Scope-OrgID
+      derivedFields:
+        # OTLP logs carry the trace id as structured metadata, not in the line.
+        - name: TraceID
+          datasourceUid: tempo
+          matcherType: label
+          matcherRegex: trace_id
+          url: "${__value.raw}"
+    secureJsonData:
+      httpHeaderValue1: {{ $tenant.name | lower | quote }}
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: {{ $name }}-tempo
+  namespace: {{ .Values.grafana.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  uid: tempo
+  instanceSelector:
+    matchLabels:
+      dashboards: {{ $name }}
+  datasource:
+    name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo.observability.svc:3200
+    jsonData:
+      httpHeaderName1: X-Scope-OrgID
+      tracesToLogsV2:
+        datasourceUid: loki
+        filterByTraceID: true
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+        tags:
+          - key: service.name
+            value: service_name
+      tracesToMetrics:
+        datasourceUid: mimir
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+        tags:
+          - key: service.name
+            value: service_name
+        queries:
+          - name: Request rate
+            query: sum(rate(http_server_request_duration_count{$__tags}[$__rate_interval]))
+          - name: p95 latency
+            query: histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket{$__tags}[$__rate_interval])))
+      serviceMap:
+        datasourceUid: mimir
+      nodeGraph:
+        enabled: true
+    secureJsonData:
+      httpHeaderValue1: {{ $tenant.name | lower | quote }}
+{{- end }}

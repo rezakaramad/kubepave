@@ -5,6 +5,14 @@ defaultGateway:
   # to platform-owned default Gateway in 'platform-system' namespace.
   allowedRoutes: {}
 
+# A second Gateway, only for the per-tenant Grafana instances. A wildcard certificate covers one label,
+# so <tenant>.grafana.<domain> needs its own hostname and certificate below the default one.
+grafanaGateway:
+  enabled: false
+  hostname: <upsert-in-env-values-file>
+  # Only routes from this namespace may attach.
+  namespace: observability
+
 # cert-manager issues the certificate via the cluster-issuer annotation.
 tls:
   clusterIssuer: <upsert-in-env-values-file>

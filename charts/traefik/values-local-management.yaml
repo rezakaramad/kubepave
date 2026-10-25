@@ -4,3 +4,7 @@ defaultGateway:
   allowedRoutes:
     namespaces:
       from: All
+
+grafanaGateway:
+  enabled: true
+  hostname: '*.grafana.mgmt.rezakara.demo'

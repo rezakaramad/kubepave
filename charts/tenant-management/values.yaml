@@ -27,7 +27,12 @@ vault:
     mountAccessor: "auth_oidc_6b46d0ee"
 
 grafana:
+  # A dedicated Grafana for the tenant, with datasources that send only the tenant's ID.
+  # Needs the tenant's app role on the Grafana Entra app and its callback URL registered there.
   enabled: false
+  namespace: observability
+  # Served at <tenant>.<hostSuffix> through the grafana-traefik gateway (wildcard certificate for *.<hostSuffix>).
+  hostSuffix: grafana.mgmt.rezakara.demo
 
 harbor:
   enabled: false

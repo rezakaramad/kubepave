@@ -42,6 +42,10 @@ spec:
       strategy:
         type: Recreate
       template:
+        metadata:
+          labels:
+            # The Mimir, Loki and Tempo NetworkPolicies allow pods with this label.
+            platform.rezakara.demo/component: grafana
         spec:
           containers:
             - name: grafana

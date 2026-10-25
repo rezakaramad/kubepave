@@ -21,6 +21,9 @@ spec:
         - podSelector:
             matchLabels:
               app: grafana
+        - podSelector:
+            matchLabels:
+              platform.rezakara.demo/component: grafana
       ports:
         - protocol: TCP
           port: 3100

@@ -145,7 +145,6 @@ otelCollector:
                     protocol: http/protobuf
                     endpoint: http://meta-collector.observability.svc:4318/v1/metrics
       # The events preset adds the k8s_events receiver to the logs pipeline.
-      # Series without a pod (deployments, namespaces) and events stay platform.
       pipelines:
         logs:
           processors: [memory_limiter, resource/cluster, resource/tenant, batch]
