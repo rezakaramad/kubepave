@@ -151,6 +151,8 @@ A customer who can submit arbitrary LogQL queries could change that to:
 
 And in Tempo, a user with unrestricted access to the same backend tenant could search for another customer's traces or retrieve a trace by ID.
 
+The same applies on the write side: `tenant_id` can't be trusted either. It is just an attribute set by whoever sends the telemetry. Unless a trusted, **platform-owned collector overwrites it**, a tenant can send data labelled with another tenant's `tenant_id`, which lets them **impersonate** that tenant or pollute its dashboards.
+
 **One Last Thing:**
 
 This approach is obviously cheaper and easier to manage. But the downside is that you don't get real tenant isolation, since users could potentially access data from other tenants.
@@ -172,7 +174,7 @@ flowchart TB
         A ~~~ B
     end
 
-    Gateway["**Authenticated telemetry gateway**<br/>Maps identity to authorized tenant ID"]
+    Gateway["**Authenticated/Trusted telemetry gateway**<br/>Maps identity to authorized tenant ID"]
 
     subgraph LGTM["Shared LGTM backends"]
         direction LR
@@ -274,7 +276,7 @@ You can also set ingestion limits per tenant in LGTM, so if `team-a` starts send
 
 What if a tenant sends a fake `X-Scope-OrgID`?
 
-If the OTel collect is configured correctly, the fake header should have no effect. The collector should: 
+If the OTel collector is configured correctly, the fake header should have no effect. The collector should: 
 - Ignore or remove tenant-supplied `X-Scope-OrgID` headers.
 - Determine the tenant from trusted Kubernetes metadata (e.g., namespace).
 - Set the correct `X-Scope-OrgID` when exporting to LGTM.
@@ -305,7 +307,7 @@ Without additional security, Tenant A could send:
 X-Scope-OrgID: tenant-b
 ```
 
-And potentially access Tenant B's telemetry. How do you prevent this? You put an authentication and authorization gateway in front of LGTM.
+And potentially access Tenant B's telemetry. How do you prevent this? You put a trusted gateway in front of LGTM, owned by the platform team (for example in a platform-owned `observability` namespace), which is the only component allowed to set the header.
 
 ```text
 Tenant A
@@ -327,8 +329,8 @@ The gateway must derive the tenant ID from a trusted identity, such as a Kuberne
 
 What actually guarantees isolation?
 Two things together:
-1. Gateway enforcement: Every request is authenticated and assigned only its authorized tenant ID.
-2. Network isolation: Tenants cannot bypass the gateway and communicate directly with Loki, Mimir, or Tempo.
+1. **Gateway enforcement:** Every request is authenticated and assigned only its authorized tenant ID.
+2. **Network isolation:** Tenants cannot bypass the gateway and communicate directly with Loki, Mimir, or Tempo.
 
 ### Option C: Dedicated LGTM per tenant
 
@@ -348,7 +350,7 @@ Tenant B
   └── Grafana B
 ```
 
-Another option is to keep Grafana centralized while giving each tenant its own dedicated LGTM backends.
+Each tenant gets its own dedicated Loki, Mimir and Tempo. Grafana can be dedicated per tenant as well (as in the diagram), or kept centralized as a single shared instance.
 
 This actually fits pretty well with the existing infrastructure setup, especially if each tenant already has its own GCP project. You could simply keep their observability storage and credentials in the same project.
 
@@ -375,8 +377,8 @@ There might be three relevant choices:
 
 | Grafana model | How it works | Isolation |
 |---|---|---|
-| Single organization with teams/folders | One shared Grafana organization with per-tenant resources | Weak unless paired with data-source controls |
-| Organization per tenant | Each tenant has its own dashboards, users, teams, alerts, and data sources | Stronger UI-level separation |
+| Single organization with teams/folders | One shared Grafana organization with per-tenant resources | Weak in OSS (any user can query every data source). Needs Enterprise/Cloud data source permissions |
+| Organization per tenant | Each tenant has its own dashboards, users, teams, alerts, and data sources | Stronger UI-level separation. The Grafana operator **cannot** manage organizations, so they can't be declarative |
 | Grafana instance per tenant | Each tenant gets its own Grafana server and configuration | Strongest deployment separation |
 
 Grafana OSS supports multiple organizations. They isolate organization resources, including dashboards and data sources, within a single Grafana instance. [¹](https://grafana.com/docs/grafana/latest/administration/organization-management/)
@@ -394,4 +396,3 @@ One more thing worth mentioning is that, in Grafana OSS, folder permissions don'
 **What we chose:** one Grafana instance per tenant. The Grafana operator cannot manage organizations ([grafana-operator#2895](https://github.com/grafana/grafana-operator/issues/2895), closed as not planned), so organizations would not be declarative. See "Why one Grafana per tenant" in `DESIGN.md`.
 
 Grafana has suggested to use multiple grafana instances instead, (see here)[https://grafana.github.io/grafana-operator/docs/examples/grafana/#organizations].
-
