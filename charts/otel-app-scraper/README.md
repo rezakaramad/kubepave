@@ -1,4 +1,4 @@
-# otelcol-app-scraper
+# otel-app-scraper
 
 The one that goes and fetches. Apps that expose a `/metrics` page but don't send OTLP get picked up here, and their metrics are forwarded to Mimir.
 
@@ -21,4 +21,4 @@ prometheus.io/path: "/metrics"
 
 - Keep it at **one replica**. A second copy would scrape every pod twice.
 - It has a cluster-wide read-only role for pods and namespaces, which is what lets it discover them.
-- Its own health metrics go to the [meta-collector](../otelcol-meta-collector), not through itself.
+- Its own health metrics go to the [meta-collector](../otel-meta-collector), not through itself.

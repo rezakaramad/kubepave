@@ -6,7 +6,7 @@ loki:
     name: loki
 
   loki:
-    # One tenant per team; the otelcol-gateway sets X-Scope-OrgID on every write.
+    # One tenant per team; the otel-gateway sets X-Scope-OrgID on every write.
     auth_enabled: true
     # Lets one query header name several tenants (a|b).
     structuredConfig:

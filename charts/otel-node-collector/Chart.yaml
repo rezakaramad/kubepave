@@ -1,6 +1,6 @@
 apiVersion: v2
-name: otelcol-meta-collector
-description: Dedicated OpenTelemetry collector that receives the other collectors' internal metrics and forwards them to Mimir.
+name: otel-node-collector
+description: OpenTelemetry collector that runs on every node and ships pod logs, host metrics and kubelet stats to Loki and Mimir.
 version: 0.0.1
 dependencies:
   - name: opentelemetry-collector

@@ -1,4 +1,4 @@
-# otelcol-meta-collector
+# otel-meta-collector
 
 A small collector with one job: take the **other collectors' own health metrics** and forward them to Mimir. Who watches the watchers? This one.
 

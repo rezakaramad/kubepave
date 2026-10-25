@@ -1,6 +1,6 @@
 apiVersion: v2
-name: otelcol-app-collector
-description: OpenTelemetry collector that receives OTLP from applications and forwards it to Mimir, Loki and Tempo.
+name: otel-cluster-collector
+description: OpenTelemetry collector that ships Kubernetes events to Loki and kube-state-metrics to Mimir.
 version: 0.0.1
 dependencies:
   - name: opentelemetry-collector

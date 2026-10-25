@@ -1,4 +1,4 @@
-# otelcol-app-collector
+# otel-app-collector
 
 Applications send their traces, logs and metrics to **app-collector** over OTLP, and app-collector forwards each one to the right backend.
 
@@ -14,4 +14,4 @@ Applications send their traces, logs and metrics to **app-collector** over OTLP,
 ## Good to know
 
 - Keep the pod label `app.kubernetes.io/name: app-collector`. The tenant NetworkPolicy only lets traffic in from pods with that label.
-- Its own health metrics go to the [meta-collector](../otelcol-meta-collector), not through itself.
+- Its own health metrics go to the [meta-collector](../otel-meta-collector), not through itself.

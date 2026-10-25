@@ -1,4 +1,4 @@
-# otelcol-gateway
+# otel-gateway
 
 Tenant-aware OTLP gateway for the LGTM stack. It receives telemetry that the platform collectors have already tagged with `tenant.id`, splits every request by tenant, and sets the `X-Scope-OrgID` header per tenant before forwarding to Mimir, Loki and Tempo. See [DESIGN.md, section 2](../lgtm-grafana/DESIGN.md#2-what-well-be-doing) for the design.
 

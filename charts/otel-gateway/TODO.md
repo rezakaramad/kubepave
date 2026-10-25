@@ -22,6 +22,7 @@ Working and checked on the live clusters:
    - `function-xtenantentra` (separate repo): create an app role with `value = <tenant name, lowercase>` on the Grafana app and assign it to the tenant's group, and add `https://<tenant>.grafana.mgmt.rezakara.demo/login/azuread` to the app's redirect URIs. Check that the Entra provider has a resource for redirect URIs.
    - `infra/azure/entraid-apps.tf`: the Grafana app already ignores `app_role`, but not `web`. Make tofu stop owning `web.redirect_uris`, or the next apply removes the tenant URLs.
 2. **Switch it on in `xtenantargo`:** add `grafana.enabled: "true"` to the helm parameters in `charts/crossplane/templates/xtenantargo/composition.yaml`. It deploys `tenant-management` per tenant, so the Grafana, datasources and route follow. No tenant is onboarded yet (no `tn-*` namespaces), so also onboard one to test end to end.
+3. **After the chart rename (`otelcol-*` to `otel-*`):** in Argo CD, delete the old `otelcol-*` applications without cascade, then sync the new `otel-*` ones, so the new applications can take over the existing resources. The OpenBao path `kv/shared/otelcol-gateway/auth` and the image `otelcol-gateway` keep their old names on purpose.
 
 ## Then
 

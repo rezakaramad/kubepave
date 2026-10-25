@@ -20,7 +20,7 @@ tempo:
   tempo:
     reportingEnabled: false
     retention: 72h
-    # Every request needs X-Scope-OrgID; the otelcol-gateway sets it on writes.
+    # Every request needs X-Scope-OrgID; the otel-gateway sets it on writes.
     multitenancyEnabled: true
     extraEnv:
       - name: AWS_ROLE_ARN

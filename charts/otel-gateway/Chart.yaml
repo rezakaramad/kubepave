@@ -1,5 +1,5 @@
 apiVersion: v2
-name: otelcol-gateway
+name: otel-gateway
 description: Tenant-aware OTLP gateway that splits telemetry by tenant and sets X-Scope-OrgID before it reaches Mimir, Loki and Tempo.
 version: 0.0.1
 dependencies:

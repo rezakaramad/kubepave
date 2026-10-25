@@ -1,4 +1,4 @@
-# otelcol-cluster-collector
+# otel-cluster-collector
 
 The one that watches the cluster itself, not the apps or the nodes. There's only ever **one** of it per cluster.
 
@@ -16,7 +16,7 @@ It collects two things.
 - Keep it at **one replica**. A second copy would ship every event and metric twice.
 - The address of kube-state-metrics is fixed in [values.yaml](values.yaml#L78): `kube-state-metrics.observability.svc:8080`. Install that chart in the `observability` namespace. If you move or rename it, change the address there too, or the object-state metrics stop without any error.
 - The Kubernetes control plane (scheduler, controller manager, API server, etcd) is not monitored, so there are no control-plane dashboards or alerts. [Why](#why-the-control-plane-is-not-monitored) is below.
-- Its own health metrics go to the [meta-collector](../otelcol-meta-collector), not through itself.
+- Its own health metrics go to the [meta-collector](../otel-meta-collector), not through itself.
 
 ## Why the control plane is not monitored
 

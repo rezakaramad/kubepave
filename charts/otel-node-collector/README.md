@@ -1,4 +1,4 @@
-# otelcol-node-collector
+# otel-node-collector
 
 The one that looks at the machines. It runs on **every node** and collects what apps don't send on their own.
 
@@ -15,4 +15,4 @@ The one that looks at the machines. It runs on **every node** and collects what 
 
 - It runs as **root**, because container log files are root-owned. Its namespace therefore allows privileged pods, and the pod mounts host paths read-only.
 - The kubelet check skips certificate verification, because the kind kubelet uses a self-signed certificate. Revisit that for a real cluster.
-- Its own health metrics go to the [meta-collector](../otelcol-meta-collector), not through itself.
+- Its own health metrics go to the [meta-collector](../otel-meta-collector), not through itself.

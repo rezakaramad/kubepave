@@ -15,7 +15,7 @@ spec:
     - Ingress
   ingress:
     - from:
-        # Writes: the otelcol-gateway stamps the tenant from the namespace label.
+        # Writes: the otel-gateway stamps the tenant from the namespace label.
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: gateway-collector

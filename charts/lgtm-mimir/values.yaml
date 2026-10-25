@@ -33,7 +33,7 @@ mimir-distributed:
 
   mimir:
     structuredConfig:
-      # One tenant per team; the otelcol-gateway sets it on every write. Reads send X-Scope-OrgID,
+      # One tenant per team; the otel-gateway sets it on every write. Reads send X-Scope-OrgID,
       # and with federation a single header can name several tenants (a|b).
       multitenancy_enabled: true
       tenant_federation:
