@@ -86,12 +86,37 @@ otelCollector:
         send_batch_size: 800
         send_batch_max_size: 1000
         timeout: 10s
-      # Everything this collector gathers is platform telemetry; the gateway drops metrics without a tenant.
+      # kube-state-metrics sends every pod in one resource; the pod identity moves to resource attributes
+      # so k8sattributes can look the pod up. The pod and namespace labels stay on the series.
+      transform/pod_identity:
+        error_mode: ignore
+        metric_statements:
+          - context: datapoint
+            statements:
+              - set(attributes["k8s.pod.name"], attributes["pod"]) where attributes["pod"] != nil
+              - set(attributes["k8s.namespace.name"], attributes["namespace"]) where attributes["namespace"] != nil
+      groupbyattrs/pod:
+        keys:
+          - k8s.pod.name
+          - k8s.namespace.name
+      # Series of pods in a namespace with the tenant label belong to that tenant; the rest is platform.
+      k8sattributes:
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.name
+              - from: resource_attribute
+                name: k8s.namespace.name
+        extract:
+          labels:
+            - tag_name: tenant.id
+              key: platform.rezakara.demo/tenant
+              from: namespace
       resource/tenant:
         attributes:
           - key: tenant.id
             value: platform
-            action: upsert
+            action: insert
 
     exporters:
       # Telemetry goes through the tenant-aware gateway; the endpoint is set per cluster.
@@ -120,11 +145,12 @@ otelCollector:
                     protocol: http/protobuf
                     endpoint: http://meta-collector.observability.svc:4318/v1/metrics
       # The events preset adds the k8s_events receiver to the logs pipeline.
+      # Series without a pod (deployments, namespaces) and events stay platform.
       pipelines:
         logs:
           processors: [memory_limiter, resource/cluster, resource/tenant, batch]
           exporters: [otlphttp/gateway]
         metrics:
           receivers: [prometheus/ksm]
-          processors: [memory_limiter, resource/cluster, resource/tenant, batch]
+          processors: [memory_limiter, transform/pod_identity, groupbyattrs/pod, k8sattributes, resource/cluster, resource/tenant, batch]
           exporters: [otlphttp/gateway]
