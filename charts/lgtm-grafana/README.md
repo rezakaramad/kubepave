@@ -2,6 +2,8 @@
 
 This chart deploys the Grafana operator, the platform Grafana instance and its Mimir, Loki and Tempo datasources.
 
+New here? Read [TENANCY.md](TENANCY.md) first for the background on multi-tenancy, then [DESIGN.md](DESIGN.md) for what we chose and how it is built.
+
 Think of the stack as **LGTM**:
 
 | Tool | Job in one line | Reachable at |
