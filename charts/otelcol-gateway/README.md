@@ -81,6 +81,7 @@ Release manifests used to check which components ship in each image:
 
 - Only the **metrics** pipeline to Mimir is configured. Logs and traces are added after metrics are proven. The processor supports all three signals, but only metrics were tested.
 - Mimir still runs without multi-tenancy, so it ignores `X-Scope-OrgID` for now. Deploying this chart does not change behaviour until tenancy is turned on.
-- Nothing sends to the gateway yet. `app-collector` has to add `tenant.id` from the namespace label `platform.rezakara.demo/tenant` and export to this gateway.
-- There is no authentication on the receiver yet. It must stay reachable only from trusted collectors. Authentication and a NetworkPolicy come with the write-path lockdown.
+- Nothing but the development `app-collector` sends to the gateway yet, and only its metrics. It adds `tenant.id` from the namespace label `platform.rezakara.demo/tenant`; the management cluster collectors still write to Mimir directly.
+- The receivers require a bearer token (`bearertokenauth`). The token is shared by all platform collectors, stored in OpenBao at `kv/shared/otelcol-gateway/auth` (written once by `infra/local/kind/setup-secrets.sh`) and delivered by an ExternalSecret named `gateway-collector-auth`. The development cluster reaches the gateway through the route `gateway-collector.mgmt.rezakara.demo`. A NetworkPolicy that limits who can reach the gateway and the backends is still to do.
+- Telemetry with no `tenant.id` is dropped, so any OTLP sender in a namespace without the tenant label loses its metrics once it goes through the gateway.
 - `partitioning` is alpha upstream.

@@ -16,6 +16,10 @@ spec:
     name: kind-development
     namespace: otel-demo
   syncPolicy:
+    managedNamespaceMetadata:
+      labels:
+        # Test tenant: the gateway only accepts telemetry from namespaces that carry this label.
+        platform.rezakara.demo/tenant: demo
     syncOptions:
     - CreateNamespace=true
     - ServerSideApply=true

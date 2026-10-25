@@ -1,0 +1,24 @@
+{{- if and .Values.gatewayAuth.enabled (.Capabilities.APIVersions.Has "external-secrets.io/v1") }}
+# Shared token the platform collectors present to the gateway; written once by infra/local/kind/setup-secrets.sh.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: gateway-collector-auth
+  namespace: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  refreshInterval: 20m
+  secretStoreRef:
+    name: openbao-local
+    kind: ClusterSecretStore
+  target:
+    name: gateway-collector-auth
+    creationPolicy: Owner
+  data:
+    - secretKey: token
+      remoteRef:
+        key: shared/otelcol-gateway/auth
+        property: token
+{{- end }}

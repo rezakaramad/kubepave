@@ -1,3 +1,7 @@
+# Only the cluster that exports through the gateway turns this on.
+gatewayAuth:
+  enabled: false
+
 otelCollector:
   mode: deployment
   # The tenant NetworkPolicy allows ingress from pods labelled app.kubernetes.io/name=app-collector.
@@ -70,6 +74,26 @@ otelCollector:
         send_batch_size: 800
         send_batch_max_size: 1000
         timeout: 10s
+      # An app can send any tenant.id, so it is removed before the trusted value is added.
+      transform/clear_tenant:
+        error_mode: ignore
+        trace_statements:
+          - delete_key(resource.attributes, "tenant.id")
+        metric_statements:
+          - delete_key(resource.attributes, "tenant.id")
+        log_statements:
+          - delete_key(resource.attributes, "tenant.id")
+      # Overrides the preset: only the connection identifies the pod, so apps cannot claim another pod
+      # through k8s.pod.ip or k8s.pod.uid attributes. The tenant comes from the namespace label.
+      k8sattributes:
+        pod_association:
+          - sources:
+              - from: connection
+        extract:
+          labels:
+            - tag_name: tenant.id
+              key: platform.rezakara.demo/tenant
+              from: namespace
 
     service:
       extensions:
@@ -90,16 +114,17 @@ otelCollector:
                   otlp:
                     protocol: http/protobuf
                     endpoint: http://meta-collector.observability.svc:4318/v1/metrics
+      # k8sattributes is listed explicitly so the preset does not move it ahead of clear_tenant.
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [memory_limiter, resource/cluster, batch]
+          processors: [memory_limiter, transform/clear_tenant, k8sattributes, resource/cluster, batch]
           exporters: [otlphttp/tempo]
         logs:
           receivers: [otlp]
-          processors: [memory_limiter, resource/cluster, batch]
+          processors: [memory_limiter, transform/clear_tenant, k8sattributes, resource/cluster, batch]
           exporters: [otlphttp/loki]
         metrics:
           receivers: [otlp]
-          processors: [memory_limiter, resource/cluster, batch]
+          processors: [memory_limiter, transform/clear_tenant, k8sattributes, resource/cluster, batch]
           exporters: [otlphttp/mimir]
