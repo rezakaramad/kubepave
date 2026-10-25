@@ -50,14 +50,15 @@ We assumed in our setup,
         │                      │                      │
         └──────────────────────┼──────────────────────┘
                                │
-                               ▼
-                  ┌────────────────────────┐
-                  │                        │
-                  │        Grafana         │
-                  │                        │
-                  │ Tenant-scoped querying │
-                  │       and access       │
-                  └────────────────────────┘
+              ┌────────────────┴────────────────┐
+              ▼                                 ▼
+    ┌───────────────────┐             ┌───────────────────┐
+    │                   │             │                   │
+    │  Grafana (acme)   │             │ Grafana (globex)  │
+    │                   │             │                   │
+    │ Tenant-scoped data│             │ Tenant-scoped data│
+    │ sources and access│             │ sources and access│
+    └───────────────────┘             └───────────────────┘
 ```
 ### Namespace metadata as the single source of truth
 
@@ -75,7 +76,7 @@ metadata:
 The ideal flow is:
 
 ```text
-Incoming telemetry
+Incoming telemetry (sent by tenant apps)
        │
        ▼
 Identify source Kubernetes Pod
@@ -92,7 +93,7 @@ Tenant ID = acme
        ▼
 Export to tenant acme in LGTM
 ```
-OpenTelemetry's `k8sattributes` processor supports extracting labels from namespace objects, including the custom label you're using. [¹](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor/README.md)
+OpenTelemetry's `k8sattributes` processor supports extracting labels from `namespace` objects, including the custom label you're using. [¹](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/k8sattributesprocessor/README.md)
 
 
 **What could go wrong?**
@@ -109,15 +110,15 @@ It is sent by an application actually running in namespace `acme`. If you blindl
 A second problem occurs when an intermediate proxy or shared collector forwards telemetry. The central collector might see the proxy's IP address rather than the original workload's IP.
 
 So, here are a few rules I'd stick to:
-- The Collector should figure out which namespace the telemetry comes from by verifying the source pod, rather than blindly trusting the `k8s.namespace.name` attribute sent by the application.
-- Any tenant-related attributes coming from applications should be removed or overwritten before they're used for routing.
+- The platform-owned trusted Collector should figure out which namespace the telemetry comes from by verifying the source pod, rather than blindly trusting the `k8s.namespace.name` attribute sent by the application.
+- Any tenant-related attributes coming from applications should be **removed** or **overwritten** before they're used for routing.
 - If we can't figure out which tenant the telemetry belongs to, it shouldn't end up in any customer's storage.
-- Namespace labels should be protected so unauthorized users can't change, remove, or bypass them by deleting and recreating namespaces.
+- Namespace labels should be protected so tenant users can't change, remove, or bypass them by deleting and recreating namespaces.
 - Applications shouldn't be able to skip the trusted Collector and send telemetry directly to LGTM.
 
 The general rule here is to **fail closed**. If we can't confidently identify the tenant, we should reject the telemetry instead of sending it to some default tenant.
 
-**The tricky part: Setting X-Scope-OrgID dynamically**
+**The tricky part: Setting `X-Scope-OrgID` dynamically**
 
 Knowing which tenant the telemetry belongs to is one thing, but making sure Loki, Mimir, and Tempo store it under the right tenant is another.
 
@@ -191,11 +192,11 @@ service:
       exporters: [otlphttp/loki-globex]
 ```
 
-The routing connector checks the tenant label and sends logs to the right pipeline. Each pipeline then sets its own X-Scope-OrgID header before forwarding the logs to Loki.
+The routing connector checks the tenant label and sends logs to the right pipeline. Each pipeline then sets its own `X-Scope-OrgID` header before forwarding the logs to Loki.
 
 How the components work together:
 - `connectors` decide which pipeline should receive the logs based on platform.tenant.
-- `exporters` send the logs to Loki with the correct X-Scope-OrgID header.
+- `exporters` send the logs to Loki with the correct `X-Scope-OrgID` header.
 - `service.pipelines` connects the routing logic to the exporters.
 
 ```text
@@ -224,7 +225,7 @@ So the logic:
 ```text
 Tenant attribute → Routing connector → Tenant pipeline → Exporter → Loki
 ```
-But you might have noticed one limitation here: the pipelines and exporters need to be configured ahead of time. For example, if a new tenant called `initech` comes along, the Collector won't automatically create a new `logs/initech` pipeline. 
+But you might have noticed one limitation here: the pipelines and exporters need to be configured **ahead of time**. For example, if a new tenant called `initech` comes along, the Collector won't automatically create a new `logs/initech` pipeline. 
 
 You'd need some automation to update the Collector configuration and then reload or roll out the changes.
 
@@ -253,10 +254,10 @@ The idea is to keep the OTel Collector configuration independent of the number o
 For example:
 ```text
 Namespace acme
-      │
+      │ telemetry
       ▼
-Central OTel
-      │ trusted platform.tenant=acme
+Platform-owned OTel Collectors (in observability namespace)
+      │ add trusted platform.tenant=acme from the namespace label
       ▼
 OTLP tenant gateway
       │
@@ -274,7 +275,7 @@ there is no need to add an `initech` exporter or pipeline to the Collector.
 
 The gateway resolves the tenant dynamically from the trusted, enriched telemetry.
 
-**One thing to keep in mind** is that the gateway isn't something you get out of the box with OpenTelemetry. You either need to build it yourself or use an existing solution.
+**One thing to keep in mind** is that the gateway isn't something you get out of the box with the official OpenTelemetry Collector distributions. You either need to build it yourself or use an existing solution. ([See section 2: we use the new `partitioning` processor, which currently needs a custom-built collector image](#2-what-well-be-doing).)
 
 OpenTelemetry does have a `headers_setter` extension that can set outgoing headers, but it works with request context or authentication attributes, not directly with arbitrary telemetry resource attributes.
 
@@ -306,11 +307,6 @@ Tenant namespaces ──► Collectors (observability)     ──► Gateway col
 4. Add the remaining signals.
 5. Create a Grafana instance, datasources and SSO mapping per tenant.
 6. Roll out the per-tenant default dashboard.
-
-**Risks**
-- The `partitioning` processor is new and alpha. If our image lacks it or it misbehaves, the fallback is Option A (generated per-tenant pipelines) or a third-party proxy.
-- Existing data sits under the default tenant IDs and will not be visible once tenancy is on. We accept resetting it.
-- Folder permissions do not protect data in Grafana OSS. Isolation comes from the per-tenant datasources.
 
 ## Why one Grafana per tenant
 
