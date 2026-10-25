@@ -20,6 +20,8 @@ tempo:
   tempo:
     reportingEnabled: false
     retention: 72h
+    # Every request needs X-Scope-OrgID; the otelcol-gateway sets it on writes.
+    multitenancyEnabled: true
     extraEnv:
       - name: AWS_ROLE_ARN
         value: arn:aws:iam::role/TempoRole
@@ -45,15 +47,10 @@ tempo:
         wal:
           path: /var/tempo/wal
 
-    # RED metrics from spans, written to Mimir as platform telemetry (Mimir has tenancy on).
+    # RED metrics from spans, written to Mimir under the tenant of the trace (Tempo adds X-Scope-OrgID itself).
     metricsGenerator:
       enabled: true
-      storage:
-        path: /tmp/tempo
-        remote_write:
-          - url: http://mimir-gateway.observability.svc/api/v1/push
-            headers:
-              X-Scope-OrgID: platform
+      remoteWriteUrl: http://mimir-gateway.observability.svc/api/v1/push
     overrides:
       defaults:
         metrics_generator:

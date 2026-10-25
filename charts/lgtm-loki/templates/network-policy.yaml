@@ -1,0 +1,31 @@
+# With tenancy on, the tenant is whatever the caller puts in X-Scope-OrgID, so only trusted components may reach Loki.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: loki-ingress
+  namespace: observability
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: loki
+      app.kubernetes.io/instance: loki
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # Writes: the otelcol-gateway stamps the tenant from the namespace label.
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: gateway-collector
+        # Reads: Grafana sends the tenants its datasource is allowed to see.
+        - podSelector:
+            matchLabels:
+              app: grafana
+      ports:
+        - protocol: TCP
+          port: 3100
+    # Loki talks to itself over memberlist and gRPC.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: loki

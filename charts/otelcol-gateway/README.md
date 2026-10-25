@@ -1,6 +1,6 @@
 # otelcol-gateway
 
-Tenant-aware OTLP gateway for the LGTM stack. It receives telemetry that the platform collectors have already tagged with `tenant.id`, splits every request by tenant, and sets the `X-Scope-OrgID` header per tenant before forwarding to Mimir (and later Loki and Tempo). See `charts/lgtm-grafana/DESIGN.md`, section 2, for the design.
+Tenant-aware OTLP gateway for the LGTM stack. It receives telemetry that the platform collectors have already tagged with `tenant.id`, splits every request by tenant, and sets the `X-Scope-OrgID` header per tenant before forwarding to Mimir, Loki and Tempo. See `charts/lgtm-grafana/DESIGN.md`, section 2, for the design.
 
 ```text
 app-collector ──► gateway-collector ──► Mimir / Loki / Tempo
@@ -79,10 +79,11 @@ Release manifests used to check which components ship in each image:
 
 ## Current scope and limits
 
-- Only the **metrics** pipeline to Mimir is configured. Logs and traces are added after metrics are proven. The processor supports all three signals, but only metrics were tested.
+- Metrics, logs and traces are all configured (Mimir, Loki, Tempo). Metrics are proven; the `partitioning` processor on logs and traces is only validated, so check them after the first sync.
 - Mimir runs with multi-tenancy and federation on. A NetworkPolicy lets only the gateway (writes), Grafana (reads) and Tempo (span metrics) reach Mimir, and the external `mimir.mgmt` route is gone. The Grafana datasource reads `platform|demo`. Mimir's nginx stores a request without `X-Scope-OrgID` under the tenant `anonymous` instead of rejecting it, so check that tenant stays empty.
-- Every metrics writer goes through the gateway: `app-collector` (tenant from the namespace label `platform.rezakara.demo/tenant`) and the node, cluster, app-scraper and meta collectors (tenant `platform`). Tempo's span metrics are written to `platform` directly.
-- The node, cluster and app-scraper collectors tag everything `platform`, including metrics about pods in tenant namespaces. Splitting kubeletstats and kube-state-metrics per tenant is still to do.
+- Every writer goes through the gateway: `app-collector` (metrics, logs and traces; tenant from the namespace label `platform.rezakara.demo/tenant`) and the node, cluster, app-scraper and meta collectors (tenant `platform`). Tempo's span metrics are written to Mimir under the tenant of the trace.
+- Loki and Tempo run with multi-tenancy on and have a NetworkPolicy like Mimir's (gateway for writes, Grafana for reads). Their external routes are gone and the Grafana datasources read `platform|demo`. Data written before tenancy sits under the old default tenant and is invisible.
+- The node, cluster and app-scraper collectors tag everything `platform`, including metrics and container logs of pods in tenant namespaces. Splitting those per tenant is still to do; a tenant only sees what its apps send over OTLP.
 - The receivers require a bearer token (`bearertokenauth`). The token is shared by all platform collectors, stored in OpenBao at `kv/shared/otelcol-gateway/auth` (written once by `infra/local/kind/setup-secrets.sh`) and delivered by an ExternalSecret named `gateway-collector-auth`. The development cluster reaches the gateway through the route `gateway-collector.mgmt.rezakara.demo`. A NetworkPolicy that limits who can reach the gateway itself is still to do (the one on Mimir only works if the CNI enforces it).
-- Telemetry with no `tenant.id` is dropped, so any OTLP sender in a namespace without the tenant label loses its metrics once it goes through the gateway.
+- Telemetry with no `tenant.id` is dropped, so any OTLP sender in a namespace without the tenant label loses its telemetry once it goes through the gateway.
 - `partitioning` is alpha upstream.

@@ -26,10 +26,6 @@ otelCollector:
             value: development
             action: upsert
     exporters:
-      otlphttp/loki:
-        endpoint: https://loki.mgmt.rezakara.demo/otlp
-        tls:
-          ca_file: /etc/root-ca/ca.crt
       otlphttp/gateway:
         endpoint: https://gateway-collector.mgmt.rezakara.demo
         tls:

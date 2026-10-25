@@ -96,6 +96,12 @@ otelCollector:
         metrics:
           metric:
             - 'resource.attributes["tenant.id"] == nil'
+        traces:
+          span:
+            - 'resource.attributes["tenant.id"] == nil'
+        logs:
+          log_record:
+            - 'resource.attributes["tenant.id"] == nil'
       # Splits each batch by tenant and puts the tenant in the request metadata.
       partitioning:
         keys:
@@ -112,6 +118,28 @@ otelCollector:
           batch:
             flush_timeout: 1s
             # Without this key, batches from different tenants could be merged and lose the header.
+            partition:
+              metadata_keys: [tenant_id]
+      otlp_http/loki:
+        endpoint: http://loki.observability.svc:3100/otlp
+        encoding: proto
+        auth:
+          authenticator: headers_setter
+        sending_queue:
+          enabled: true
+          batch:
+            flush_timeout: 1s
+            partition:
+              metadata_keys: [tenant_id]
+      otlp_http/tempo:
+        endpoint: http://tempo.observability.svc:4318
+        encoding: proto
+        auth:
+          authenticator: headers_setter
+        sending_queue:
+          enabled: true
+          batch:
+            flush_timeout: 1s
             partition:
               metadata_keys: [tenant_id]
 
@@ -141,3 +169,11 @@ otelCollector:
           receivers: [otlp]
           processors: [memory_limiter, filter/drop_untenanted, partitioning]
           exporters: [otlp_http/mimir]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, filter/drop_untenanted, partitioning]
+          exporters: [otlp_http/loki]
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, filter/drop_untenanted, partitioning]
+          exporters: [otlp_http/tempo]

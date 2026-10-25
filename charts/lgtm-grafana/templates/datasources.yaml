@@ -44,6 +44,7 @@ spec:
     access: proxy
     url: http://loki.observability.svc:3100
     jsonData:
+      httpHeaderName1: X-Scope-OrgID
       derivedFields:
         # OTLP logs carry the trace id as structured metadata, not in the line.
         - name: TraceID
@@ -51,6 +52,8 @@ spec:
           matcherType: label
           matcherRegex: trace_id
           url: "${__value.raw}"
+    secureJsonData:
+      httpHeaderValue1: platform|demo
 ---
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDatasource
@@ -71,6 +74,7 @@ spec:
     access: proxy
     url: http://tempo.observability.svc:3200
     jsonData:
+      httpHeaderName1: X-Scope-OrgID
       tracesToLogsV2:
         datasourceUid: loki
         filterByTraceID: true
@@ -95,3 +99,5 @@ spec:
         datasourceUid: mimir
       nodeGraph:
         enabled: true
+    secureJsonData:
+      httpHeaderValue1: platform|demo

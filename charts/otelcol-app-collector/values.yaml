@@ -105,7 +105,7 @@ otelCollector:
               from: namespace
 
     exporters:
-      # Metrics go through the tenant-aware gateway; the endpoint is set per cluster.
+      # Telemetry goes through the tenant-aware gateway; the endpoint is set per cluster.
       otlphttp/gateway:
         auth:
           authenticator: bearertokenauth/gateway
@@ -135,11 +135,11 @@ otelCollector:
         traces:
           receivers: [otlp]
           processors: [memory_limiter, transform/clear_tenant, k8sattributes, resource/cluster, batch]
-          exporters: [otlphttp/tempo]
+          exporters: [otlphttp/gateway]
         logs:
           receivers: [otlp]
           processors: [memory_limiter, transform/clear_tenant, k8sattributes, resource/cluster, batch]
-          exporters: [otlphttp/loki]
+          exporters: [otlphttp/gateway]
         metrics:
           receivers: [otlp]
           processors: [memory_limiter, transform/clear_tenant, k8sattributes, resource/cluster, batch]

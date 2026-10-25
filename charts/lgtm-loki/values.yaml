@@ -6,8 +6,12 @@ loki:
     name: loki
 
   loki:
-    # Single tenant for now; no X-Scope-OrgID header needed
-    auth_enabled: false
+    # One tenant per team; the otelcol-gateway sets X-Scope-OrgID on every write.
+    auth_enabled: true
+    # Lets one query header name several tenants (a|b).
+    structuredConfig:
+      tenant_federation:
+        enabled: true
     commonConfig:
       replication_factor: 1
     schemaConfig:

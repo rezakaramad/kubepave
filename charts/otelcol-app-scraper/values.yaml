@@ -116,7 +116,7 @@ otelCollector:
             action: upsert
 
     exporters:
-      # Metrics go through the tenant-aware gateway; the endpoint is set per cluster.
+      # Telemetry goes through the tenant-aware gateway; the endpoint is set per cluster.
       otlphttp/gateway:
         auth:
           authenticator: bearertokenauth/gateway

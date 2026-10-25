@@ -7,7 +7,5 @@ otelCollector:
             value: management
             action: upsert
     exporters:
-      otlphttp/loki:
-        endpoint: http://loki.observability.svc:3100/otlp
       otlphttp/gateway:
         endpoint: http://gateway-collector.observability.svc:4318

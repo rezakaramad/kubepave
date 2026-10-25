@@ -90,7 +90,7 @@ otelCollector:
             action: upsert
 
     exporters:
-      # Metrics go through the tenant-aware gateway; the endpoint is set per cluster.
+      # Telemetry goes through the tenant-aware gateway; the endpoint is set per cluster.
       otlphttp/gateway:
         auth:
           authenticator: bearertokenauth/gateway
@@ -118,8 +118,8 @@ otelCollector:
       # The presets add the filelog, hostmetrics and kubeletstats receivers to these pipelines.
       pipelines:
         logs:
-          processors: [memory_limiter, resource/cluster, batch]
-          exporters: [otlphttp/loki]
+          processors: [memory_limiter, resource/cluster, resource/tenant, batch]
+          exporters: [otlphttp/gateway]
         metrics:
           processors: [memory_limiter, resource/cluster, resource/tenant, batch]
           exporters: [otlphttp/gateway]
