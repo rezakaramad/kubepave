@@ -23,10 +23,7 @@ Working and checked on the live clusters:
    - `infra/azure/entraid-apps.tf`: the Grafana app already ignores `app_role`, but not `web`. Make tofu stop owning `web.redirect_uris`, or the next apply removes the tenant URLs.
 2. **Switch it on in `xtenantargo`:** add `grafana.enabled: "true"` to the helm parameters in `charts/crossplane/templates/xtenantargo/composition.yaml`. It deploys `tenant-management` per tenant, so the Grafana, datasources and route follow. No tenant is onboarded yet (no `tn-*` namespaces), so also onboard one to test end to end.
 3. **After the chart rename (`otelcol-*` to `otel-*`):** in Argo CD, delete the old `otelcol-*` applications without cascade, then sync the new `otel-*` ones, so the new applications can take over the existing resources.
-4. **After the image and secret rename:**
-   - Commit and push `dockerkit`, and wait for the workflow to publish `ghcr.io/rezakaramad/dockerkit/otel-gateway-controller`.
-   - In `charts/otel-gateway/values.yaml`, set `otelCollector.image.repository` to that image, the new digest, and `otelCollector.command.name` to `otel-gateway-controller`. Both must change together with the image, because the binary was renamed.
-   - Write the token to the new OpenBao path `kv/shared/otel-gateway/auth` (re-run `infra/local/kind/setup-secrets.sh`, or copy the old value from `kv/shared/otelcol-gateway/auth`) before syncing, or the `gateway-collector-auth` secret fails to sync. Delete the old path afterwards.
+4. **After the image and secret rename:** `values.yaml` now uses the `otel-gateway-controller` image (commit `0eec3b4`). Before syncing, write the token to the new OpenBao path `kv/shared/otel-gateway/auth` (re-run `infra/local/kind/setup-secrets.sh`, or copy the old value from `kv/shared/otelcol-gateway/auth`), or the `gateway-collector-auth` secret fails to sync. Delete the old path afterwards.
 
 ## Then
 

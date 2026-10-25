@@ -5,12 +5,12 @@ otelCollector:
 
   # Custom build because the partitioning processor is not in a released otelcol-contrib image yet (see README).
   image:
-    repository: ghcr.io/rezakaramad/dockerkit/otelcol-gateway
-    # Built from dockerkit commit 2fe7c14da82ebb5b5310327c85058513275d3150.
+    repository: ghcr.io/rezakaramad/dockerkit/otel-gateway-controller
+    # Built from dockerkit commit 0eec3b4fba7d9849ca9561a0c776a5c3826d328d.
     tag: ""
-    digest: sha256:6eb59e60ff17bf4d40588ba9f7f484ab9cc00d592c67ea7c7438d2ad665b1b00
+    digest: sha256:74f5f69e737c951af7c4b5dcc25c84c2a40cb66f366e8e82bf8919de835bef9e
   command:
-    name: otelcol-gateway
+    name: otel-gateway-controller
 
   presets:
     kubernetesAttributes:

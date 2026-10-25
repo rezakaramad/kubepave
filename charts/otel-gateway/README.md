@@ -31,7 +31,7 @@ The gateway needs two components from the OpenTelemetry Collector contrib distri
 So we build our own image with the official OpenTelemetry Collector Builder (OCB) and the official component modules, published at `v0.163.0`. The image contains only what the gateway needs.
 
 - Source: [`images/otel-gateway-controller`](https://github.com/rezakaramad/dockerkit/tree/main/images/otel-gateway-controller) in the `dockerkit` repository ([`Dockerfile`](https://github.com/rezakaramad/dockerkit/blob/main/images/otel-gateway-controller/Dockerfile) and [`builder-config.yaml`](https://github.com/rezakaramad/dockerkit/blob/main/images/otel-gateway-controller/builder-config.yaml)).
-- Image: `ghcr.io/rezakaramad/dockerkit/otel-gateway-controller`, pinned in [values.yaml](values.yaml) by digest. Until the first build under this name is pinned, `values.yaml` still points at the old image `otelcol-gateway`, built from `dockerkit` commit [`2fe7c14`](https://github.com/rezakaramad/dockerkit/commit/2fe7c14da82ebb5b5310327c85058513275d3150).
+- Image: `ghcr.io/rezakaramad/dockerkit/otel-gateway-controller`, pinned in [values.yaml](values.yaml) by digest. The current digest was built from `dockerkit` commit [`0eec3b4`](https://github.com/rezakaramad/dockerkit/commit/0eec3b4fba7d9849ca9561a0c776a5c3826d328d).
 - Contents: receiver `otlp`; processors `batch`, `filter`, `memory_limiter`, `partitioning`, `transform`; extensions `basicauth`, `bearertokenauth`, `headers_setter`, `health_check`; exporters `debug`, `otlp_grpc`, `otlp_http`.
 
 ## Switching back to the official image

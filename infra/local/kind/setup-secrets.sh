@@ -456,21 +456,21 @@ create_grafana_secrets() {
 }
 
 # -----------------------------------------------------------------------------
-# Token the platform collectors present to the tenant-aware otelcol gateway.
+# Token the platform collectors present to the tenant-aware otel gateway.
 # Pushed under kv/shared/* so the ESO store on every cluster can read it; generated once.
 # -----------------------------------------------------------------------------
-create_otelcol_gateway_secrets() {
-  log "Writing otelcol gateway token to OpenBao..."
+create_otel_gateway_secrets() {
+  log "Writing otel gateway token to OpenBao..."
 
-  if bao_kv_exists "kv/shared/otelcol-gateway/auth"; then
-    log "otelcol gateway token already exists — skipping"
+  if bao_kv_exists "kv/shared/otel-gateway/auth"; then
+    log "otel gateway token already exists — skipping"
     return 0
   fi
 
-  bao_kv_put "kv/shared/otelcol-gateway/auth" \
+  bao_kv_put "kv/shared/otel-gateway/auth" \
     "token" "$(openssl rand -hex 32)"
 
-  ok "otelcol gateway token written"
+  ok "otel gateway token written"
 }
 
 
@@ -495,7 +495,7 @@ main() {
   create_seaweedfs_secrets
   create_seaweedfs_sts_secrets
   create_grafana_secrets
-  create_otelcol_gateway_secrets
+  create_otel_gateway_secrets
   register_clusters_argocd
   create_powerdns_secrets
 
