@@ -4,25 +4,27 @@ A small collector with one job: take the **other collectors' own health metrics*
 
 ## Four ways to monitor a collector
 
-| # | How | Catch |
-|---|---|---|
-| 1 | The collector scrapes itself with its own Prometheus receiver | A loop: if it's stuck, its own metrics can't get out |
-| 2 | Prometheus scrapes its port 8888 | Needs a Prometheus, and covers metrics only |
-| 3 | The collector pushes straight to the backend | Every collector hits the backend on its own |
-| 4 | The collector pushes to a **dedicated collector** | One extra small component |
+**1. The collector scrapes itself with its own Prometheus receiver.** The catch is a loop: if the collector is stuck, its own metrics can't get out.
+
+**2. Prometheus scrapes the collector's port 8888.** The catch is that it needs a Prometheus, and it covers metrics only.
+
+**3. The collector pushes its metrics straight to the backend.** The catch is that every collector hits the backend on its own.
+
+**4. The collector pushes to a dedicated collector.** The catch is one extra small component.
 
 ## Why we chose 4
 
 - **No loop.** A collector never reports through its own pipeline. If its memory limiter starts dropping data, the alarm still gets out.
-- **One funnel.** Every collector in a cluster sends to one place, which then makes one connection to Mimir and tags everything with the cluster name.
+- **One funnel.** Every collector in a cluster sends to one place, which then makes one connection to the gateway and tags everything with the cluster name.
 - **Nothing new to run.** It's just another collector, with no Prometheus to install.
 
-The meta-collector sends its own metrics straight to Mimir, not through itself (option 3), so it avoids the loop too.
+The meta-collector can't report on itself, so it sends its own health report straight to the gateway.
 
 ## How it's wired
 
-- The other collectors push every 60 s to `http://meta-collector.observability.svc:4318/v1/metrics` (`service.telemetry.metrics.readers`).
-- The meta-collector forwards to Mimir over OTLP.
+Every other collector in the cluster sends a short report about its own health to the meta-collector once a minute. The meta-collector adds the cluster name and passes the reports on to Mimir through the gateway, as platform data.
+
+Where a collector sends its report is set in its own config, in the `service.telemetry` block of its values file.
 
 ## Good to know
 

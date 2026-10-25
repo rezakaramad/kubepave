@@ -1,6 +1,6 @@
 # otelcol-app-collector
 
-The front door for your applications. Apps send their traces, logs and metrics here over OTLP, and it forwards each one to the right backend.
+Applications send their traces, logs and metrics to **app-collector** over OTLP, and app-collector forwards each one to the right backend.
 
 | Signal | Goes to |
 |---|---|
@@ -10,7 +10,6 @@ The front door for your applications. Apps send their traces, logs and metrics h
 
 - **Listens on** 4317 (gRPC) and 4318 (HTTP) through the `app-collector` Service.
 - **Adds** Kubernetes details (pod, namespace, workload) and the cluster name to everything that passes through.
-- **Runs as** a Deployment, as a non-root user.
 
 ## Good to know
 
