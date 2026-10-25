@@ -82,12 +82,18 @@ otelCollector:
         send_batch_size: 800
         send_batch_max_size: 1000
         timeout: 10s
-      # Everything this collector gathers is platform telemetry; the gateway drops metrics without a tenant.
+      # Pods in a namespace with the tenant label belong to that tenant; everything else is platform.
+      k8sattributes:
+        extract:
+          labels:
+            - tag_name: tenant.id
+              key: platform.rezakara.demo/tenant
+              from: namespace
       resource/tenant:
         attributes:
           - key: tenant.id
             value: platform
-            action: upsert
+            action: insert
 
     exporters:
       # Telemetry goes through the tenant-aware gateway; the endpoint is set per cluster.
@@ -116,10 +122,11 @@ otelCollector:
                     protocol: http/protobuf
                     endpoint: http://meta-collector.observability.svc:4318/v1/metrics
       # The presets add the filelog, hostmetrics and kubeletstats receivers to these pipelines.
+      # k8sattributes is listed explicitly so it runs before resource/tenant adds the fallback.
       pipelines:
         logs:
-          processors: [memory_limiter, resource/cluster, resource/tenant, batch]
+          processors: [memory_limiter, k8sattributes, resource/cluster, resource/tenant, batch]
           exporters: [otlphttp/gateway]
         metrics:
-          processors: [memory_limiter, resource/cluster, resource/tenant, batch]
+          processors: [memory_limiter, k8sattributes, resource/cluster, resource/tenant, batch]
           exporters: [otlphttp/gateway]

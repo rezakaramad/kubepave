@@ -75,6 +75,9 @@ otelCollector:
               scrape_interval: 60s
               kubernetes_sd_configs:
                 - role: pod
+                  # Exposes the namespace labels as __meta_kubernetes_namespace_label_*.
+                  attach_metadata:
+                    namespace: true
               relabel_configs:
                 # Infrastructure namespaces (kube-system, platform-system, ...) are not tenant workloads.
                 - source_labels: [__meta_kubernetes_namespace]
@@ -98,6 +101,9 @@ otelCollector:
                 - source_labels: [__meta_kubernetes_pod_name]
                   target_label: pod
                   action: replace
+                - source_labels: [__meta_kubernetes_namespace_label_platform_rezakara_demo_tenant]
+                  target_label: tenant_id
+                  action: replace
 
     processors:
       memory_limiter:
@@ -108,12 +114,20 @@ otelCollector:
         send_batch_size: 800
         send_batch_max_size: 1000
         timeout: 10s
-      # Everything this collector gathers is platform telemetry; the gateway drops metrics without a tenant.
+      # One resource per scrape target, so the tenant label of its namespace applies to the whole resource.
+      transform/tenant:
+        error_mode: ignore
+        metric_statements:
+          - context: datapoint
+            statements:
+              - set(resource.attributes["tenant.id"], attributes["tenant_id"]) where attributes["tenant_id"] != nil
+              - delete_key(attributes, "tenant_id")
+      # Namespaces without the tenant label are platform.
       resource/tenant:
         attributes:
           - key: tenant.id
             value: platform
-            action: upsert
+            action: insert
 
     exporters:
       # Telemetry goes through the tenant-aware gateway; the endpoint is set per cluster.
@@ -144,5 +158,5 @@ otelCollector:
       pipelines:
         metrics:
           receivers: [prometheus/pods]
-          processors: [memory_limiter, resource/cluster, resource/tenant, batch]
+          processors: [memory_limiter, resource/cluster, transform/tenant, resource/tenant, batch]
           exporters: [otlphttp/gateway]
