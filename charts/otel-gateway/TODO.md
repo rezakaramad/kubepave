@@ -22,7 +22,11 @@ Working and checked on the live clusters:
    - `function-xtenantentra` (separate repo): create an app role with `value = <tenant name, lowercase>` on the Grafana app and assign it to the tenant's group, and add `https://<tenant>.grafana.mgmt.rezakara.demo/login/azuread` to the app's redirect URIs. Check that the Entra provider has a resource for redirect URIs.
    - `infra/azure/entraid-apps.tf`: the Grafana app already ignores `app_role`, but not `web`. Make tofu stop owning `web.redirect_uris`, or the next apply removes the tenant URLs.
 2. **Switch it on in `xtenantargo`:** add `grafana.enabled: "true"` to the helm parameters in `charts/crossplane/templates/xtenantargo/composition.yaml`. It deploys `tenant-management` per tenant, so the Grafana, datasources and route follow. No tenant is onboarded yet (no `tn-*` namespaces), so also onboard one to test end to end.
-3. **After the chart rename (`otelcol-*` to `otel-*`):** in Argo CD, delete the old `otelcol-*` applications without cascade, then sync the new `otel-*` ones, so the new applications can take over the existing resources. The OpenBao path `kv/shared/otelcol-gateway/auth` and the image `otelcol-gateway` keep their old names on purpose.
+3. **After the chart rename (`otelcol-*` to `otel-*`):** in Argo CD, delete the old `otelcol-*` applications without cascade, then sync the new `otel-*` ones, so the new applications can take over the existing resources.
+4. **After the image and secret rename:**
+   - Commit and push `dockerkit`, and wait for the workflow to publish `ghcr.io/rezakaramad/dockerkit/otel-gateway-controller`.
+   - In `charts/otel-gateway/values.yaml`, set `otelCollector.image.repository` to that image, the new digest, and `otelCollector.command.name` to `otel-gateway-controller`. Both must change together with the image, because the binary was renamed.
+   - Write the token to the new OpenBao path `kv/shared/otel-gateway/auth` (re-run `infra/local/kind/setup-secrets.sh`, or copy the old value from `kv/shared/otelcol-gateway/auth`) before syncing, or the `gateway-collector-auth` secret fails to sync. Delete the old path afterwards.
 
 ## Then
 
@@ -32,7 +36,7 @@ Working and checked on the live clusters:
 
 ## Open items and known limits
 
-- **Static gateway token** shared by all collectors (`kv/shared/otelcol-gateway/auth`). Replace with something dynamic, for example a ServiceAccount token with `oidcauth` (needs an image rebuild).
+- **Static gateway token** shared by all collectors (`kv/shared/otel-gateway/auth`). Replace with something dynamic, for example a ServiceAccount token with `oidcauth` (needs an image rebuild).
 - **Official collector image:** the gateway uses a custom build because `partitioning` is not in a released contrib image. Switch back after the next release; steps are in the "Switching back" section of `README.md`.
 - **Kubernetes events** are not confirmed to be tagged per tenant; I found no event streams in Loki.
 - **app-scraper** drops every `*-system` namespace, so today it scrapes nothing. Its tenant tagging is untested until a workload namespace has a scrape-annotated pod.

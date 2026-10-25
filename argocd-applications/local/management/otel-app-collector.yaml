@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: otelcol-app-collector-management
+  name: otel-app-collector-management
   namespace: argocd
 spec:
   project: platform-system
   source:
     repoURL: https://github.com/rezakaramad/kubepave
     targetRevision: HEAD
-    path: charts/otelcol-app-collector
+    path: charts/otel-app-collector
     helm:
       valueFiles:
         - values.yaml

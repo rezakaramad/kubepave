@@ -30,8 +30,8 @@ The gateway needs two components from the OpenTelemetry Collector contrib distri
 
 So we build our own image with the official OpenTelemetry Collector Builder (OCB) and the official component modules, published at `v0.163.0`. The image contains only what the gateway needs.
 
-- Source: [`images/otelcol-gateway`](https://github.com/rezakaramad/dockerkit/tree/main/images/otelcol-gateway) in the `dockerkit` repository ([`Dockerfile`](https://github.com/rezakaramad/dockerkit/blob/main/images/otelcol-gateway/Dockerfile) and [`builder-config.yaml`](https://github.com/rezakaramad/dockerkit/blob/main/images/otelcol-gateway/builder-config.yaml)).
-- Image: `ghcr.io/rezakaramad/dockerkit/otelcol-gateway`, pinned in [values.yaml](values.yaml) by digest. The current digest was built from `dockerkit` commit [`2fe7c14`](https://github.com/rezakaramad/dockerkit/commit/2fe7c14da82ebb5b5310327c85058513275d3150).
+- Source: [`images/otel-gateway-controller`](https://github.com/rezakaramad/dockerkit/tree/main/images/otel-gateway-controller) in the `dockerkit` repository ([`Dockerfile`](https://github.com/rezakaramad/dockerkit/blob/main/images/otel-gateway-controller/Dockerfile) and [`builder-config.yaml`](https://github.com/rezakaramad/dockerkit/blob/main/images/otel-gateway-controller/builder-config.yaml)).
+- Image: `ghcr.io/rezakaramad/dockerkit/otel-gateway-controller`, pinned in [values.yaml](values.yaml) by digest. Until the first build under this name is pinned, `values.yaml` still points at the old image `otelcol-gateway`, built from `dockerkit` commit [`2fe7c14`](https://github.com/rezakaramad/dockerkit/commit/2fe7c14da82ebb5b5310327c85058513275d3150).
 - Contents: receiver `otlp`; processors `batch`, `filter`, `memory_limiter`, `partitioning`, `transform`; extensions `basicauth`, `bearertokenauth`, `headers_setter`, `health_check`; exporters `debug`, `otlp_grpc`, `otlp_http`.
 
 ## Switching back to the official image
@@ -45,7 +45,7 @@ docker run --rm ghcr.io/open-telemetry/opentelemetry-collector-releases/opentele
 
 2. In [values.yaml](values.yaml), set `otelCollector.image.repository` to [`ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib`](https://github.com/open-telemetry/opentelemetry-collector-releases/pkgs/container/opentelemetry-collector-releases%2Fopentelemetry-collector-contrib), set the tag or digest, and set `otelCollector.command.name` to `otelcol-contrib`.
 3. Check that the exporter names still match. The official image uses `otlp_http` for the OTLP/HTTP exporter, the same as the custom build.
-4. Remove [`images/otelcol-gateway`](https://github.com/rezakaramad/dockerkit/tree/main/images/otelcol-gateway) from `dockerkit`.
+4. Remove [`images/otel-gateway-controller`](https://github.com/rezakaramad/dockerkit/tree/main/images/otel-gateway-controller) from `dockerkit`.
 
 ## Upstream references
 
@@ -88,6 +88,6 @@ Release manifests used to check which components ship in each image:
 - Every writer goes through the gateway: `app-collector` (metrics, logs and traces; tenant from the namespace label `platform.rezakara.demo/tenant`) and the node, cluster, app-scraper and meta collectors (tenant `platform`). Tempo's span metrics are written to Mimir under the tenant of the trace.
 - Loki and Tempo run with multi-tenancy on and have a NetworkPolicy like Mimir's (gateway for writes, Grafana for reads). Their external routes are gone and the Grafana datasources read `platform|demo`. Data written before tenancy sits under the old default tenant and is invisible.
 - The node collector (container logs, kubelet metrics) and the app-scraper take the tenant from the label on the pod's namespace and fall back to `platform`. The cluster collector does the same for kube-state-metrics series that carry a `namespace` label (pods, deployments, namespaces). Cluster-scoped series such as nodes stay `platform`. Kubernetes events are not confirmed to be tagged per tenant.
-- The receivers require a bearer token (`bearertokenauth`). The token is shared by all platform collectors, stored in OpenBao at `kv/shared/otelcol-gateway/auth` (written once by `infra/local/kind/setup-secrets.sh`) and delivered by an ExternalSecret named `gateway-collector-auth`. The development cluster reaches the gateway through the route `gateway-collector.mgmt.rezakara.demo`. A NetworkPolicy that limits who can reach the gateway itself is still to do (the one on Mimir only works if the CNI enforces it).
+- The receivers require a bearer token (`bearertokenauth`). The token is shared by all platform collectors, stored in OpenBao at `kv/shared/otel-gateway/auth` (written once by `infra/local/kind/setup-secrets.sh`) and delivered by an ExternalSecret named `gateway-collector-auth`. The development cluster reaches the gateway through the route `gateway-collector.mgmt.rezakara.demo`. A NetworkPolicy that limits who can reach the gateway itself is still to do (the one on Mimir only works if the CNI enforces it).
 - Telemetry with no `tenant.id` is dropped, so any OTLP sender in a namespace without the tenant label loses its telemetry once it goes through the gateway.
 - `partitioning` is alpha upstream.
