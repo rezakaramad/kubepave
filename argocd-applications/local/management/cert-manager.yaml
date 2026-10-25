@@ -10,6 +10,8 @@ spec:
     targetRevision: HEAD
     path: charts/cert-manager
     helm:
+      # Keeps the release name from install-charts.sh; the Deployment selectors contain it and are immutable.
+      releaseName: cert-manager
       valueFiles:
         - values.yaml
         - values-local.yaml
