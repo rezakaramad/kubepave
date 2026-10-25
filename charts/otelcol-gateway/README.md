@@ -1,17 +1,15 @@
 # otelcol-gateway
 
-Tenant-aware OTLP gateway for the LGTM stack: It is meant to receive telemetry that `app-collector` (in the `observability` namespace) tags with `tenant.id` from the tenant's namespace label (not implemented yet, see "Current scope and limits"). The gateway splits every request by tenant and sets the `X-Scope-OrgID` header per tenant before forwarding to Mimir (and later Loki and Tempo). See `charts/lgtm-grafana/DESIGN.md`, section 2, for the design.
-
-`app-collector` is the first trusted hop and receives telemetry straight from tenant workloads, so it is the place to remove any `tenant.id` the app sent and set the real one from the namespace label.
-
-The gateway can't tell a genuine `tenant.id` from a forged one, because it trusts whatever arrives. It also relies on the **network restriction** so that only trusted collectors can send to it.
+Tenant-aware OTLP gateway for the LGTM stack. It receives telemetry that the platform collectors have already tagged with `tenant.id`, splits every request by tenant, and sets the `X-Scope-OrgID` header per tenant before forwarding to Mimir (and later Loki and Tempo). See `charts/lgtm-grafana/DESIGN.md`, section 2, for the design.
 
 ```text
-app-collector ──► otelcol-gateway ──► Mimir / Loki / Tempo
+app-collector ──► gateway-collector ──► Mimir / Loki / Tempo
  (adds tenant.id)   partitioning by tenant.id
                     headers_setter: X-Scope-OrgID
                     drops telemetry without a tenant
 ```
+
+The Deployment and Service are named `gateway-collector`, like the other collectors. Inside the cluster it listens on `gateway-collector.observability.svc` (OTLP gRPC 4317, OTLP HTTP 4318).
 
 ## Why a custom image
 
