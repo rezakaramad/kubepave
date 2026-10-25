@@ -32,6 +32,13 @@ otelCollector:
     limits:
       memory: 256Mi
 
+  extraEnvs:
+    - name: GATEWAY_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: gateway-collector-auth
+          key: token
+
   podSecurityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -47,6 +54,8 @@ otelCollector:
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
+      bearertokenauth/gateway:
+        token: ${env:GATEWAY_TOKEN}
 
     receivers:
       otlp:
@@ -63,15 +72,29 @@ otelCollector:
         send_batch_size: 800
         send_batch_max_size: 1000
         timeout: 10s
+      # Everything this collector gathers is platform telemetry; the gateway drops metrics without a tenant.
+      resource/tenant:
+        attributes:
+          - key: tenant.id
+            value: platform
+            action: upsert
+
+    exporters:
+      # Metrics go through the tenant-aware gateway; the endpoint is set per cluster.
+      otlphttp/gateway:
+        auth:
+          authenticator: bearertokenauth/gateway
 
     service:
       extensions:
         - health_check
-      # Reports its own metrics straight to Mimir so it never monitors itself through itself.
+        - bearertokenauth/gateway
+      # Reports its own metrics to the gateway as platform telemetry so it never monitors itself through itself.
       # The reader and its endpoint are set per cluster in values-local-<cluster>.yaml.
       telemetry:
         resource:
           service.name: meta-collector
+          tenant.id: platform
           k8s.namespace.name: ${env:OTEL_K8S_NAMESPACE}
           k8s.pod.name: ${env:OTEL_K8S_POD_NAME}
           k8s.node.name: ${env:OTEL_K8S_NODE_NAME}
@@ -80,5 +103,5 @@ otelCollector:
       pipelines:
         metrics:
           receivers: [otlp]
-          processors: [memory_limiter, resource/cluster, batch]
-          exporters: [otlphttp/mimir]
+          processors: [memory_limiter, resource/cluster, resource/tenant, batch]
+          exporters: [otlphttp/gateway]

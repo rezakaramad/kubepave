@@ -26,11 +26,11 @@ otelCollector:
             value: development
             action: upsert
     exporters:
-      otlphttp/mimir:
-        endpoint: https://mimir.mgmt.rezakara.demo/otlp
+      otlphttp/gateway:
+        endpoint: https://gateway-collector.mgmt.rezakara.demo
         tls:
           ca_file: /etc/root-ca/ca.crt
-    # Its own metrics go straight to the management Mimir, not through itself.
+    # Its own metrics go to the gateway, not through itself.
     service:
       telemetry:
         metrics:
@@ -40,5 +40,8 @@ otelCollector:
                 exporter:
                   otlp:
                     protocol: http/protobuf
-                    endpoint: https://mimir.mgmt.rezakara.demo/otlp/v1/metrics
+                    endpoint: https://gateway-collector.mgmt.rezakara.demo/v1/metrics
                     certificate: /etc/root-ca/ca.crt
+                    headers:
+                      - name: Authorization
+                        value: Bearer ${env:GATEWAY_TOKEN}

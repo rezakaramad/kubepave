@@ -20,6 +20,10 @@ spec:
     jsonData:
       httpMethod: POST
       prometheusType: Mimir
+      # Mimir needs the tenant on every read. Federation lets this one datasource see both tenants.
+      httpHeaderName1: X-Scope-OrgID
+    secureJsonData:
+      httpHeaderValue1: platform|demo
 ---
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDatasource

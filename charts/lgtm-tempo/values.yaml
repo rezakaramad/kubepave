@@ -45,10 +45,15 @@ tempo:
         wal:
           path: /var/tempo/wal
 
-    # RED metrics from spans, written to Mimir
+    # RED metrics from spans, written to Mimir as platform telemetry (Mimir has tenancy on).
     metricsGenerator:
       enabled: true
-      remoteWriteUrl: http://mimir-gateway.observability.svc/api/v1/push
+      storage:
+        path: /tmp/tempo
+        remote_write:
+          - url: http://mimir-gateway.observability.svc/api/v1/push
+            headers:
+              X-Scope-OrgID: platform
     overrides:
       defaults:
         metrics_generator:

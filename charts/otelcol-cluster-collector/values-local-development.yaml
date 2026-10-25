@@ -30,7 +30,7 @@ otelCollector:
         endpoint: https://loki.mgmt.rezakara.demo/otlp
         tls:
           ca_file: /etc/root-ca/ca.crt
-      otlphttp/mimir:
-        endpoint: https://mimir.mgmt.rezakara.demo/otlp
+      otlphttp/gateway:
+        endpoint: https://gateway-collector.mgmt.rezakara.demo
         tls:
           ca_file: /etc/root-ca/ca.crt

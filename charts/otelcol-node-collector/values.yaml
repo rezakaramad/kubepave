@@ -41,6 +41,13 @@ otelCollector:
     limits:
       memory: 512Mi
 
+  extraEnvs:
+    - name: GATEWAY_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: gateway-collector-auth
+          key: token
+
   # Container log files under /var/log/pods are root-owned, so this one has to run as root.
   podSecurityContext:
     runAsUser: 0
@@ -58,6 +65,8 @@ otelCollector:
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
+      bearertokenauth/gateway:
+        token: ${env:GATEWAY_TOKEN}
 
     receivers:
       # The kind kubelet serves a self-signed certificate.
@@ -73,10 +82,23 @@ otelCollector:
         send_batch_size: 800
         send_batch_max_size: 1000
         timeout: 10s
+      # Everything this collector gathers is platform telemetry; the gateway drops metrics without a tenant.
+      resource/tenant:
+        attributes:
+          - key: tenant.id
+            value: platform
+            action: upsert
+
+    exporters:
+      # Metrics go through the tenant-aware gateway; the endpoint is set per cluster.
+      otlphttp/gateway:
+        auth:
+          authenticator: bearertokenauth/gateway
 
     service:
       extensions:
         - health_check
+        - bearertokenauth/gateway
       # Internal metrics go to meta-collector, so this collector never monitors itself through itself.
       telemetry:
         resource:
@@ -99,5 +121,5 @@ otelCollector:
           processors: [memory_limiter, resource/cluster, batch]
           exporters: [otlphttp/loki]
         metrics:
-          processors: [memory_limiter, resource/cluster, batch]
-          exporters: [otlphttp/mimir]
+          processors: [memory_limiter, resource/cluster, resource/tenant, batch]
+          exporters: [otlphttp/gateway]

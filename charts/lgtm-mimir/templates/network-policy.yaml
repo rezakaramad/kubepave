@@ -1,0 +1,32 @@
+# With tenancy on, the tenant is whatever the caller puts in X-Scope-OrgID, so anyone who can reach
+# Mimir can read or write any tenant. Only the components that set the header correctly may reach it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mimir-gateway-ingress
+  namespace: observability
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mimir
+      app.kubernetes.io/instance: mimir
+      app.kubernetes.io/component: gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # Writes: the otelcol-gateway stamps the tenant from the namespace label.
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: gateway-collector
+        # Reads: Grafana sends the tenants its datasource is allowed to see.
+        - podSelector:
+            matchLabels:
+              app: grafana
+        # Writes: the span metrics Tempo generates.
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tempo
+      ports:
+        - protocol: TCP
+          port: 8080

@@ -7,8 +7,8 @@ otelCollector:
             value: management
             action: upsert
     exporters:
-      otlphttp/mimir:
-        endpoint: http://mimir-gateway.observability.svc/otlp
+      otlphttp/gateway:
+        endpoint: http://gateway-collector.observability.svc:4318
     service:
       telemetry:
         metrics:
@@ -18,4 +18,7 @@ otelCollector:
                 exporter:
                   otlp:
                     protocol: http/protobuf
-                    endpoint: http://mimir-gateway.observability.svc/otlp/v1/metrics
+                    endpoint: http://gateway-collector.observability.svc:4318/v1/metrics
+                    headers:
+                      - name: Authorization
+                        value: Bearer ${env:GATEWAY_TOKEN}

@@ -39,6 +39,13 @@ otelCollector:
     limits:
       memory: 512Mi
 
+  extraEnvs:
+    - name: GATEWAY_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: gateway-collector-auth
+          key: token
+
   podSecurityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -56,6 +63,8 @@ otelCollector:
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
+      bearertokenauth/gateway:
+        token: ${env:GATEWAY_TOKEN}
 
     receivers:
       otlp:
@@ -95,9 +104,16 @@ otelCollector:
               key: platform.rezakara.demo/tenant
               from: namespace
 
+    exporters:
+      # Metrics go through the tenant-aware gateway; the endpoint is set per cluster.
+      otlphttp/gateway:
+        auth:
+          authenticator: bearertokenauth/gateway
+
     service:
       extensions:
         - health_check
+        - bearertokenauth/gateway
       # Internal metrics go to meta-collector, so this collector never monitors itself through itself.
       telemetry:
         resource:
@@ -127,4 +143,4 @@ otelCollector:
         metrics:
           receivers: [otlp]
           processors: [memory_limiter, transform/clear_tenant, k8sattributes, resource/cluster, batch]
-          exporters: [otlphttp/mimir]
+          exporters: [otlphttp/gateway]

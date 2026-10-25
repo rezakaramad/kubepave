@@ -7,5 +7,5 @@ otelCollector:
             value: management
             action: upsert
     exporters:
-      otlphttp/mimir:
-        endpoint: http://mimir-gateway.observability.svc/otlp
+      otlphttp/gateway:
+        endpoint: http://gateway-collector.observability.svc:4318

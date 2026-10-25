@@ -33,8 +33,11 @@ mimir-distributed:
 
   mimir:
     structuredConfig:
-      # Single tenant for now; no X-Scope-OrgID header needed
-      multitenancy_enabled: false
+      # One tenant per team; the otelcol-gateway sets it on every write. Reads send X-Scope-OrgID,
+      # and with federation a single header can name several tenants (a|b).
+      multitenancy_enabled: true
+      tenant_federation:
+        enabled: true
       ingest_storage:
         enabled: false
         kafka:

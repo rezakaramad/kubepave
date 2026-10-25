@@ -9,13 +9,6 @@ otelCollector:
       - name: ndots
         value: "1"
 
-  extraEnvs:
-    - name: GATEWAY_TOKEN
-      valueFrom:
-        secretKeyRef:
-          name: gateway-collector-auth
-          key: token
-
   # Only the public certificate is mounted, never the private key in the same secret.
   extraVolumes:
     - name: root-ca
@@ -30,9 +23,6 @@ otelCollector:
       readOnly: true
 
   alternateConfig:
-    extensions:
-      bearertokenauth/gateway:
-        token: ${env:GATEWAY_TOKEN}
     processors:
       resource/cluster:
         attributes:
@@ -48,17 +38,7 @@ otelCollector:
         endpoint: https://loki.mgmt.rezakara.demo/otlp
         tls:
           ca_file: /etc/root-ca/ca.crt
-      # Metrics go through the tenant-aware gateway instead of straight to Mimir.
       otlphttp/gateway:
         endpoint: https://gateway-collector.mgmt.rezakara.demo
-        auth:
-          authenticator: bearertokenauth/gateway
         tls:
           ca_file: /etc/root-ca/ca.crt
-    service:
-      extensions:
-        - health_check
-        - bearertokenauth/gateway
-      pipelines:
-        metrics:
-          exporters: [otlphttp/gateway]

@@ -9,7 +9,7 @@ Think of the stack as **LGTM**:
 | Loki | Keeps the **logs** | `loki.mgmt.rezakara.demo` |
 | Grafana | The **screen** you actually look at | `grafana.mgmt.rezakara.demo` |
 | Tempo | Keeps the **traces** (who called whom, how slow) | `tempo.mgmt.rezakara.demo` |
-| Mimir | Keeps the **metrics** (numbers over time) | `mimir.mgmt.rezakara.demo` |
+| Mimir | Keeps the **metrics** (numbers over time) | in-cluster only, writes go through the gateway |
 
 Plus **SeaweedFS**, an S3-compatible object store. Loki, Tempo and Mimir keep their data there. It replaced MinIO, which is deprecated.
 
