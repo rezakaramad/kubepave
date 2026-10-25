@@ -58,7 +58,7 @@ gcloud container clusters update <cluster> \
   --monitoring=SYSTEM,API_SERVER,SCHEDULER,CONTROLLER_MANAGER
 ```
 
-With Terraform this is `monitoring_config.enable_components` on `google_container_cluster`. The GKE docs list API server, scheduler and controller manager, but not etcd ([configure metrics](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/configure-metrics)). For other managed services, check the provider's docs (not verified here).
+With Terraform this is `monitoring_config.enable_components` on `google_container_cluster`. The GKE docs list API server, scheduler and controller manager, but not etcd ([configure metrics](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/configure-metrics)). For other managed services, check the provider's docs.
 
 ### Self-managed (kubeadm and similar)
 
