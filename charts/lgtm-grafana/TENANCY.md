@@ -2,28 +2,27 @@
 
 ## Patterns
 
-Primary architectural patterns worth considering.
+Primary architectural patterns worth considering:
 
 **Option A: Shared LGTM, isolated using labels**
+
 All tenants share the same backends, with tenant-specific labels such as `tenant_id`, and `namespace`.
 
-<span style="color: gray;">
-Simplest and cheapest, but labels alone do not provide a secure isolation boundary.
-</span>
+> Simplest and cheapest, but labels alone do not provide a secure isolation boundary.
 
 **Option B: Shared LGTM, native backend multi-tenancy**
 
-Shared Loki, Mimir, and Tempo clusters, with each tenant assigned an isolated logical tenant ID.
+Shared backend (Loki, Mimir and Tempo), as in Option A, but each tenant is assigned its own isolated tenant ID inside the backends, not just a label. The backends themselves keep each tenant's data apart, which is more secure than Option A, as long as a trusted gateway sets the ID and tenants cannot reach the backends directly.
 
-<span style="color: gray;">
-Often the best balance of operational efficiency, logical data isolation, and scalability.
-</span>
+> Often the best balance of operational efficiency, logical data isolation, and scalability.
 
 **Option C: Dedicated LGTM deployments per tenant**
-Each tenant gets separate Loki, Mimir, Tempo, and potentially Grafana deployments.
+
+Each tenant gets separate Loki, Mimir, Tempo, and potentially Grafana instance.
 Stronger resource and operational isolation, with substantially more infrastructure to maintain.
 
 **Option D: Hybrid multi-tenancy**
+
 Shared ingestion and/or backends for most tenants, dedicated deployments for sensitive or high-volume tenants, and a central platform observability experience.
 Useful when tenant security, compliance, or performance requirements vary.
 
@@ -31,12 +30,12 @@ Useful when tenant security, compliance, or performance requirements vary.
 
 | Component | Native multi-tenancy mechanism | Important consideration |
 |---|---|---|
-| Loki (logs) | `X-Scope-OrgID` | Isolates tenant log ingestion and queries |
-| Mimir (metrics) | `X-Scope-OrgID` | Isolates tenant metrics and supports tenant-specific limits |
-| Tempo (traces) | `X-Scope-OrgID` | Isolates trace ingestion and querying |
-| Grafana | Organizations, teams, folders, RBAC | Controls which users can access data sources, dashboards, and other resources |
+| Loki (logs) | `X-Scope-OrgID` HTTP header | Isolates tenant log ingestion and queries |
+| Mimir (metrics) | `X-Scope-OrgID` HTTP header | Isolates tenant metrics and supports tenant-specific limits |
+| Tempo (traces) | `X-Scope-OrgID` HTTP header | Isolates trace ingestion and querying |
+| Grafana | Organizations, teams, folders and RBAC inside one instance, or a separate Grafana instance per tenant (the Grafana operator maintainers recommend it, see the end of this document) | Controls which users can access data sources, dashboards, and other resources |
 
-The main difference is that Loki, Mimir, and Tempo use tenant IDs to separate data at the storage and query level, while Grafana manages who can access what through its own permissions system.
+The main difference is that Loki, Mimir, and Tempo use tenant IDs to separate data at the storage and query level, while Grafana separates tenants in one of two ways: with its own permissions system inside one instance, or by giving each tenant its own instance whose data sources are configured with only that tenant's ID, so every request that instance makes carries it.
 
 For example, you could have:
 
@@ -44,12 +43,14 @@ For example, you could have:
 tenant-a
   ├── Loki tenant: tenant-a
   ├── Mimir tenant: tenant-a
-  └── Tempo tenant: tenant-a
+  ├── Tempo tenant: tenant-a
+  └── Grafana instance: its own, with data sources configured for tenant-a
 
 tenant-b
   ├── Loki tenant: tenant-b
   ├── Mimir tenant: tenant-b
-  └── Tempo tenant: tenant-b
+  ├── Tempo tenant: tenant-b
+  └── Grafana instance: its own, with data sources configured for tenant-b
 ```
 
 Each backend receives an HTTP header such as:
@@ -58,7 +59,7 @@ Each backend receives an HTTP header such as:
 X-Scope-OrgID: tenant-a
 ```
 
-This tells the backend which tenant's data is being written or queried. The backend keeps the data separated, but the header itself doesn't verify who's making the request. That's why a trusted gateway needs to authenticate clients and make sure they can only access the tenants they're allowed to.
+This tells the backend which tenant's data is being written or queried. The backend keeps the data separated, but the header itself doesn't verify who's making the request. That's why a **trusted gateway** needs to authenticate clients and make sure they can only access the tenants they're allowed to.
 
 ## How each approach would look on your platform
 
@@ -102,7 +103,7 @@ In Grafana, dashboards can query data filtered by `tenant_id`.
 
 We noted that labels alone are insufficient to establish a secure isolation boundary. This is because labels indicate which tenant the telemetry belongs to, but do not inherently determine who is authorized to access it.
 
-Let's say `tenant-a` and `tenant-b` send metrics to the same Mimir tenant, with labels identifying their origin:
+Let's say `tenant-a` and `tenant-b` send metrics to the same Mimir, with labels identifying their origin:
 
 ```promql
 http_requests_total{
@@ -119,9 +120,11 @@ http_requests_total{
 ```
 
 Now imagine customer A opens Grafana. You configure its dashboard to query:
+
 ```promql
 http_requests_total{tenant_id="tenant-a"}
 ```
+
 Everything looks correct. The dashboard only shows tenant A's metrics. But what prevents customer A from changing the query to:
 
 ```promql
@@ -132,18 +135,20 @@ Or even:
 
 ```promql
 http_requests_total
-```promql
+```
 
-If its Grafana data source has unrestricted access to the shared Mimir tenant, both queries can succeed. The label `tenant_id` doesn't instruct Mimir to deny the request. It's simply a filter applied by the query. The same problem exists in Loki:
+If its Grafana data source has unrestricted access to the shared Mimir, both queries can succeed. The label `tenant_id` doesn't instruct Mimir to deny the request. It's simply a filter applied by the query. The same problem exists in Loki:
 
 ```logql
 {tenant_id="tenant-a"}
 ```
 
 A customer who can submit arbitrary LogQL queries could change that to:
+
 ```logql
 {tenant_id="tenant-b"}
 ```
+
 And in Tempo, a user with unrestricted access to the same backend tenant could search for another customer's traces or retrieve a trace by ID.
 
 **One Last Thing:**
@@ -162,8 +167,8 @@ However, LBAC does not provide native backend-level tenant isolation, per-tenant
 flowchart TB
     subgraph Tenants[" "]
         direction LR
-        A["**Tenant A**<br/>Namespace A<br/>OTel"]
-        B["**Tenant B**<br/>Namespace B<br/>OTel"]
+        A["Tenant A<br/>Namespace A<br/>OTel"]
+        B["Tenant B<br/>Namespace B<br/>OTel"]
         A ~~~ B
     end
 
@@ -198,11 +203,11 @@ flowchart TB
     LGTM --> Grafana
 
     style Tenants fill:none,stroke:none
-    style A fill:none,stroke:none
-    style B fill:none,stroke:none
+    style A fill:#f8f9fa,stroke:#ccc,stroke-width:1px,rx:6,ry:6
+    style B fill:#f8f9fa,stroke:#ccc,stroke-width:1px,rx:6,ry:6
     style Gateway fill:none,stroke:none
     style LGTM fill:#fafafa,stroke:#ddd,stroke-width:1px
-    style Grafana fill:none,stroke:none
+    style Grafana fill:#f8f9fa,stroke:#ccc,stroke-width:1px,rx:8,ry:8
 
     style Loki fill:none,stroke:none
     style Mimir fill:none,stroke:none
@@ -270,9 +275,9 @@ You can also set ingestion limits per tenant in LGTM, so if `team-a` starts send
 What if a tenant sends a fake `X-Scope-OrgID`?
 
 If the OTel collect is configured correctly, the fake header should have no effect. The collector should: 
-- Ignore or remove tenant-supplied X-Scope-OrgID headers.
+- Ignore or remove tenant-supplied `X-Scope-OrgID` headers.
 - Determine the tenant from trusted Kubernetes metadata (e.g., namespace).
-- Set the correct X-Scope-OrgID when exporting to LGTM.
+- Set the correct `X-Scope-OrgID` when exporting to LGTM.
 
 **More on Option B**
 
