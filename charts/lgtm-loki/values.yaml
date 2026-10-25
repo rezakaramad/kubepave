@@ -10,8 +10,8 @@ loki:
     auth_enabled: true
     # Lets one query header name several tenants (a|b).
     structuredConfig:
-      tenant_federation:
-        enabled: true
+      querier:
+        multi_tenant_queries_enabled: true
     commonConfig:
       replication_factor: 1
     schemaConfig:
