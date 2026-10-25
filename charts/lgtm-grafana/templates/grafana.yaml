@@ -13,7 +13,7 @@ spec:
     log:
       mode: console
     server:
-      root_url: https://grafana.mgmt.rezakara.demo
+      root_url: https://platform.grafana.mgmt.rezakara.demo
     users:
       auto_assign_org_role: Viewer
     # Client id/secret and tenant URLs come from env vars (GF_AUTH_AZUREAD_*) below.

@@ -177,7 +177,7 @@ resource "azuread_application" "grafana" {
 
   web {
     redirect_uris = [
-      "https://grafana.mgmt.rezakara.demo/login/azuread"
+      "https://platform.grafana.mgmt.rezakara.demo/login/azuread"
     ]
   }
 

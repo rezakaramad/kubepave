@@ -7,11 +7,11 @@ metadata:
   namespace: observability
 spec:
   hostnames:
-  - grafana.mgmt.rezakara.demo
+  - platform.grafana.mgmt.rezakara.demo
   parentRefs:
   - group: gateway.networking.k8s.io
     kind: Gateway
-    name: default-traefik
+    name: grafana-traefik
     namespace: platform-system
   rules:
   - backendRefs:

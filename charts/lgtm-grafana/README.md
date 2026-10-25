@@ -7,7 +7,7 @@ Think of the stack as **LGTM**:
 | Tool | Job in one line | Talks to you at |
 | --- | --- | --- |
 | Loki | Keeps the **logs** | in-cluster only, writes go through the gateway |
-| Grafana | The **screen** you actually look at | `grafana.mgmt.rezakara.demo` |
+| Grafana | The **screen** you actually look at (the platform Grafana, for platform admins) | `platform.grafana.mgmt.rezakara.demo` |
 | Tempo | Keeps the **traces** (who called whom, how slow) | in-cluster only, writes go through the gateway |
 | Mimir | Keeps the **metrics** (numbers over time) | in-cluster only, writes go through the gateway |
 

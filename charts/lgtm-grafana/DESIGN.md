@@ -324,7 +324,7 @@ Costs: one pod, one route and one Entra redirect URI per tenant.
 
 **How it is built**
 - The `tenant-management` chart creates, per tenant and only when `grafana.enabled` is true: a `Grafana`, three datasources that send only that tenant's ID, an ExternalSecret for the Entra client and an HTTPRoute. The instance runs in `observability` and is served at `<tenant>.grafana.mgmt.rezakara.demo`.
-- A dedicated Traefik gateway, `grafana-traefik` in `platform-system`, serves `*.grafana.mgmt.rezakara.demo` with its own wildcard certificate and accepts routes only from `observability`. The default wildcard certificate covers only one label, so it cannot serve that name.
+- A dedicated Traefik gateway, `grafana-traefik` in `platform-system`, serves `*.grafana.mgmt.rezakara.demo` with its own wildcard certificate and accepts routes only from `observability`. The default wildcard certificate covers only one label, so it cannot serve that name. The shared platform Grafana uses it too, at `platform.grafana.mgmt.rezakara.demo`.
 - Pods carry the label `platform.rezakara.demo/component: grafana`, which the Mimir, Loki and Tempo NetworkPolicies allow.
 - Login needs the tenant name in the `roles` claim (`role_attribute_strict`), and users get at most Editor, which cannot change datasources.
 
