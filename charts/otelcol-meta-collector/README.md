@@ -4,13 +4,12 @@ A small collector with one job: take the **other collectors' own health metrics*
 
 ## Four ways to monitor a collector
 
-**1. The collector scrapes itself with its own Prometheus receiver.** The catch is a loop: if the collector is stuck, its own metrics can't get out.
-
-**2. Prometheus scrapes the collector's port 8888.** The catch is that it needs a Prometheus, and it covers metrics only.
-
-**3. The collector pushes its metrics straight to the backend.** The catch is that every collector hits the backend on its own.
-
-**4. The collector pushes to a dedicated collector.** The catch is one extra small component.
+| # | How | Catch |
+|---|---|---|
+| 1 | The collector scrapes itself with its own Prometheus receiver | A loop: if it's stuck, its own metrics can't get out |
+| 2 | Prometheus scrapes its port 8888 | Needs a Prometheus, and covers metrics only |
+| 3 | The collector pushes straight to the backend | Every collector hits the backend on its own |
+| 4 | The collector pushes to a **dedicated collector** | One extra small component |
 
 ## Why we chose 4
 
