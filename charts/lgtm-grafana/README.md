@@ -1,35 +1,49 @@
 # lgtm-grafana
 
-This chart deploys the Grafana operator, one Grafana instance and its Mimir, Loki and Tempo datasources.
+This chart deploys the Grafana operator, the platform Grafana instance and its Mimir, Loki and Tempo datasources.
 
 Think of the stack as **LGTM**:
 
-| Tool | Job in one line | Talks to you at |
+| Tool | Job in one line | Reachable at |
 | --- | --- | --- |
-| Loki | Keeps the **logs** | in-cluster only, writes go through the gateway |
+| Loki | Keeps the **logs** | No external address. Written by the gateway, read by Grafana. |
 | Grafana | The **screen** you actually look at (the platform Grafana, for platform admins) | `platform.grafana.mgmt.rezakara.demo` |
-| Tempo | Keeps the **traces** (who called whom, how slow) | in-cluster only, writes go through the gateway |
-| Mimir | Keeps the **metrics** (numbers over time) | in-cluster only, writes go through the gateway |
+| Tempo | Keeps the **traces** (who called whom, how slow) | No external address. Written by the gateway, read by Grafana. |
+| Mimir | Keeps the **metrics** (numbers over time) | No external address. Written by the gateway (and Tempo's span metrics), read by Grafana. |
 
 Plus **SeaweedFS**, an S3-compatible object store. Loki, Tempo and Mimir keep their data there. It replaced MinIO, which is deprecated.
 
 **Why do we need object storage?**
 
-- **The problem**: Logs, traces and metrics pile up fast, and they have to outlive any single pod. Pods restart and move, and a local disk doesn't follow them. EBS-backed volumes solve the persistence problem, but managing and scaling them as data grows adds overhead. EFS allows sharing data across pods, but comes with higher storage costs and potential throughput bottlenecks.
+- **The problem**: Logs, traces and metrics pile up fast, and they have to outlive any single pod. Pods restart and move, and a local disk doesn't follow them. EBS-backed volumes are tied to one availability zone and have to be sized and grown by hand. EFS can be shared across pods, but it is slow and costly for this access pattern.
 
-- **What it gives us**: Cheap, big, shared storage that grows on its own, separate from the pods that use it. We can keep hot data on faster local storage (like EBS) for quick reads and writes, while storing historical data in S3, where low latency matters less. This also lets us scale ingestion and querying independently without worrying about storage capacity.
+- **What it gives us**: Cheap, big, shared storage that grows on its own, separate from the pods that use it. Ingestion and querying can scale independently of the storage.
 
-- **Is it mandatory**? For Mimir, effectively yes: its ingesters, store-gateways and compactors are separate pods that need access to the same data blocks. For Loki and Tempo, it's strongly recommended for production rather than strictly required. They can use local filesystem storage for smaller setups, but that limits how far we can scale without changing the storage architecture.
+- **Is it mandatory**? For Mimir, effectively yes: its ingesters, store-gateways and compactors are separate pods that need access to the same data blocks. For Loki and Tempo, it's strongly recommended for production rather than strictly required. They can use local filesystem storage for smaller setups, but that limits how far we can scale.
 
-Everything runs on the **management** cluster, in the `observability` namespace. Other clusters will send their data here over OTLP/HTTP through the Traefik routes above.
+**What goes where.** It is not "hot data on EBS, old data on S3". Each kind of data has its own home:
+
+| Data | Where | Why |
+| --- | --- | --- |
+| Recent, unflushed data (the ingester's write-ahead log and in-memory head) | Local disk: a volume per ingester pod | Writes must be fast and local. It is small, about the last few hours. |
+| Finished blocks, chunks and traces | Object storage | Durable, cheap, shared, and unbounded. |
+| Query caches (index headers, chunk and bloom caches) | Local disk or a cache service | Rebuildable from object storage, so losing them only costs speed. |
+| Compactor working space | A local volume | Scratch space, also rebuildable. |
+
+Ingesters flush to object storage every couple of hours. Unflushed data is only safe if it is replicated: production uses replication factor 3 across availability zones, while we run 1 locally, so losing an ingester loses its recent data. Retention is set in each compactor, with a bucket lifecycle rule as a backstop.
+
+Everything runs on the **management** cluster, in the `observability` namespace. Other clusters send their data to the gateway at `gateway-collector.mgmt.rezakara.demo`.
 
 ## The picture
 
 ```mermaid
 flowchart LR
-    apps[Apps and clusters] -- OTLP --> mimir[Mimir]
-    apps -- OTLP --> loki[Loki]
-    apps -- OTLP --> tempo[Tempo]
+    apps[Apps and clusters] --> col[Collectors]
+    col -- OTLP and token --> gw[otel-gateway]
+    gw -- tenant header --> mimir[Mimir]
+    gw -- tenant header --> loki[Loki]
+    gw -- tenant header --> tempo[Tempo]
+    tempo -- span metrics --> mimir
     mimir --> sw[(SeaweedFS)]
     loki --> sw
     tempo --> sw
@@ -38,37 +52,42 @@ flowchart LR
     grafana -- reads --> tempo
 ```
 
-Heads up: the collectors that ship data from clusters aren't in yet. Right now you can push to the endpoints by hand.
+Nothing writes to Mimir, Loki or Tempo directly. The [otel-gateway](../otel-gateway) sets the tenant on every write, and a NetworkPolicy lets only the gateway (writes), Grafana (reads) and Tempo (span metrics to Mimir) reach them. See [DESIGN.md](DESIGN.md) for how tenants are kept apart.
 
-## How Grafana is deployed
+## How the platform Grafana is deployed
 
-Grafana runs with the **Grafana operator**, not the plain Helm chart. Three small pieces:
+This Grafana is for the platform team only. It runs with the **Grafana operator**, not the plain Helm chart, and the same operator also runs every tenant's Grafana (see below). Three small pieces:
 
-1. **The operator** watches the cluster and does the work.
-2. **A `Grafana` resource** ([templates/grafana.yaml](templates/grafana.yaml)) is the instance itself: login settings, disk, secrets.
-3. **`GrafanaDatasource` resources** ([templates/datasources.yaml](templates/datasources.yaml)) wire in Mimir, Loki and Tempo.
+1. **The operator** watches the cluster and manages every Grafana instance: this one and each tenant's.
+2. **A `Grafana` resource** ([templates/grafana.yaml](templates/grafana.yaml)) is the platform instance itself: login settings, disk, secrets.
+3. **`GrafanaDatasource` resources** ([templates/datasources.yaml](templates/datasources.yaml)) wire in Mimir, Loki and Tempo. Each sends the tenant header `X-Scope-OrgID`. These read `platform|demo`: the platform's own data plus the demo tenant's. The list is static, so a new tenant has to be added by hand.
 
-Why bother? Because dashboards and datasources become normal Kubernetes objects. Tomorrow a tenant can ship their own dashboard from their own namespace, with no clicking around in the UI.
+Why bother with the operator? Because dashboards and datasources become normal Kubernetes objects, with no clicking around in the UI.
+
+**Tenants get their own Grafana.** Each one has datasources that send only that tenant's ID, so a tenant never sees another tenant's data. They are created by the `tenant-management` chart at `<tenant>.grafana.mgmt.rezakara.demo`. The operator cannot manage organizations, which is why tenants are separated by instance and not by organization. See [DESIGN.md](DESIGN.md#why-one-grafana-per-tenant).
 
 **Login is Entra ID.** Members of `platform-admins` land as Admin, `platform-viewers` as Viewer. There's also a break-glass local `admin` user, with the password kept in OpenBao.
 
 ## Secrets, the short version
 
-- The namespace has **one** SecretStore, `openbao-local` (created by the `observability` chart). It logs in to OpenBao as role `observability`, which can read `kv/seaweedfs/*` and `kv/grafana/*`. Same pattern as every other namespace.
-- Loki, Tempo and Mimir hold **no S3 keys**. Each trades its own Kubernetes ServiceAccount token for short-lived S3 credentials (STS). SeaweedFS checks the token, so there is nothing to leak or rotate.
+- The namespace has **one** SecretStore, `openbao-local` (created by the `observability` chart). It logs in to OpenBao as role `observability`, which can read `kv/grafana/*` (Grafana's admin password and Entra client) and `kv/seaweedfs/*` (SeaweedFS's own STS signing key and admin identity). Same pattern as every other namespace.
+- Loki, Tempo and Mimir store no secrets for their storage. They log in to SeaweedFS with their ServiceAccount token (see below).
 
-## Gotchas you will meet
+**Gotcha:** changed what the `observability` role may read in an OpenBao policy? Sync the `openbao` app, then delete `openbao-0`. OpenBao only writes its policies when the pod starts, and nothing restarts it for you. Until then the ExternalSecrets here keep failing with the old permissions.
 
-- Changed an OpenBao policy? Sync the `openbao` app, then delete `openbao-0`. The policies are written when the pod starts, and nothing restarts it for you.
-- Changed the SeaweedFS IAM config? Restart the SeaweedFS pod, since it doesn't reload on its own.
-- Backends complaining `Access Denied` after about an hour? Suspect the short-lived S3 credential not renewing (we haven't watched a full renewal yet). Look at the SeaweedFS logs first.
+## Short-lived storage access
 
-## Quick health check
+Loki, Tempo and Mimir hold **no S3 keys**. Each pod mounts a Kubernetes ServiceAccount token (audience `seaweedfs-s3`, one hour, renewed by Kubernetes) and trades it for short-lived S3 credentials (STS). SeaweedFS checks the token against the cluster's OIDC keys and only allows a role to the matching ServiceAccount (`loki`, `tempo`, `mimir`), so there is nothing to leak or rotate. The roles and trust policies are in [seaweedfs/templates/iam-config.yaml](../seaweedfs/templates/iam-config.yaml).
 
-```fish
-kubectl --context kind-management -n observability get pods
-kubectl --context kind-management -n observability get externalsecret
-kubectl --context kind-management -n observability get grafana,grafanadatasource
+```mermaid
+sequenceDiagram
+    participant K as Kubernetes
+    participant P as Loki / Tempo / Mimir pod
+    participant S as SeaweedFS
+    K->>P: mounts a ServiceAccount token (audience seaweedfs-s3, 1 hour)
+    P->>S: asks for a role with the token (STS)
+    S->>S: checks the signature against the cluster's OIDC keys
+    S->>S: checks the ServiceAccount matches the role (for example loki)
+    S-->>P: short-lived S3 credentials
+    P->>S: reads and writes data with those credentials
 ```
-
-Everything Ready, every ExternalSecret `SecretSynced`, and you're good.
