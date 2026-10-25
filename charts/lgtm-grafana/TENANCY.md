@@ -393,6 +393,6 @@ But keep in mind that all organizations still share the same Grafana server and 
 
 One more thing worth mentioning is that, in Grafana OSS, folder permissions don't control access to data sources. If you need more fine-grained control over who can access which data sources, Grafana Enterprise and Cloud offer additional options.
 
-**What we chose:** one Grafana instance per tenant. The Grafana operator cannot manage organizations ([grafana-operator#2895](https://github.com/grafana/grafana-operator/issues/2895), closed as not planned), so organizations would not be declarative. See "Why one Grafana per tenant" in `DESIGN.md`.
+**What we chose:** one Grafana instance per tenant. The Grafana operator cannot manage organizations ([grafana-operator#2895](https://github.com/grafana/grafana-operator/issues/2895), closed as not planned), so organizations would not be declarative. See [Why one Grafana per tenant](DESIGN.md#why-one-grafana-per-tenant).
 
 Grafana has suggested to use multiple grafana instances instead, (see here)[https://grafana.github.io/grafana-operator/docs/examples/grafana/#organizations].
