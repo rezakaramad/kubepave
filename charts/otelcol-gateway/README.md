@@ -1,6 +1,6 @@
 # otelcol-gateway
 
-Tenant-aware OTLP gateway for the LGTM stack. It receives telemetry that the platform collectors have already tagged with `tenant.id`, splits every request by tenant, and sets the `X-Scope-OrgID` header per tenant before forwarding to Mimir, Loki and Tempo. See `charts/lgtm-grafana/DESIGN.md`, section 2, for the design.
+Tenant-aware OTLP gateway for the LGTM stack. It receives telemetry that the platform collectors have already tagged with `tenant.id`, splits every request by tenant, and sets the `X-Scope-OrgID` header per tenant before forwarding to Mimir, Loki and Tempo. See [DESIGN.md, section 2](../lgtm-grafana/DESIGN.md#2-what-well-be-doing) for the design.
 
 ```text
 app-collector ──► gateway-collector ──► Mimir / Loki / Tempo
@@ -9,7 +9,7 @@ app-collector ──► gateway-collector ──► Mimir / Loki / Tempo
                     drops telemetry without a tenant
 ```
 
-The Deployment and Service are named `gateway-collector`, like the other collectors. Inside the cluster it listens on `gateway-collector.observability.svc` (OTLP gRPC 4317, OTLP HTTP 4318).
+Inside the cluster it listens on `gateway-collector.observability.svc` (OTLP gRPC 4317, OTLP HTTP 4318).
 
 ## Why a custom image
 
@@ -26,22 +26,26 @@ The gateway needs two components from the OpenTelemetry Collector contrib distri
 |---|---|---|
 | `otelcol-contrib:0.161.0` (what the other collectors run) | No | Predates the component |
 | `otelcol-contrib:0.163.2` (latest release when this was written) | No | `otelcol-contrib components` lists no `partitioning`; the `v0.163.2` manifest does not include it |
-| `main` branch manifest of `opentelemetry-collector-releases` | Yes | `partitioningprocessor` is listed |
+| [`main` branch manifest](https://github.com/open-telemetry/opentelemetry-collector-releases/blob/main/distributions/otelcol-contrib/manifest.yaml) of `opentelemetry-collector-releases` | Yes | `partitioningprocessor` is listed |
 
 So we build our own image with the official OpenTelemetry Collector Builder (OCB) and the official component modules, published at `v0.163.0`. The image contains only what the gateway needs.
 
-- Source: `images/otelcol-gateway` in the `dockerkit` repository (`Dockerfile` and `builder-config.yaml`).
-- Image: `ghcr.io/rezakaramad/dockerkit/otelcol-gateway`, pinned in `values.yaml` by digest. The current digest was built from `dockerkit` commit `2fe7c14da82ebb5b5310327c85058513275d3150`.
+- Source: [`images/otelcol-gateway`](https://github.com/rezakaramad/dockerkit/tree/main/images/otelcol-gateway) in the `dockerkit` repository ([`Dockerfile`](https://github.com/rezakaramad/dockerkit/blob/main/images/otelcol-gateway/Dockerfile) and [`builder-config.yaml`](https://github.com/rezakaramad/dockerkit/blob/main/images/otelcol-gateway/builder-config.yaml)).
+- Image: `ghcr.io/rezakaramad/dockerkit/otelcol-gateway`, pinned in [values.yaml](values.yaml) by digest. The current digest was built from `dockerkit` commit [`2fe7c14`](https://github.com/rezakaramad/dockerkit/commit/2fe7c14da82ebb5b5310327c85058513275d3150).
 - Contents: receiver `otlp`; processors `batch`, `filter`, `memory_limiter`, `partitioning`, `transform`; extensions `basicauth`, `bearertokenauth`, `headers_setter`, `health_check`; exporters `debug`, `otlp_grpc`, `otlp_http`.
 
 ## Switching back to the official image
 
 This custom image is temporary. **Once the maintainers publish the next `otelcol-contrib` release that includes `partitioning`, we move to the official image.**
 
-1. Check the new release: `docker run --rm ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:<version> components | grep partitioning`.
-2. In `values.yaml`, set `otelCollector.image.repository` to `ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib`, set the tag or digest, and set `otelCollector.command.name` to `otelcol-contrib`.
+1. Check the new release:
+```
+docker run --rm ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:<version> components | grep partitioning
+```
+
+2. In [values.yaml](values.yaml), set `otelCollector.image.repository` to [`ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib`](https://github.com/open-telemetry/opentelemetry-collector-releases/pkgs/container/opentelemetry-collector-releases%2Fopentelemetry-collector-contrib), set the tag or digest, and set `otelCollector.command.name` to `otelcol-contrib`.
 3. Check that the exporter names still match. The official image uses `otlp_http` for the OTLP/HTTP exporter, the same as the custom build.
-4. Remove `images/otelcol-gateway` from `dockerkit`.
+4. Remove [`images/otelcol-gateway`](https://github.com/rezakaramad/dockerkit/tree/main/images/otelcol-gateway) from `dockerkit`.
 
 ## Upstream references
 
