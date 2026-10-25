@@ -1,0 +1,9 @@
+apiVersion: v2
+name: otelcol-gateway
+description: Tenant-aware OTLP gateway that splits telemetry by tenant and sets X-Scope-OrgID before it reaches Mimir, Loki and Tempo.
+version: 0.0.1
+dependencies:
+  - name: opentelemetry-collector
+    alias: otelCollector
+    version: 0.177.0
+    repository: https://open-telemetry.github.io/opentelemetry-helm-charts
