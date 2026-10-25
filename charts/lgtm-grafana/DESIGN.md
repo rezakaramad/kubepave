@@ -296,17 +296,9 @@ Tenant namespaces ──► Collectors (observability)     ──► Gateway col
 **How it works**
 - Collectors derive `tenant.id` from the `platform.rezakara.demo/tenant` namespace label, overwrite anything the app sent, and drop telemetry with no tenant (fail closed). Platform namespaces map explicitly to a `platform` tenant.
 - The gateway is a central collector: `partitioning` splits by `tenant.id`, `headers_setter` sets `X-Scope-OrgID` from it, and the exporter batches per tenant (`sending_queue.batch.partition.metadata_keys`). Adding a tenant needs no collector change.
-- Loki, Mimir and Tempo run with native multi-tenancy. Only the gateway may write to them, enforced with NetworkPolicy. Collectors authenticate to the gateway, and the development cluster reaches it through a Traefik route with authentication.
-- Every tenant gets its own Grafana instance (a `Grafana` resource for the operator) with datasources that send only that tenant's `X-Scope-OrgID`. Users log in with Entra ID and the `roles` claim must carry the tenant name. Only Grafana can read from the backends. The shared Grafana stays for platform admins and reads all tenants. See "Why one Grafana per tenant" below.
-- Each tenant gets one default dashboard, published from `grafkit` as an OCI artifact.
-
-**Order of work**
-1. Check the collector image includes the `partitioning` processor.
-2. Prove the gateway on one signal (metrics) and one tenant.
-3. Turn on tenancy in the backends and lock down write access.
-4. Add the remaining signals.
-5. Create a Grafana instance, datasources and SSO mapping per tenant.
-6. Roll out the per-tenant default dashboard.
+- Loki, Mimir and Tempo run with native multi-tenancy. Only the gateway may write to them, enforced with NetworkPolicy. Collectors authenticate to the gateway, and the **development** cluster reaches it through a Traefik route with authentication.
+- Every tenant gets its own Grafana instance (a `Grafana` resource for the operator). Its datasources are configured with only that tenant's ID, so every query it makes to Loki, Mimir and Tempo carries that tenant's `X-Scope-OrgID` header. Users log in with Entra ID and the `roles` claim must carry the tenant name. Only Grafana can read from the backends. The shared Grafana stays for platform admins and reads all tenants. See "Why one Grafana per tenant" below.
+- Each tenant gets one default dashboard, published from [`grafkit`](https://github.com/rezakaramad/grafkit) as an OCI artifact.
 
 ## Why one Grafana per tenant
 
@@ -319,10 +311,15 @@ We chose one instance per tenant because it stays fully declarative and isolates
 Costs: one pod, one route and one Entra redirect URI per tenant.
 
 **How it is built**
-- The `tenant-management` chart creates, per tenant and only when `grafana.enabled` is true: a `Grafana`, three datasources that send only that tenant's ID, an ExternalSecret for the Entra client and an HTTPRoute. The instance runs in `observability` and is served at `<tenant>.grafana.mgmt.rezakara.demo`.
+- The `tenant-management` chart creates, per tenant and only when `grafana.enabled` is true: a `Grafana`, three datasources configured with only that tenant's ID, an ExternalSecret for the Entra client and an HTTPRoute. The instance runs in `observability` and is served at `<tenant>.grafana.mgmt.rezakara.demo`.
 - A dedicated Traefik gateway, `grafana-traefik` in `platform-system`, serves `*.grafana.mgmt.rezakara.demo` with its own wildcard certificate and accepts routes only from `observability`. The default wildcard certificate covers only one label, so it cannot serve that name. The shared platform Grafana uses it too, at `platform.grafana.mgmt.rezakara.demo`.
 - Pods carry the label `platform.rezakara.demo/component: grafana`, which the Mimir, Loki and Tempo NetworkPolicies allow.
 - Login needs the tenant name in the `roles` claim (`role_attribute_strict`), and users get at most Editor, which cannot change datasources.
+- Tenant users cannot change which tenant their Grafana queries, because:
+  - The tenant ID is part of the datasource configuration. Grafana adds the `X-Scope-OrgID` header itself when it queries the backends, so the browser never sets it.
+  - Editors can use datasources but cannot add or edit them. Only Admins can, and tenant users never get Admin.
+  - The operator owns the datasource resources and reverts manual changes.
+  - Loki, Mimir and Tempo accept reads only from Grafana pods (NetworkPolicy), so users cannot reach them with a header of their own.
 
 **Before turning it on for a tenant** (`grafana.enabled` is off by default and not set in the `xtenantargo` composition yet)
 - Entra: an app role with `value = <tenant name>` on the Grafana app, assigned to the tenant's group. `xtenantentra` creates this role only on the Vault app today.
