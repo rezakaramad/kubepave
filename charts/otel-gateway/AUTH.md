@@ -123,7 +123,7 @@ exporters:
 
 #### Kubernetes ServiceAccount tokens
 
-Each collector pod mounts a projected ServiceAccount token with the audience `otel-gateway`. The kubelet rotates it, so no secret is stored anywhere. The collector sends the file's contents as the bearer token (`bearertokenauth` can read the token from a file and pick up changes; confirm this on the collector version we run).
+Each collector pod mounts a projected ServiceAccount token with the audience `otel-gateway`. The kubelet rotates it, so no secret is stored anywhere. The collector sends the file's contents as the bearer token (`bearertokenauth` reads the token from `filename` and reloads it when the kubelet rotates it, including the symlink swap of projected volumes; verified in the extension source at v0.161.0).
 
 - The issuer is the cluster's API server, which signs the tokens. The gateway needs the cluster's issuer URL and its public signing keys (see "Trusting more than one cluster").
 - Any pod can request a token with any audience for its own ServiceAccount. A valid token therefore proves only "some pod in that cluster". Restrict who is accepted as described next.
@@ -132,7 +132,7 @@ Each collector pod mounts a projected ServiceAccount token with the audience `ot
 
 When collectors run in several clusters, such as the management and the development cluster, the gateway needs the issuer and the signing keys of each one.
 
-- **Each cluster needs its own issuer URL.** The extension chooses the provider by the token's `iss` claim, so two clusters with the same issuer cannot be told apart. Managed clusters such as GKE already have a unique, public issuer. kind clusters all default to `https://kubernetes.default.svc.cluster.local`, so each kind cluster needs its own `service-account-issuer` API server argument, for example `https://management.kind.local`. The URL does not have to resolve.
+- **Each cluster needs its own issuer URL.** The extension chooses the provider by the token's `iss` claim, so two clusters with the same issuer cannot be told apart. Managed clusters such as GKE already have a unique, public issuer. kind clusters all default to `https://kubernetes.default.svc.cluster.local`, so at least one of them needs its own `service-account-issuer` API server argument. Here the development cluster uses `https://development.kind.local` (with `api-audiences` kept at the default so Vault/OpenBao and ESO audiences do not change) and management keeps the default, which avoids touching everything that pins the management issuer. The URL does not have to resolve.
 - **Clusters the gateway can reach** need only the `issuer_url`. The extension fetches the keys by OpenID Connect Discovery.
 - **Clusters the gateway cannot reach**, such as kind clusters, provide their keys as a file. Export them with `kubectl --context <cluster> get --raw /openid/v1/jwks`, store them in a ConfigMap and mount it into the gateway. With `public_keys_file` set, discovery is off for that provider, so the gateway makes no network calls to the cluster. The file has to be regenerated when the cluster is recreated or its signing keys rotate.
 
@@ -140,7 +140,7 @@ When collectors run in several clusters, such as the management and the developm
 extensions:
   oidc:
     providers:
-      - issuer_url: https://management.kind.local
+      - issuer_url: https://kubernetes.default.svc.cluster.local   # management
         audience: otel-gateway
         public_keys_file: /etc/otel/jwks/management.json
       - issuer_url: https://development.kind.local
@@ -152,10 +152,12 @@ extensions:
 
 The extension only authenticates. The claims of a validated token are available in the pipeline, so the gateway can also decide who is allowed:
 
-- `auth.claims.subject` and `auth.claims.<claim name>` can be copied into resource attributes with the `resource` processor (`from_context`) and then checked with a `filter` processor.
-- For a ServiceAccount token the subject is `system:serviceaccount:<namespace>:<name>`. Accepting only subjects that start with `system:serviceaccount:observability:otel-` limits writes to the platform collectors, so a tenant pod with its own valid token is rejected.
+- `auth.subject` (the username claim, `sub` by default) and `auth.claims.<claim name>` (any other claim, for example `auth.claims.sub`) can be copied into resource attributes with the `resource` processor (`from_context`) and then checked with a `filter` processor. `auth.claims.subject` does not work even though the extension's README shows it: it looks up a claim named `subject`, finds none and silently sets nothing.
+- For a ServiceAccount token the subject is `system:serviceaccount:<namespace>:<name>`. Accepting only the subjects `system:serviceaccount:observability:<name>` for the platform collectors (`app-collector`, `app-scraper`, `cluster-collector`, `meta-collector`, `node-collector`) limits writes to them, so a tenant pod with its own valid token is rejected.
 
-A sketch (untested):
+The gateway chart implements this (`resource/caller`, `filter/only_platform_collectors`, `resource/strip_caller`). The `resource` processor is not in the stock gateway image build; it is added in `builder-config.yaml`. The filter drops data and still answers 200, so watch `otelcol_processor_filter_*` in the gateway's own metrics.
+
+The sketch:
 
 ```yaml
 processors:
@@ -163,12 +165,12 @@ processors:
     attributes:
       - key: caller.subject
         action: upsert
-        from_context: auth.claims.subject
+        from_context: auth.subject
   filter/only_platform_collectors:
     error_mode: ignore
     metrics:
       metric:
-        - 'not IsMatch(resource.attributes["caller.subject"], "^system:serviceaccount:observability:otel-")'
+        - 'resource.attributes["caller.subject"] == nil or not IsMatch(resource.attributes["caller.subject"], "^system:serviceaccount:observability:(app-collector|app-scraper|cluster-collector|meta-collector|node-collector)$")'
     # same for traces and logs
 ```
 

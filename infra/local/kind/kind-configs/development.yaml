@@ -19,3 +19,11 @@ nodes:
         nodeRegistration:
           kubeletExtraArgs:
             node-labels: "ingress-ready=true"
+      # A distinct issuer lets the otel-gateway tell development tokens from management tokens.
+      # api-audiences keeps the default audience, which it would otherwise derive from the issuer.
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            service-account-issuer: "https://development.kind.local"
+            api-audiences: "https://kubernetes.default.svc.cluster.local"

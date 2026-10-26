@@ -129,7 +129,7 @@ configure_cluster_jwt() {
     if vault_exec "vault write auth/${auth_path}/config \
         jwks_url='${jwks_url}' \
         jwks_ca_pem=@/tmp/api-ca-${cluster}.crt \
-        bound_issuer='https://kubernetes.default.svc.cluster.local'" >/dev/null 2>&1; then
+        bound_issuer='$(sa_issuer "$cluster")'" >/dev/null 2>&1; then
       ok=true
       break
     fi
@@ -253,7 +253,7 @@ configure_tenant_jwt() {
     if vault_exec "vault write auth/${auth_path}/config \
         jwks_url='${jwks_url}' \
         jwks_ca_pem=@/tmp/api-ca-${auth_path}.crt \
-        bound_issuer='https://kubernetes.default.svc.cluster.local'" >/dev/null 2>&1; then
+        bound_issuer='$(sa_issuer "$cluster")'" >/dev/null 2>&1; then
       ok=true
       break
     fi

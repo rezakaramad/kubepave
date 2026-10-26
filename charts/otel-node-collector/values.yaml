@@ -41,12 +41,20 @@ otelCollector:
     limits:
       memory: 512Mi
 
-  extraEnvs:
-    - name: GATEWAY_TOKEN
-      valueFrom:
-        secretKeyRef:
-          name: gateway-collector-auth
-          key: token
+  # The kubelet rotates this token; the gateway only accepts the audience otel-gateway.
+  # Lists are replaced, not merged, so values-local-development.yaml repeats this volume.
+  extraVolumes:
+    - name: gateway-token
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: otel-gateway
+              expirationSeconds: 3600
+              path: token
+  extraVolumeMounts:
+    - name: gateway-token
+      mountPath: /var/run/secrets/otel-gateway
+      readOnly: true
 
   # Container log files under /var/log/pods are root-owned, so this one has to run as root.
   podSecurityContext:
@@ -66,7 +74,7 @@ otelCollector:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
       bearertokenauth/gateway:
-        token: ${env:GATEWAY_TOKEN}
+        filename: /var/run/secrets/otel-gateway/token
 
     receivers:
       # The kind kubelet serves a self-signed certificate.

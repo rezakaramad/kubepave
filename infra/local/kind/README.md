@@ -73,7 +73,13 @@ Run from `systems/local/kind/`. Each step is idempotent.
    can authenticate to Vault.
 7. **`setup-secrets.sh`** — reads secrets from `pass` and writes them to Vault
    (GitHub Apps, Azure AD, PowerDNS, Next Insight) and registers the development
-   cluster with ArgoCD (pull model) by storing its API server + token in Vault.
+   cluster with ArgoCD (pull model) by storing its API server + token in Vault. It also
+   writes both clusters' ServiceAccount signing keys (JWKS) to `kv/shared/pki/jwks`;
+   the otel-gateway reads them through an ExternalSecret to validate collector tokens.
+   The development cluster issues tokens with the issuer `https://development.kind.local`
+   (set in `kind-configs/development.yaml`); management keeps the default issuer. Re-run
+   after either cluster is recreated, then restart the gateway; until then that cluster's
+   collectors get 401.
 8. **`setup-trust.sh`** — copies the root CA Secret from the management cluster
    to the development cluster, verifies it, and installs it into the Java / browser
    (NSS) / system trust stores.

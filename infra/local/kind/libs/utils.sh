@@ -86,6 +86,16 @@ get_powerdns_ip() {
   get_management_node_ip
 }
 
+# Returns the ServiceAccount token issuer (`iss`) of a kind cluster.
+sa_issuer() {
+  local cluster=$1
+  if [ "$cluster" = "$WORKLOAD_CLUSTER" ]; then
+    echo "$DEVELOPMENT_SA_ISSUER"
+  else
+    echo "$DEFAULT_SA_ISSUER"
+  fi
+}
+
 # Returns the kubeconfig context name for a kind cluster
 kind_context() {
   local cluster=$1

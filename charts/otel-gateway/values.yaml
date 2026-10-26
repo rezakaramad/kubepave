@@ -6,9 +6,9 @@ otelCollector:
   # Custom build because the partitioning processor is not in a released otelcol-contrib image yet (see README).
   image:
     repository: ghcr.io/rezakaramad/dockerkit/otel-gateway-controller
-    # Built from dockerkit commit 0eec3b4fba7d9849ca9561a0c776a5c3826d328d.
+    # Built from dockerkit commit 89aed38cac5bff88268b094547bc7ab1f4965407.
     tag: ""
-    digest: sha256:74f5f69e737c951af7c4b5dcc25c84c2a40cb66f366e8e82bf8919de835bef9e
+    digest: sha256:15b919aec591b6d6f1243b9a4c4fb17254627ffd063002ca394f6660f6ab65d7
   command:
     name: otel-gateway-controller
 
@@ -29,6 +29,22 @@ otelCollector:
       enabled: false
     zipkin:
       enabled: false
+    # Receives collectors that authenticate with ServiceAccount tokens (OIDC).
+    otlp-oidc:
+      enabled: true
+      containerPort: 4319
+      servicePort: 4319
+      protocol: TCP
+
+  # Public signing keys of the clusters, from OpenBao kv/shared/pki/jwks (see templates/oidc-jwks.yaml).
+  extraVolumes:
+    - name: oidc-jwks
+      secret:
+        secretName: otel-gateway-oidc-jwks
+  extraVolumeMounts:
+    - name: oidc-jwks
+      mountPath: /etc/otel/jwks
+      readOnly: true
 
   resources:
     requests:
@@ -63,6 +79,16 @@ otelCollector:
       # Only collectors that present the shared token may send telemetry.
       bearertokenauth:
         token: ${env:GATEWAY_TOKEN}
+      # Accepts only a valid ServiceAccount JWT for the audience otel-gateway.
+      # The issuer is the `iss` claim, so each cluster has its own (see infra/local/kind/README.md).
+      oidc:
+        providers:
+          - issuer_url: https://kubernetes.default.svc.cluster.local
+            audience: otel-gateway
+            public_keys_file: /etc/otel/jwks/management.json
+          - issuer_url: https://development.kind.local
+            audience: otel-gateway
+            public_keys_file: /etc/otel/jwks/development.json
       # Sets the tenant header from the tenant_id request metadata that the partitioning processor writes.
       headers_setter:
         headers:
@@ -84,6 +110,13 @@ otelCollector:
             include_metadata: true
             auth:
               authenticator: bearertokenauth
+      otlp/oidc:
+        protocols:
+          http:
+            endpoint: ${env:MY_POD_IP}:4319
+            include_metadata: true
+            auth:
+              authenticator: oidc
 
     processors:
       memory_limiter:
@@ -106,6 +139,30 @@ otelCollector:
       partitioning:
         keys:
           tenant_id: 'resource.attributes["tenant.id"]'
+      # Records who sent the request, taken from the validated token.
+      resource/caller:
+        attributes:
+          - key: caller.subject
+            action: upsert
+            from_context: auth.subject
+      # A valid token is not enough: only the platform collector ServiceAccounts may write.
+      # Dropped data is counted in otelcol_processor_filter_* and answered with 200, not 401.
+      filter/only_platform_collectors:
+        error_mode: ignore
+        metrics:
+          metric:
+            - 'resource.attributes["caller.subject"] == nil or not IsMatch(resource.attributes["caller.subject"], "^system:serviceaccount:observability:(app-collector|app-scraper|cluster-collector|meta-collector|node-collector)$")'
+        traces:
+          span:
+            - 'resource.attributes["caller.subject"] == nil or not IsMatch(resource.attributes["caller.subject"], "^system:serviceaccount:observability:(app-collector|app-scraper|cluster-collector|meta-collector|node-collector)$")'
+        logs:
+          log_record:
+            - 'resource.attributes["caller.subject"] == nil or not IsMatch(resource.attributes["caller.subject"], "^system:serviceaccount:observability:(app-collector|app-scraper|cluster-collector|meta-collector|node-collector)$")'
+      # The caller is not telemetry; keep it out of the backends.
+      resource/strip_caller:
+        attributes:
+          - key: caller.subject
+            action: delete
 
     exporters:
       otlp_http/mimir:
@@ -147,6 +204,7 @@ otelCollector:
       extensions:
         - health_check
         - bearertokenauth
+        - oidc
         - headers_setter
       # Internal metrics go to meta-collector, so this collector never monitors itself through itself.
       telemetry:
@@ -176,4 +234,17 @@ otelCollector:
         traces:
           receivers: [otlp]
           processors: [memory_limiter, filter/drop_untenanted, partitioning]
+          exporters: [otlp_http/tempo]
+        # Same as above, but for ServiceAccount-token senders. The bearer pipelines go away after cutover.
+        metrics/oidc:
+          receivers: [otlp/oidc]
+          processors: [memory_limiter, resource/caller, filter/only_platform_collectors, resource/strip_caller, filter/drop_untenanted, partitioning]
+          exporters: [otlp_http/mimir]
+        logs/oidc:
+          receivers: [otlp/oidc]
+          processors: [memory_limiter, resource/caller, filter/only_platform_collectors, resource/strip_caller, filter/drop_untenanted, partitioning]
+          exporters: [otlp_http/loki]
+        traces/oidc:
+          receivers: [otlp/oidc]
+          processors: [memory_limiter, resource/caller, filter/only_platform_collectors, resource/strip_caller, filter/drop_untenanted, partitioning]
           exporters: [otlp_http/tempo]

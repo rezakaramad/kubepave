@@ -8,4 +8,4 @@ otelCollector:
             action: upsert
     exporters:
       otlphttp/gateway:
-        endpoint: http://gateway-collector.observability.svc:4318
+        endpoint: http://gateway-collector.observability.svc:4319

@@ -8,17 +8,4 @@ otelCollector:
             action: upsert
     exporters:
       otlphttp/gateway:
-        endpoint: http://gateway-collector.observability.svc:4318
-    service:
-      telemetry:
-        metrics:
-          readers:
-            - periodic:
-                interval: 60000
-                exporter:
-                  otlp:
-                    protocol: http/protobuf
-                    endpoint: http://gateway-collector.observability.svc:4318/v1/metrics
-                    headers:
-                      - name: Authorization
-                        value: Bearer ${env:GATEWAY_TOKEN}
+        endpoint: http://gateway-collector.observability.svc:4319

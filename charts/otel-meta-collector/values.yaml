@@ -32,12 +32,20 @@ otelCollector:
     limits:
       memory: 256Mi
 
-  extraEnvs:
-    - name: GATEWAY_TOKEN
-      valueFrom:
-        secretKeyRef:
-          name: gateway-collector-auth
-          key: token
+  # The kubelet rotates this token; the gateway only accepts the audience otel-gateway.
+  # Lists are replaced, not merged, so values-local-development.yaml repeats this volume.
+  extraVolumes:
+    - name: gateway-token
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: otel-gateway
+              expirationSeconds: 3600
+              path: token
+  extraVolumeMounts:
+    - name: gateway-token
+      mountPath: /var/run/secrets/otel-gateway
+      readOnly: true
 
   podSecurityContext:
     runAsNonRoot: true
@@ -55,7 +63,7 @@ otelCollector:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
       bearertokenauth/gateway:
-        token: ${env:GATEWAY_TOKEN}
+        filename: /var/run/secrets/otel-gateway/token
 
     receivers:
       otlp:
@@ -89,8 +97,8 @@ otelCollector:
       extensions:
         - health_check
         - bearertokenauth/gateway
-      # Reports its own metrics to the gateway as platform telemetry so it never monitors itself through itself.
-      # The reader and its endpoint are set per cluster in values-local-<cluster>.yaml.
+      # Reports its own metrics to its own OTLP receiver, so they reach the gateway through the authenticated
+      # exporter below as platform telemetry and it never monitors itself through itself.
       telemetry:
         resource:
           service.name: meta-collector
@@ -100,6 +108,13 @@ otelCollector:
           k8s.node.name: ${env:OTEL_K8S_NODE_NAME}
         metrics:
           level: detailed
+          readers:
+            - periodic:
+                interval: 60000
+                exporter:
+                  otlp:
+                    protocol: http/protobuf
+                    endpoint: http://${env:MY_POD_IP}:4318/v1/metrics
       pipelines:
         metrics:
           receivers: [otlp]

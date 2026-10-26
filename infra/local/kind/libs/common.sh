@@ -37,6 +37,11 @@ TRAEFIK_NS="platform-system"
 # DNS
 DNS_DOMAIN="rezakara.demo"
 
+# ServiceAccount token issuers (the `iss` claim). The development cluster overrides the default in
+# kind-configs/development.yaml so the otel-gateway can tell the two clusters' tokens apart.
+DEFAULT_SA_ISSUER="https://kubernetes.default.svc.cluster.local"
+DEVELOPMENT_SA_ISSUER="https://development.kind.local"
+
 # LoadBalancer IP pools — carved from the upper end of the kind Docker bridge subnet.
 # The exact IPs are computed at runtime from the actual CIDR via get_lb_pool()
 # so this works regardless of whether Docker picks a /16, /24, /27, etc.

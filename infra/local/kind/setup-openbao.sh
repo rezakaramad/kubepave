@@ -142,7 +142,7 @@ configure_platform_cluster_jwt() {
     if bao_exec "bao write auth/${auth_path}/config \
         jwks_url='${jwks_url}' \
         jwks_ca_pem=@${ca_path} \
-        bound_issuer='https://kubernetes.default.svc.cluster.local'" >/dev/null 2>&1; then
+        bound_issuer='$(sa_issuer "$cluster")'" >/dev/null 2>&1; then
       ok=true
       break
     fi
@@ -303,7 +303,7 @@ configure_tenant_jwt() {
     if bao_exec "bao write auth/${auth_path}/config \
         jwks_url='${jwks_url}' \
         jwks_ca_pem=@${ca_path} \
-        bound_issuer='https://kubernetes.default.svc.cluster.local'" >/dev/null 2>&1; then
+        bound_issuer='$(sa_issuer "$cluster")'" >/dev/null 2>&1; then
       ok=true
       break
     fi

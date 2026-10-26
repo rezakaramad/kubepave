@@ -13,9 +13,19 @@ otelCollector:
         items:
           - key: ca.crt
             path: ca.crt
+    - name: gateway-token
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: otel-gateway
+              expirationSeconds: 3600
+              path: token
   extraVolumeMounts:
     - name: root-ca
       mountPath: /etc/root-ca
+      readOnly: true
+    - name: gateway-token
+      mountPath: /var/run/secrets/otel-gateway
       readOnly: true
 
   alternateConfig:
@@ -27,21 +37,6 @@ otelCollector:
             action: upsert
     exporters:
       otlphttp/gateway:
-        endpoint: https://gateway-collector.mgmt.rezakara.demo
+        endpoint: https://gateway-collector-oidc.mgmt.rezakara.demo
         tls:
           ca_file: /etc/root-ca/ca.crt
-    # Its own metrics go to the gateway, not through itself.
-    service:
-      telemetry:
-        metrics:
-          readers:
-            - periodic:
-                interval: 60000
-                exporter:
-                  otlp:
-                    protocol: http/protobuf
-                    endpoint: https://gateway-collector.mgmt.rezakara.demo/v1/metrics
-                    certificate: /etc/root-ca/ca.crt
-                    headers:
-                      - name: Authorization
-                        value: Bearer ${env:GATEWAY_TOKEN}
