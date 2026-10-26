@@ -18,9 +18,9 @@ otelCollector:
 
   ports:
     otlp:
-      enabled: true
+      enabled: false
     otlp-http:
-      enabled: true
+      enabled: false
     jaeger-compact:
       enabled: false
     jaeger-thrift:
@@ -29,7 +29,7 @@ otelCollector:
       enabled: false
     zipkin:
       enabled: false
-    # Receives collectors that authenticate with ServiceAccount tokens (OIDC).
+    # OTLP/HTTP with a ServiceAccount token (OIDC).
     otlp-oidc:
       enabled: true
       containerPort: 4319
@@ -53,13 +53,6 @@ otelCollector:
     limits:
       memory: 512Mi
 
-  extraEnvs:
-    - name: GATEWAY_TOKEN
-      valueFrom:
-        secretKeyRef:
-          name: gateway-collector-auth
-          key: token
-
   podSecurityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -76,9 +69,6 @@ otelCollector:
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
-      # Only collectors that present the shared token may send telemetry.
-      bearertokenauth:
-        token: ${env:GATEWAY_TOKEN}
       # Accepts only a valid ServiceAccount JWT for the audience otel-gateway.
       # The issuer is the `iss` claim, so each cluster has its own (see infra/local/kind/README.md).
       oidc:
@@ -100,18 +90,6 @@ otelCollector:
       otlp:
         protocols:
           # include_metadata makes the request metadata available to the pipeline.
-          grpc:
-            endpoint: ${env:MY_POD_IP}:4317
-            include_metadata: true
-            auth:
-              authenticator: bearertokenauth
-          http:
-            endpoint: ${env:MY_POD_IP}:4318
-            include_metadata: true
-            auth:
-              authenticator: bearertokenauth
-      otlp/oidc:
-        protocols:
           http:
             endpoint: ${env:MY_POD_IP}:4319
             include_metadata: true
@@ -203,7 +181,6 @@ otelCollector:
     service:
       extensions:
         - health_check
-        - bearertokenauth
         - oidc
         - headers_setter
       # Internal metrics go to meta-collector, so this collector never monitors itself through itself.
@@ -225,26 +202,13 @@ otelCollector:
       pipelines:
         metrics:
           receivers: [otlp]
-          processors: [memory_limiter, filter/drop_untenanted, partitioning]
+          processors: [memory_limiter, resource/caller, filter/only_platform_collectors, resource/strip_caller, filter/drop_untenanted, partitioning]
           exporters: [otlp_http/mimir]
         logs:
           receivers: [otlp]
-          processors: [memory_limiter, filter/drop_untenanted, partitioning]
+          processors: [memory_limiter, resource/caller, filter/only_platform_collectors, resource/strip_caller, filter/drop_untenanted, partitioning]
           exporters: [otlp_http/loki]
         traces:
           receivers: [otlp]
-          processors: [memory_limiter, filter/drop_untenanted, partitioning]
-          exporters: [otlp_http/tempo]
-        # Same as above, but for ServiceAccount-token senders. The bearer pipelines go away after cutover.
-        metrics/oidc:
-          receivers: [otlp/oidc]
-          processors: [memory_limiter, resource/caller, filter/only_platform_collectors, resource/strip_caller, filter/drop_untenanted, partitioning]
-          exporters: [otlp_http/mimir]
-        logs/oidc:
-          receivers: [otlp/oidc]
-          processors: [memory_limiter, resource/caller, filter/only_platform_collectors, resource/strip_caller, filter/drop_untenanted, partitioning]
-          exporters: [otlp_http/loki]
-        traces/oidc:
-          receivers: [otlp/oidc]
           processors: [memory_limiter, resource/caller, filter/only_platform_collectors, resource/strip_caller, filter/drop_untenanted, partitioning]
           exporters: [otlp_http/tempo]

@@ -2,6 +2,8 @@
 
 Collectors authenticate to the gateway with a bearer token in the `Authorization` header. The token is either a static secret shared by all collectors, or a signed short-lived JWT validated with the OIDC authenticator extension.
 
+This chart deploys the OIDC method (Kubernetes ServiceAccount tokens). The static token section below describes the alternative and is not deployed.
+
 ## Static shared bearer token
 
 Every collector sends `Authorization: Bearer <token>`, and the gateway compares it with its own copy using the `bearertokenauth` extension.

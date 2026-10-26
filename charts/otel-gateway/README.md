@@ -9,7 +9,7 @@ app-collector ──► gateway-collector ──► Mimir / Loki / Tempo
                     drops telemetry without a tenant
 ```
 
-Inside the cluster it listens on `gateway-collector.observability.svc` (OTLP gRPC 4317 and OTLP HTTP 4318 with the static bearer token; OTLP HTTP 4319 with ServiceAccount tokens).
+Inside the cluster it listens on `gateway-collector.observability.svc:4319` (OTLP/HTTP, ServiceAccount token required).
 
 ## Why a custom image
 
@@ -32,7 +32,7 @@ So we build our own image with the official OpenTelemetry Collector Builder (OCB
 
 - Source: [`images/otel-gateway-controller`](https://github.com/rezakaramad/dockerkit/tree/main/images/otel-gateway-controller) in the `dockerkit` repository ([`Dockerfile`](https://github.com/rezakaramad/dockerkit/blob/main/images/otel-gateway-controller/Dockerfile) and [`builder-config.yaml`](https://github.com/rezakaramad/dockerkit/blob/main/images/otel-gateway-controller/builder-config.yaml)).
 - Image: `ghcr.io/rezakaramad/dockerkit/otel-gateway-controller`, pinned in [values.yaml](values.yaml) by digest. The current digest was built from `dockerkit` commit [`89aed38`](https://github.com/rezakaramad/dockerkit/commit/89aed38cac5bff88268b094547bc7ab1f4965407).
-- Contents: receiver `otlp`; processors `batch`, `filter`, `memory_limiter`, `partitioning`, `resource`, `transform`; extensions `basicauth`, `bearertokenauth`, `headers_setter`, `health_check`, `oidc`; exporters `debug`, `otlp_grpc`, `otlp_http`.
+- Contents: receiver `otlp`; processors `batch`, `filter`, `memory_limiter`, `partitioning`, `resource`, `transform`; extensions `headers_setter`, `health_check`, `oidc`; exporters `debug`, `otlp_grpc`, `otlp_http`.
 
 ## Switching back to the official image
 
@@ -88,6 +88,6 @@ Release manifests used to check which components ship in each image:
 - Every writer goes through the gateway: `app-collector` (metrics, logs and traces; tenant from the namespace label `platform.rezakara.demo/tenant`) and the node, cluster, app-scraper and meta collectors (tenant `platform`). Tempo's span metrics are written to Mimir under the tenant of the trace.
 - Loki and Tempo run with multi-tenancy on and have a NetworkPolicy like Mimir's (gateway for writes, Grafana for reads). Their external routes are gone and the Grafana datasources read `platform|demo`. Data written before tenancy sits under the old default tenant and is invisible.
 - The node collector (container logs, kubelet metrics) and the app-scraper take the tenant from the label on the pod's namespace and fall back to `platform`. The cluster collector does the same for kube-state-metrics series that carry a `namespace` label (pods, deployments, namespaces). Cluster-scoped series such as nodes stay `platform`. Kubernetes events are not confirmed to be tagged per tenant.
-- Port 4319 requires a ServiceAccount JWT for the audience `otel-gateway` (`oidc` extension, see [AUTH.md](AUTH.md)) from one of the platform collector ServiceAccounts; other valid tokens are dropped. The signing keys come from OpenBao `kv/shared/pki/jwks` (written by `infra/local/kind/setup-secrets.sh`) through an ExternalSecret. Ports 4317 and 4318 still require the old shared bearer token (`bearertokenauth`, OpenBao `kv/shared/otel-gateway/auth`, ExternalSecret `gateway-collector-auth`) and are removed once the cutover in [TODO.md](TODO.md) is done. The development cluster reaches the gateway through the routes `gateway-collector.mgmt.rezakara.demo` (4318) and, temporarily, `gateway-collector-oidc.mgmt.rezakara.demo` (4319). A NetworkPolicy that limits who can reach the gateway itself is still to do (the one on Mimir only works if the CNI enforces it).
+- The receiver requires a ServiceAccount JWT for the audience `otel-gateway` (`oidc` extension, see [AUTH.md](AUTH.md)) from one of the platform collector ServiceAccounts; other valid tokens are dropped. The signing keys come from OpenBao `kv/shared/pki/jwks` (written by `infra/local/kind/setup-secrets.sh`) through an ExternalSecret. The development cluster reaches the gateway through the route `gateway-collector.mgmt.rezakara.demo`. A NetworkPolicy that limits who can reach the gateway itself is still to do (the one on Mimir only works if the CNI enforces it).
 - Telemetry with no `tenant.id` is dropped, so any OTLP sender in a namespace without the tenant label loses its telemetry once it goes through the gateway.
 - `partitioning` is alpha upstream.

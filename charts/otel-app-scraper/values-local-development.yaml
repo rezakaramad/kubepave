@@ -37,6 +37,6 @@ otelCollector:
             action: upsert
     exporters:
       otlphttp/gateway:
-        endpoint: https://gateway-collector-oidc.mgmt.rezakara.demo
+        endpoint: https://gateway-collector.mgmt.rezakara.demo
         tls:
           ca_file: /etc/root-ca/ca.crt

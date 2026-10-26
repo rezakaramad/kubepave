@@ -1,7 +1,3 @@
-# Creates the gateway-collector-auth Secret that holds the token for the gateway.
-gatewayAuth:
-  enabled: true
-
 otelCollector:
   # The management routes are only resolvable reliably without the search list (see README).
   dnsConfig:
@@ -41,6 +37,6 @@ otelCollector:
             action: upsert
     exporters:
       otlphttp/gateway:
-        endpoint: https://gateway-collector-oidc.mgmt.rezakara.demo
+        endpoint: https://gateway-collector.mgmt.rezakara.demo
         tls:
           ca_file: /etc/root-ca/ca.crt

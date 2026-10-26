@@ -1,7 +1,3 @@
-# Only the cluster that exports through the gateway turns this on.
-gatewayAuth:
-  enabled: false
-
 otelCollector:
   mode: deployment
   # The tenant NetworkPolicy allows ingress from pods labelled app.kubernetes.io/name=app-collector.

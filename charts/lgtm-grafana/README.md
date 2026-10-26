@@ -41,7 +41,7 @@ Everything runs on the **management** cluster, in the `observability` namespace.
 ```mermaid
 flowchart LR
     apps[Apps and clusters] --> col[Collectors]
-    col -- OTLP and token --> gw[otel-gateway]
+    col -- OTLP and ServiceAccount token --> gw[otel-gateway]
     gw -- tenant header --> mimir[Mimir]
     gw -- tenant header --> loki[Loki]
     gw -- tenant header --> tempo[Tempo]

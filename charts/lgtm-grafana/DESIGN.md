@@ -296,7 +296,7 @@ Tenant namespaces ──► Collectors (observability)     ──► Gateway col
 **How it works**
 - Collectors derive `tenant.id` from the `platform.rezakara.demo/tenant` namespace label, overwrite anything the app sent, and drop telemetry with no tenant (fail closed). Platform namespaces map explicitly to a `platform` tenant.
 - The gateway is a central collector: `partitioning` splits by `tenant.id`, `headers_setter` sets `X-Scope-OrgID` from it, and the exporter batches per tenant (`sending_queue.batch.partition.metadata_keys`). Adding a tenant needs no collector change.
-- Loki, Mimir and Tempo run with native multi-tenancy. Only the gateway may write to them, enforced with NetworkPolicy. Collectors authenticate to the gateway, and the **development** cluster reaches it through a Traefik route with authentication.
+- Loki, Mimir and Tempo run with native multi-tenancy. Only the gateway may write to them, enforced with NetworkPolicy. Collectors authenticate to the gateway with Kubernetes ServiceAccount tokens, and the **development** cluster reaches it through a Traefik route.
 - Every tenant gets its own Grafana instance (a `Grafana` resource for the operator) with datasources that send only that tenant's `X-Scope-OrgID`. Users log in with Entra ID and the `roles` claim must carry the tenant name. Only Grafana can read from the backends. The shared Grafana stays for platform admins and reads all tenants. See "Why one Grafana per tenant" below.
 - Each tenant gets one default dashboard, published from [`grafkit`](https://github.com/rezakaramad/grafkit) as an OCI artifact.
 

@@ -23,7 +23,6 @@ Working and checked on the live clusters:
    - `infra/azure/entraid-apps.tf`: the Grafana app already ignores `app_role`, but not `web`. Make tofu stop owning `web.redirect_uris`, or the next apply removes the tenant URLs.
 2. **Switch it on in `xtenantargo`:** add `grafana.enabled: "true"` to the helm parameters in `charts/crossplane/templates/xtenantargo/composition.yaml`. It deploys `tenant-management` per tenant, so the Grafana, datasources and route follow. No tenant is onboarded yet (no `tn-*` namespaces), so also onboard one to test end to end.
 3. **After the chart rename (`otelcol-*` to `otel-*`):** in Argo CD, delete the old `otelcol-*` applications without cascade, then sync the new `otel-*` ones, so the new applications can take over the existing resources.
-4. **After the image and secret rename:** `values.yaml` now uses the `otel-gateway-controller` image (commit `0eec3b4`). Before syncing, write the token to the new OpenBao path `kv/shared/otel-gateway/auth` (re-run `infra/local/kind/setup-secrets.sh`, or copy the old value from `kv/shared/otelcol-gateway/auth`), or the `gateway-collector-auth` secret fails to sync. Delete the old path afterwards.
 
 ## Then
 
@@ -33,12 +32,8 @@ Working and checked on the live clusters:
 
 ## Open items and known limits
 
-- **Static gateway token (migration to ServiceAccount tokens in progress).** The collectors and the gateway's port 4319 use OIDC; the old token path is still deployed. Do in order:
-  1. Merge `dockerkit` (adds `oidcauth` and `resource`), wait for the image build, put the new digest in `values.yaml` and update the commit in the README.
-  2. Recreate both kind clusters (the development issuer changed) and run `setup-openbao.sh`, then `setup-secrets.sh` (it writes the cluster JWKS).
-  3. Check the gateway: no token, a malformed token, a wrong audience: 401. A valid token from a tenant pod: accepted, but its data is in no backend and `otelcol_processor_filter_*` counts it.
-  4. Check each collector in turn: no 401 in the gateway logs, data for `demo` and `platform` keeps arriving, `anonymous`, `fake` and `single-tenant` stay empty. Rotation: set `expirationSeconds: 600` temporarily and watch one rotation without errors or restarts.
-  5. Cutover: remove `bearertokenauth`, the 4317/4318 receiver, `GATEWAY_TOKEN`, `auth-secret.yaml`, `gateway-auth.yaml` and `gatewayAuth` in `otel-app-collector`, the temporary route and the legacy pipelines; point the 4318 route at 4319 and move the dev collectors back to `gateway-collector.mgmt.rezakara.demo`; remove `create_otel_gateway_secrets()` from `setup-secrets.sh`; delete `kv/shared/otel-gateway/auth` and `kv/shared/otelcol-gateway/auth`; drop `bearertokenauth` and `basicauth` from the image; shorten AUTH.md.
+- **Static token cleanup, left to do by hand.** In OpenBao delete `kv/shared/otel-gateway/auth` and, if present, `kv/shared/otelcol-gateway/auth`, after Argo CD has synced the gateway without `gateway-collector-auth` (`bao kv metadata delete kv/shared/otel-gateway/auth`). Confirm the Secret `gateway-collector-auth` is pruned in both clusters.
+- **Token rotation** was not yet observed: after the first kubelet refresh of the projected token (about 48 minutes after a collector starts), check for a second `refresh token` line in each collector, no restart and no 401 in the gateway log.
 - **Official collector image:** the gateway uses a custom build because `partitioning` is not in a released contrib image. Switch back after the next release; steps are in the "Switching back" section of `README.md`.
 - **Kubernetes events** are not confirmed to be tagged per tenant; I found no event streams in Loki.
 - **app-scraper** drops every `*-system` namespace, so today it scrapes nothing. Its tenant tagging is untested until a workload namespace has a scrape-annotated pod.

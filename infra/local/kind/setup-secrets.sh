@@ -456,25 +456,6 @@ create_grafana_secrets() {
 }
 
 # -----------------------------------------------------------------------------
-# Token the platform collectors present to the tenant-aware otel gateway.
-# Pushed under kv/shared/* so the ESO store on every cluster can read it; generated once.
-# -----------------------------------------------------------------------------
-create_otel_gateway_secrets() {
-  log "Writing otel gateway token to OpenBao..."
-
-  if bao_kv_exists "kv/shared/otel-gateway/auth"; then
-    log "otel gateway token already exists — skipping"
-    return 0
-  fi
-
-  bao_kv_put "kv/shared/otel-gateway/auth" \
-    "token" "$(openssl rand -hex 32)"
-
-  ok "otel gateway token written"
-}
-
-
-# -----------------------------------------------------------------------------
 # Public ServiceAccount signing keys (JWKS) of every kind cluster.
 # Pushed under kv/shared/pki so a consumer on any cluster can validate that cluster's tokens
 # (the otel-gateway does). Re-run after a cluster is recreated or its keys change.
@@ -515,7 +496,6 @@ main() {
   create_seaweedfs_secrets
   create_seaweedfs_sts_secrets
   create_grafana_secrets
-  create_otel_gateway_secrets
   push_cluster_jwks
   register_clusters_argocd
   create_powerdns_secrets
