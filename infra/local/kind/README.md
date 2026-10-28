@@ -33,6 +33,13 @@ Install and have on `PATH`:
 You also need the `pass` password store populated with the GitHub App and Azure AD
 credentials referenced by `setup-secrets.sh`.
 
+The host needs a higher inotify instance limit. The kind nodes share the host kernel and the limit is per user, so the root-run `node-collector` runs out of instances. Its `bearertokenauth` token watcher then fails to start (`couldn't initialize inotify: too many open files`) and its ServiceAccount token expires after an hour, after which the gateway answers 401. Set it once and persist it:
+
+```bash
+sudo sysctl fs.inotify.max_user_instances=1024
+echo 'fs.inotify.max_user_instances=1024' | sudo tee /etc/sysctl.d/99-kind-inotify.conf
+```
+
 ---
 
 ## Bootstrap order

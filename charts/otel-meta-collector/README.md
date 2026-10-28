@@ -13,11 +13,18 @@ A small collector with one job: take the **other collectors' own health metrics*
 
 ## Why we chose 4
 
-- **No loop.** A collector never reports through its own pipeline. If its memory limiter starts dropping data, the alarm still gets out.
+- **No loop for the other collectors.** They never report through their own pipeline. If a memory limiter starts dropping data, the alarm still gets out.
 - **One funnel.** Every collector in a cluster sends to one place, which then makes one connection to the gateway and tags everything with the cluster name.
 - **Nothing new to run.** It's just another collector, with no Prometheus to install.
 
-The meta-collector can't report on itself, so it sends its own health report straight to the gateway.
+The meta-collector is the **exception**. It sends its own health report to its own OTLP receiver, so it goes out through its normal pipeline and the authenticated gateway exporter. The internal telemetry exporter only takes header values that are read once when the collector starts, so it cannot present the rotating ServiceAccount token itself. The catch is the loop from the table: if the meta-collector's pipeline is stuck, its own report is stuck too, so alert on missing meta-collector metrics.
+
+## Why the meta-collector is different
+
+What matters is where a collector's own metrics go:
+
+- **Other collectors** send them to the meta-collector over plain in-cluster HTTP. Its receiver has no authentication, so the internal telemetry exporter needs no token, only an endpoint.
+- **The meta-collector** has nobody to forward its own metrics to except the **gateway**, which requires a ServiceAccount token that rotates. The internal telemetry exporter is built by the OpenTelemetry SDK, not as a pipeline component. It has no `auth` setting and its header values are read once at start, so it cannot present a refreshed token.
 
 ## How it's wired
 
