@@ -42,8 +42,8 @@ secretStore:
 compositeResources:
   xTenantEntra:
     enabled: true
-    packageTag: v0.2.4
+    packageTag: v0.2.5
 
   xTenantArgo:
     enabled: true
-    packageTag: v0.1.6
+    packageTag: v0.1.7

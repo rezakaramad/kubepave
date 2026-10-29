@@ -1,0 +1,26 @@
+{{- if .Values.compositeResources.xWebApp.enabled }}
+
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xwebapp
+spec:
+  compositeTypeRef:
+    apiVersion: idp.rezakara.demo/v1beta1
+    kind: XWebApp
+  mode: Pipeline
+  pipeline:
+    - step: run-the-template
+      functionRef:
+        name: xwebapp
+      input:
+        apiVersion: defaults.fn.crossplane.io/v1beta1
+        kind: Input
+
+        # The tenant Gateway lives in platform-system and is named after the
+        # tenant, which is also the XR's namespace, so only the namespace is set.
+        gateway:
+          namespace: platform-system
+
+---
+{{- end }}

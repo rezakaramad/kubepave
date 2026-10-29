@@ -1,0 +1,13 @@
+{{- if .Values.compositeResources.xWebApp.enabled }}
+
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: xwebapp
+spec:
+  {{- with .Values.compositeResources.xWebApp }}
+  package: {{ .package }}:{{ .packageTag }}
+  {{- end }}
+
+---
+{{- end }}

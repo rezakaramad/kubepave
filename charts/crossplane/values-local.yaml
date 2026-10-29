@@ -33,3 +33,7 @@ compositeResources:
   xTenantArgo:
     enabled: false
     packageTag: <upsert-in-env-values-file>
+
+  xWebApp:
+    enabled: false
+    packageTag: <upsert-in-env-values-file>

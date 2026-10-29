@@ -23,3 +23,8 @@ secretStore:
       auth:
         jwt:
           path: jwt-development
+
+compositeResources:
+  xWebApp:
+    enabled: true
+    packageTag: v0.1.0
