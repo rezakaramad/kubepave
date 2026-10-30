@@ -24,7 +24,7 @@ set -euo pipefail
 #         NO per-tenant role, mount, or namespace to provision.
 #     oidc — central human-operator method (Entra ID).
 #
-# Like setup-vault.sh, OpenBao validates pod JWTs by fetching each cluster's
+# OpenBao validates pod JWTs by fetching each cluster's
 # public signing keys (JWKS) DIRECTLY from that cluster's API server
 # (https://<node-ip>:6443/openid/v1/jwks). The KV bootstrap (init/unseal/mounts/
 # policies) is done by the chart postStart hook; this script only adds the parts

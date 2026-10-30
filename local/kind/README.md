@@ -3,7 +3,7 @@
 A reproducible, multi-cluster local platform running on [kind](https://kind.sigs.k8s.io/).
 It mirrors the cloud setup: 
 
-- a **management** cluster running the platform control plane (ArgoCD, Vault, PowerDNS, cert-manager, external-secrets, Traefik)
+- a **management** cluster running the platform control plane (ArgoCD, OpenBao, PowerDNS, cert-manager, external-secrets, Traefik)
 - and a **development** cluster whose platform components are installed by ArgoCD via
 GitOps.
 
@@ -52,8 +52,8 @@ Run from `systems/local/kind/`. Each step is idempotent.
 ./install-gateway-api.sh      # 3. Gateway API CRDs (both clusters) — required by setup-dns.sh
 ./setup-dns.sh start          # 4. PowerDNS (hostNetwork) + systemd-resolved drop-in
 ./install-charts.sh           # 5. management stack + ArgoCD + development seed
-./setup-vault.sh              # 6. configure Vault JWT auth for all clusters
-./setup-secrets.sh            # 7. push secrets to Vault + register development with ArgoCD
+./setup-openbao.sh            # 6. configure OpenBao JWT auth for all clusters
+./setup-secrets.sh            # 7. push secrets to OpenBao + register development with ArgoCD
 ./setup-trust.sh              # 8. distribute root CA to development + local trust stores
 ```
 
@@ -73,14 +73,14 @@ Run from `systems/local/kind/`. Each step is idempotent.
    systemd-resolved drop-in so the host resolves `*.rezakara.demo` via PowerDNS.
    `reset` reverts the host DNS change.
 5. **`install-charts.sh`** — the main bootstrap. Installs cert-manager,
-   external-secrets, Vault, Traefik (TLS), external-dns (management), and ArgoCD
+   external-secrets, OpenBao, Traefik (TLS), external-dns (management), and ArgoCD
    (OIDC + App-of-Apps).
-6. **`setup-vault.sh`** — configures a Vault JWT auth backend per cluster,
+6. **`setup-openbao.sh`** — configures an OpenBao JWT auth backend per cluster,
    fetching each cluster's JWKS directly from its API server, so external-secrets
-   can authenticate to Vault.
-7. **`setup-secrets.sh`** — reads secrets from `pass` and writes them to Vault
+   can authenticate to OpenBao.
+7. **`setup-secrets.sh`** — reads secrets from `pass` and writes them to OpenBao
    (GitHub Apps, Azure AD, PowerDNS, Next Insight) and registers the development
-   cluster with ArgoCD (pull model) by storing its API server + token in Vault. It also
+   cluster with ArgoCD (pull model) by storing its API server + token in OpenBao. It also
    writes both clusters' ServiceAccount signing keys (JWKS) to `kv/shared/pki/jwks`;
    the otel-gateway reads them through an ExternalSecret to validate collector tokens.
    The development cluster issues tokens with the issuer `https://development.kind.local`
@@ -109,7 +109,7 @@ the local root CA (trusted after `setup-trust.sh`):
 | Service | URL |
 |---------|-----|
 | ArgoCD | `https://argocd.mgmt.rezakara.demo` |
-| Vault | `https://openbao.mgmt.rezakara.demo` |
+| OpenBao | `https://openbao.mgmt.rezakara.demo` |
 | PowerDNS API | `https://powerdns.mgmt.rezakara.demo` |
 
 ArgoCD supports both Azure AD SSO and the local `admin` account. Retrieve the
@@ -174,7 +174,7 @@ VIP from the pool above.
 
 ```bash
 # DNS resolves from the host
-dig +short vault.mgmt.rezakara.demo
+dig +short openbao.mgmt.rezakara.demo
 
 # Management platform pods
 kubectl --context kind-management -n platform-system get pods
@@ -187,7 +187,7 @@ kubectl --context kind-development -n platform-system get pods
 
 # HTTPS endpoints
 curl -s -o /dev/null -w '%{http_code}\n' https://argocd.mgmt.rezakara.demo/
-curl -s -o /dev/null -w '%{http_code}\n' https://vault.mgmt.rezakara.demo/v1/sys/health
+curl -s -o /dev/null -w '%{http_code}\n' https://openbao.mgmt.rezakara.demo/v1/sys/health
 ```
 
 `dns-test.yaml` is a sample HTTPRoute for testing the external-dns → PowerDNS flow:
@@ -231,8 +231,8 @@ systems/local/kind/
 ├── setup-cilium.sh         # Cilium CNI + LoadBalancer pools
 ├── setup-dns.sh           # PowerDNS + systemd-resolved
 ├── install-charts.sh      # management stack + ArgoCD + gitops-platform
-├── setup-vault.sh         # Vault JWT auth (all clusters)
-├── setup-secrets.sh       # secrets to Vault + development registration
+├── setup-openbao.sh       # OpenBao JWT auth (all clusters)
+├── setup-secrets.sh       # secrets to OpenBao + development registration
 ├── setup-trust.sh         # root CA trust distribution
 └── dns-test.yaml          # sample HTTPRoute for DNS testing
 ```

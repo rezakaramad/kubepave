@@ -9,7 +9,7 @@ usage see [README.md](README.md).
 
 Two kind clusters model a real platform:
 
-- **management** — runs the platform control plane (ArgoCD, Vault, PowerDNS,
+- **management** — runs the platform control plane (ArgoCD, OpenBao, PowerDNS,
   cert-manager, external-secrets, Traefik).
 - **development** — a tenant cluster whose platform components are installed by
   ArgoCD via GitOps.
@@ -23,7 +23,7 @@ flowchart TB
         coredns_m["CoreDNS stub"]
         traefik_m["Traefik Gateway<br/>TLS :8443 (root-ca)"]
         argocd["ArgoCD<br/>OIDC + App-of-Apps"]
-        vault["Vault"]
+        vault["OpenBao"]
         eso_m["external-secrets"]
         edns_m["external-dns"]
         cm_m["cert-manager<br/>selfsigned → root-ca"]
@@ -106,31 +106,31 @@ selfsigned (ClusterIssuer)
 Gateway is annotated with `cert-manager.io/cluster-issuer: root-ca`, so
 cert-manager mints the wildcard cert and Traefik terminates HTTPS on `:8443`.
 
-The root CA is pushed to Vault (`management/pki`) via an external-secrets
+The root CA is pushed to OpenBao (`kv/shared/pki/root-ca`) via an external-secrets
 `PushSecret`. `setup-trust.sh` pulls it back out and installs it into the host's
 Java, browser (NSS), and system trust stores, and seeds the `root-ca` secret into
 the development cluster — so the **same** CA is trusted across host and both clusters.
 
 ---
 
-## Secrets: Vault + external-secrets
+## Secrets: OpenBao + external-secrets
 
-Vault (KV v2 at mount `local`) is the source of truth for all secrets. Bootstrap
+OpenBao (KV v2 at mount `kv`) is the source of truth for all secrets. Bootstrap
 scripts write secrets from `pass`; external-secrets materialises them into
 Kubernetes as needed.
 
 - The **management** cluster uses a `ClusterSecretStore` (`openbao-local`) that
-  reaches Vault over its HTTPS route and authenticates via JWT auth.
-- The **development** cluster uses a `SecretStore` and its own Vault JWT auth backend
-  (`jwt-development`) configured by `setup-vault.sh`.
+  reaches OpenBao over its HTTPS route and authenticates via JWT auth.
+- The **development** cluster uses a `SecretStore` and its own OpenBao JWT auth backend
+  (`jwt-development`) configured by `setup-openbao.sh`.
 
-Vault validates each pod's ServiceAccount token cryptographically: it fetches the
+OpenBao validates each pod's ServiceAccount token cryptographically: it fetches the
 cluster's public signing keys (JWKS) directly from that cluster's API server
 (`https://<node-ip>:6443/openid/v1/jwks`) — the same hub→spoke path ArgoCD uses.
 No long-lived reviewer token is needed.
 
-> **Operational note:** the local `vault` CLI version may differ from the server.
-> All bootstrap scripts run `vault` commands *inside* the `vault-0` pod
+> **Operational note:** the local `bao` CLI version may differ from the server.
+> All bootstrap scripts run `bao` commands *inside* the `openbao-0` pod
 > (`kubectl exec`) to avoid client/server version-mismatch errors.
 
 ---
@@ -144,7 +144,7 @@ external-dns) are **not** installed imperatively — ArgoCD installs them by syn
 The flow:
 
 1. `setup-secrets.sh` creates an `argocd-manager` ServiceAccount with a long-lived
-   token in the development cluster and stores `server` + `token` in Vault.
+   token in the development cluster and stores `server` + `token` in OpenBao.
 2. `gitops-platform`'s `clusters-credential` ExternalSecret materialises the
    ArgoCD **cluster Secret** (pull model — ArgoCD connects out to the development API).
 3. `gitops-platform`'s App-of-Apps (`platform-application-folder`) points at
@@ -156,9 +156,9 @@ and pushed before they take effect.
 
 ### Why the development cluster needs no identity seed
 
-Vault authenticates development pods with JWT auth, fetching the development cluster's
+OpenBao authenticates development pods with JWT auth, fetching the development cluster's
 JWKS **directly from its API server** (`https://<node-ip>:6443`). Because the API
-server is up the moment the kind cluster exists, `setup-vault.sh` can configure
+server is up the moment the kind cluster exists, `setup-openbao.sh` can configure
 `jwt-development` immediately — nothing has to be pre-seeded on the development cluster.
 
 This deliberately avoids the bootstrap cycle that arises if you instead expose the
@@ -167,7 +167,7 @@ JWKS through the development's own Traefik ingress:
 ```
 Traefik Gateway needs a TLS cert
   → cert comes from external-secrets (SecretStore)
-    → SecretStore needs Vault jwt-development auth
+    → SecretStore needs OpenBao jwt-development auth
       → jwt-development needs the JWKS endpoint behind Traefik
         → back to the Gateway that isn't up yet
 ```
@@ -175,7 +175,7 @@ Traefik Gateway needs a TLS cert
 Fetching the JWKS from the API server sits *below* that stack, so the whole
 development platform can be pure GitOps with no hand-planted identity seed. The only
 thing bootstrapped imperatively is `setup-secrets.sh` registering the development
-cluster with ArgoCD (storing its API server + token in Vault).
+cluster with ArgoCD (storing its API server + token in OpenBao).
 
 ### PowerDNS API at a stable hostname
 
@@ -195,7 +195,7 @@ model of talking to a DNS API over a stable endpoint.
 
 ArgoCD runs with Azure AD OIDC enabled (same config as the cloud/minikube setup),
 with the local `admin` account retained as a fallback. The Azure client secret is
-read from Vault into `argocd-secret` by an external-secrets `ExternalSecret`.
+read from OpenBao into `argocd-secret` by an external-secrets `ExternalSecret`.
 Because OIDC requires a working HTTPS URL, this depends on the TLS chain being up.
 
 ---
