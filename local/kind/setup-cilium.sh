@@ -18,7 +18,7 @@ source "$DIR/libs/common.sh"
 source "$DIR/libs/utils.sh"
 
 # Define variables for the Cilium Helm chart, namespace, and CRD names
-CILIUM_CHART="$REPO_ROOT/charts/cilium"
+CILIUM_CHART="$REPO_ROOT/kubernetes/charts/cilium"
 CILIUM_NAMESPACE="kube-system"
 LB_POOL_CRD="ciliumloadbalancerippools.cilium.io"
 L2_POLICY_CRD="ciliuml2announcementpolicies.cilium.io"

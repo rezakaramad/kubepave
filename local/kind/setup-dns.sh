@@ -16,7 +16,7 @@ source "$DIR/libs/utils.sh"
 
 # PowerDNS namespace and Helm chart location
 POWERDNS_NAMESPACE="powerdns"
-POWERDNS_CHART="$REPO_ROOT/charts/powerdns"
+POWERDNS_CHART="$REPO_ROOT/kubernetes/charts/powerdns"
 
 # Shared platform credentials file: generated values are never committed
 SECRETS_FILE="$REPO_ROOT/.platform.env"

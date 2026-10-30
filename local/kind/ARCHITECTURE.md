@@ -139,7 +139,7 @@ No long-lived reviewer token is needed.
 
 Workload platform components (cert-manager, external-secrets, Traefik,
 external-dns) are **not** installed imperatively — ArgoCD installs them by syncing
-`argocd-applications/local/development/`.
+`argocd/local/development/`.
 
 The flow:
 
@@ -148,7 +148,7 @@ The flow:
 2. `gitops-platform`'s `clusters-credential` ExternalSecret materialises the
    ArgoCD **cluster Secret** (pull model — ArgoCD connects out to the development API).
 3. `gitops-platform`'s App-of-Apps (`platform-application-folder`) points at
-   `argocd-applications/local/development/` with `directory.recurse: true`.
+   `argocd/local/development/` with `directory.recurse: true`.
 4. ArgoCD reconciles those Applications, installing the development platform stack.
 
 Because ArgoCD reads from **Git**, chart and Application changes must be committed

@@ -5,13 +5,13 @@ tasks:
   minikube:check:
     desc: "Verify required dependencies are installed"
     cmds:
-      - ./infra/local/minikube/check-dependencies.sh
+      - ./local/minikube/check-dependencies.sh
   minikube:start:
     desc: "Start Minikube clusters"
     deps: [minikube:check]
     cmds:
-      - ./infra/local/minikube/setup-minikube.sh start
-      - ./infra/local/minikube/setup-iptables.sh
+      - ./local/minikube/setup-minikube.sh start
+      - ./local/minikube/setup-iptables.sh
   minikube:up:
     desc: "Run kubepave on Minikube"
     deps: [minikube:start]
@@ -20,13 +20,13 @@ tasks:
       - |
         start=$(date +%s)
 
-        ./infra/local/minikube/install-charts.sh
-        ./infra/local/minikube/setup-secrets.sh
-        ./infra/local/minikube/setup-trust.sh
-        ./infra/local/minikube/setup-vault.sh
-        ./infra/local/minikube/setup-dns.sh start
-        ./infra/local/minikube/setup-dns.sh clean_etc_hosts
-        ./infra/local/minikube/setup-kubectl.sh
+        ./local/minikube/install-charts.sh
+        ./local/minikube/setup-secrets.sh
+        ./local/minikube/setup-trust.sh
+        ./local/minikube/setup-vault.sh
+        ./local/minikube/setup-dns.sh start
+        ./local/minikube/setup-dns.sh clean_etc_hosts
+        ./local/minikube/setup-kubectl.sh
 
         end=$(date +%s)
 
@@ -35,16 +35,16 @@ tasks:
   minikube:tunnels:
     desc: "List Minikube tunnels"
     cmds:
-      - ./infra/local/minikube/setup-minikube.sh tunnels
+      - ./local/minikube/setup-minikube.sh tunnels
   minikube:down:
     desc: "Tear down everything"
     cmds:
-      - ./infra/local/minikube/setup-minikube.sh destroy
-      - ./infra/local/minikube/setup-dns.sh reset
+      - ./local/minikube/setup-minikube.sh destroy
+      - ./local/minikube/setup-dns.sh reset
   kind:check:
     desc: "Verify required dependencies are installed"
     cmds:
-      - ./infra/local/kind/check-dependencies.sh
+      - ./local/kind/check-dependencies.sh
   kind:up:
     desc: "Bootstrap the full kind-based local environment"
     deps: [kind:check]
@@ -52,7 +52,7 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        cd infra/local/kind
+        cd local/kind
 
         start=$(date +%s)
 
@@ -69,23 +69,23 @@ tasks:
         echo ""
         echo "⏱️  Total time: $((end - start)) seconds"
 
-        accessor=$(grep '^export OPENBAO_OIDC_ACCESSOR=' ../../../.platform.env 2>/dev/null | cut -d'"' -f2 || true)
-        current=$(grep -E '^\s+oidcAccessor:' ../../../charts/crossplane/values-local-management.yaml | cut -d'"' -f2 || true)
+        accessor=$(grep '^export OPENBAO_OIDC_ACCESSOR=' ../../.platform.env 2>/dev/null | cut -d'"' -f2 || true)
+        current=$(grep -E '^\s+oidcAccessor:' ../../kubernetes/charts/crossplane/values-local-management.yaml | cut -d'"' -f2 || true)
         echo ""
         if [ "$accessor" != "$current" ]; then
           echo "⚠️  ACTION REQUIRED: the OpenBao OIDC accessor changed."
           echo "   New:     ${accessor:-<not found in .platform.env>}"
           echo "   In Git:  ${current:-<empty>}"
-          echo "   Set vaultProvider.oidcAccessor in charts/crossplane/values-local-management.yaml,"
+          echo "   Set vaultProvider.oidcAccessor in kubernetes/charts/crossplane/values-local-management.yaml,"
           echo "   commit, push and sync crossplane-management."
         else
-          echo "✅ OIDC accessor in charts/crossplane/values-local-management.yaml is up to date ($accessor)"
+          echo "✅ OIDC accessor in kubernetes/charts/crossplane/values-local-management.yaml is up to date ($accessor)"
         fi
   kind:down:
     desc: "Tear down the kind clusters and reset local DNS"
     cmds:
-      - cd infra/local/kind && bash setup-clusters.sh destroy
-      - cd infra/local/kind && bash setup-dns.sh reset
+      - cd local/kind && bash setup-clusters.sh destroy
+      - cd local/kind && bash setup-dns.sh reset
   azure:local:up:
     desc: "Bootstrap Azure Entra ID for kubepave"
     cmds:

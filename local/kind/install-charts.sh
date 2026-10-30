@@ -301,7 +301,7 @@ install_external_secrets() {
 # register before the parent chart's Kafka/KafkaNodePool resources render. We
 # therefore pre-apply the CRD bundle (server-side) and run Helm with --skip-crds,
 # mirroring the cert-manager/external-secrets pattern. Refresh the bundle with
-# `just get-crds` in charts/kafka.
+# `just get-crds` in kubernetes/charts/kafka.
 # -----------------------------------------------------------------------------
 install_kafka() {
   # Function arguments:

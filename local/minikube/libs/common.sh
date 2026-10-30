@@ -5,10 +5,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Go four folders up from where the script lives, and give me that absolute path.
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-# Absolute path to 'charts/'' directory
-CHARTS_DIR="$REPO_ROOT/charts"
+# Absolute path to 'kubernetes/charts/'' directory
+CHARTS_DIR="$REPO_ROOT/kubernetes/charts"
 
 # Where kubectl plugins are placed
 KUBECTL_PLUGIN_DIR="$REPO_ROOT/src/kubectl-plugins"

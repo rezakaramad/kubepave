@@ -92,7 +92,7 @@ Run from `systems/local/kind/`. Each step is idempotent.
    (NSS) / system trust stores.
 
 After step 6, ArgoCD materialises the development cluster Secret and the App-of-Apps
-begins syncing `argocd-applications/local/development/` — installing cert-manager,
+begins syncing `argocd/local/development/` — installing cert-manager,
 external-secrets, Traefik, and external-dns on the development cluster.
 
 > **Note:** ArgoCD pulls charts and Application manifests from Git
@@ -145,7 +145,7 @@ IP ranges remain stable across every `kind:down && kind:up` cycle.
 
 Pool sizes are controlled by `LB_MGMT_POOL_SIZE` / `LB_WL_POOL_SIZE` in
 `libs/common.sh`. The ranges are committed in
-`charts/cilium/values-local-{management,development}.yaml` so ArgoCD can reconcile
+`kubernetes/charts/cilium/values-local-{management,development}.yaml` so ArgoCD can reconcile
 them without any runtime injection.
 
 ### Pod and service CIDRs
