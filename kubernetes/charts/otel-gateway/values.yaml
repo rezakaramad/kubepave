@@ -1,0 +1,214 @@
+otelCollector:
+  mode: deployment
+  nameOverride: gateway-collector
+  fullnameOverride: gateway-collector
+
+  # Custom build because the partitioning processor is not in a released otelcol-contrib image yet (see README).
+  image:
+    repository: ghcr.io/rezakaramad/dockerkit/otel-gateway-controller
+    # Built from dockerkit commit 89aed38cac5bff88268b094547bc7ab1f4965407.
+    tag: ""
+    digest: sha256:15b919aec591b6d6f1243b9a4c4fb17254627ffd063002ca394f6660f6ab65d7
+  command:
+    name: otel-gateway-controller
+
+  presets:
+    kubernetesAttributes:
+      enabled: false
+
+  ports:
+    otlp:
+      enabled: false
+    otlp-http:
+      enabled: false
+    jaeger-compact:
+      enabled: false
+    jaeger-thrift:
+      enabled: false
+    jaeger-grpc:
+      enabled: false
+    zipkin:
+      enabled: false
+    # OTLP/HTTP with a ServiceAccount token (OIDC).
+    otlp-oidc:
+      enabled: true
+      containerPort: 4319
+      servicePort: 4319
+      protocol: TCP
+
+  # Public signing keys of the clusters, from OpenBao kv/shared/pki/jwks (see templates/oidc-jwks.yaml).
+  extraVolumes:
+    - name: oidc-jwks
+      secret:
+        secretName: otel-gateway-oidc-jwks
+  extraVolumeMounts:
+    - name: oidc-jwks
+      mountPath: /etc/otel/jwks
+      readOnly: true
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+
+  # Used instead of `config` because Helm can't remove the chart's default receivers and exporters.
+  alternateConfig:
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+      # Accepts only a valid ServiceAccount JWT for the audience otel-gateway.
+      # The issuer is the `iss` claim, so each cluster has its own (see local/kind/README.md).
+      oidc:
+        providers:
+          - issuer_url: https://kubernetes.default.svc.cluster.local
+            audience: otel-gateway
+            public_keys_file: /etc/otel/jwks/management.json
+          - issuer_url: https://development.kind.local
+            audience: otel-gateway
+            public_keys_file: /etc/otel/jwks/development.json
+      # Sets the tenant header from the tenant_id request metadata that the partitioning processor writes.
+      headers_setter:
+        headers:
+          - action: upsert
+            key: X-Scope-OrgID
+            from_context: tenant_id
+
+    receivers:
+      otlp:
+        protocols:
+          # include_metadata makes the request metadata available to the pipeline.
+          http:
+            endpoint: ${env:MY_POD_IP}:4319
+            include_metadata: true
+            auth:
+              authenticator: oidc
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      # Fail closed: telemetry without a tenant is dropped, never sent to a default tenant.
+      filter/drop_untenanted:
+        error_mode: ignore
+        metrics:
+          metric:
+            - 'resource.attributes["tenant.id"] == nil'
+        traces:
+          span:
+            - 'resource.attributes["tenant.id"] == nil'
+        logs:
+          log_record:
+            - 'resource.attributes["tenant.id"] == nil'
+      # Splits each batch by tenant and puts the tenant in the request metadata.
+      partitioning:
+        keys:
+          tenant_id: 'resource.attributes["tenant.id"]'
+      # Records who sent the request, taken from the validated token.
+      resource/caller:
+        attributes:
+          - key: caller.subject
+            action: upsert
+            from_context: auth.subject
+      # A valid token is not enough: only the platform collector ServiceAccounts may write.
+      # Dropped data is counted in otelcol_processor_filter_* and answered with 200, not 401.
+      filter/only_platform_collectors:
+        error_mode: ignore
+        metrics:
+          metric:
+            - 'resource.attributes["caller.subject"] == nil or not IsMatch(resource.attributes["caller.subject"], "^system:serviceaccount:observability:(app-collector|app-scraper|cluster-collector|meta-collector|node-collector)$")'
+        traces:
+          span:
+            - 'resource.attributes["caller.subject"] == nil or not IsMatch(resource.attributes["caller.subject"], "^system:serviceaccount:observability:(app-collector|app-scraper|cluster-collector|meta-collector|node-collector)$")'
+        logs:
+          log_record:
+            - 'resource.attributes["caller.subject"] == nil or not IsMatch(resource.attributes["caller.subject"], "^system:serviceaccount:observability:(app-collector|app-scraper|cluster-collector|meta-collector|node-collector)$")'
+      # The caller is not telemetry; keep it out of the backends.
+      resource/strip_caller:
+        attributes:
+          - key: caller.subject
+            action: delete
+
+    exporters:
+      otlp_http/mimir:
+        endpoint: http://mimir-gateway.observability.svc/otlp
+        encoding: proto
+        auth:
+          authenticator: headers_setter
+        sending_queue:
+          enabled: true
+          batch:
+            flush_timeout: 1s
+            # Without this key, batches from different tenants could be merged and lose the header.
+            partition:
+              metadata_keys: [tenant_id]
+      otlp_http/loki:
+        endpoint: http://loki.observability.svc:3100/otlp
+        encoding: proto
+        auth:
+          authenticator: headers_setter
+        sending_queue:
+          enabled: true
+          batch:
+            flush_timeout: 1s
+            partition:
+              metadata_keys: [tenant_id]
+      otlp_http/tempo:
+        endpoint: http://tempo.observability.svc:4318
+        encoding: proto
+        auth:
+          authenticator: headers_setter
+        sending_queue:
+          enabled: true
+          batch:
+            flush_timeout: 1s
+            partition:
+              metadata_keys: [tenant_id]
+
+    service:
+      extensions:
+        - health_check
+        - oidc
+        - headers_setter
+      # Internal metrics go to meta-collector, so this collector never monitors itself through itself.
+      telemetry:
+        resource:
+          service.name: gateway-collector
+          k8s.namespace.name: ${env:OTEL_K8S_NAMESPACE}
+          k8s.pod.name: ${env:OTEL_K8S_POD_NAME}
+          k8s.node.name: ${env:OTEL_K8S_NODE_NAME}
+        metrics:
+          level: detailed
+          readers:
+            - periodic:
+                interval: 60000
+                exporter:
+                  otlp:
+                    protocol: http/protobuf
+                    endpoint: http://meta-collector.observability.svc:4318/v1/metrics
+      pipelines:
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, resource/caller, filter/only_platform_collectors, resource/strip_caller, filter/drop_untenanted, partitioning]
+          exporters: [otlp_http/mimir]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, resource/caller, filter/only_platform_collectors, resource/strip_caller, filter/drop_untenanted, partitioning]
+          exporters: [otlp_http/loki]
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, resource/caller, filter/only_platform_collectors, resource/strip_caller, filter/drop_untenanted, partitioning]
+          exporters: [otlp_http/tempo]
