@@ -17,18 +17,18 @@
 
 ## � Table of Contents
 
-- [Getting started](#-getting-started)
+- [The layout](#the-layout)
+- [Getting started](#getting-started)
   - [Bootstrap Azure EntraID](#bootstrap-azure-entraid-opentofu)
     - [Prerequisites](#prerequisites)
     - [State management (no cloud backend)](#state-management-no-cloud-backend)
   - [Bootstrap](#bootstrap)
-- [Destroy everything](#-destroy-everything)
+- [Destroy everything](#destroy-everything)
   - [Argo CD SSO](#argo-cd-sso)
 - [Why Task](#why-task)
 - [Where it runs](#where-does-it-run)
 - [Minikube Driver](#minikube-driver)
   - [Why KVM instead of Docker?](#why-kvm-instead-of-docker)
-- [Repository Structure](#repository-structure)
 
 ## The layout 
 
