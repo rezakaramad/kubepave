@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager-management
+  namespace: argocd
+spec:
+  project: platform-system
+  source:
+    repoURL: https://github.com/rezakaramad/kubepave
+    targetRevision: HEAD
+    path: kubernetes/charts/cert-manager
+    helm:
+      # Keeps the release name from install-charts.sh; the Deployment selectors contain it and are immutable.
+      releaseName: cert-manager
+      valueFiles:
+        - values.yaml
+        - values-local.yaml
+        - values-local-management.yaml
+  destination:
+    name: in-cluster
+    namespace: platform-system
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true
+    - ApplyOutOfSyncOnly=true

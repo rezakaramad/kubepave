@@ -1,0 +1,28 @@
+{{- if .Capabilities.APIVersions.Has "external-secrets.io/v1" }}
+# Public ServiceAccount signing keys of the clusters whose collectors may send; written by local/kind/setup-secrets.sh.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: otel-gateway-oidc-jwks
+  namespace: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  refreshInterval: 20m
+  secretStoreRef:
+    name: openbao-local
+    kind: ClusterSecretStore
+  target:
+    name: otel-gateway-oidc-jwks
+    creationPolicy: Owner
+  data:
+    - secretKey: management.json
+      remoteRef:
+        key: shared/pki/jwks
+        property: management
+    - secretKey: development.json
+      remoteRef:
+        key: shared/pki/jwks
+        property: development
+{{- end }}

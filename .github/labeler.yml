@@ -1,0 +1,23 @@
+chart:
+  - changed-files:
+      - any-glob-to-any-file: kubernetes/charts/**
+
+kubernetes:
+  - changed-files:
+      - any-glob-to-any-file: argocd/**
+
+argocd:
+  - changed-files:
+      - any-glob-to-any-file: argocd/**
+
+local:
+  - changed-files:
+      - any-glob-to-any-file: local/**
+
+gcp:
+  - changed-files:
+      - any-glob-to-any-file: gcp/**
+
+azure:
+  - changed-files:
+      - any-glob-to-any-file: azure/**

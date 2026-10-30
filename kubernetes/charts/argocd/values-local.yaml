@@ -1,0 +1,63 @@
+secretStore:
+  name: openbao-local
+  provider:
+    vault:
+      server: "https://openbao.mgmt.rezakara.demo"
+      path: "kv"
+      version: "v2"
+      caProvider:
+        type: Secret
+        name: root-ca
+        key: tls.crt
+        namespace: argocd
+      auth:
+        jwt:
+          path: "jwt-management"
+          role: "eso-argocd"
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: argocd-server
+              namespace: argocd
+            audiences:
+              - https://kubernetes.default.svc.cluster.local
+
+selfSignedRootCA:
+  # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Let's Encrypt, etc.).
+  enabled: false
+
+# ------------------------------------------------------------------------------
+# -- Argo CD managed clusters
+# ------------------------------------------------------------------------------
+# Credentials are pulled from Vault via ExternalSecret (clusters-credential.yaml).
+clusterCredentials:
+  - name: kind-development
+    environment: development
+    environmentPrefix: dev
+
+# ------------------------------------------------------------------------------
+# -- Argo CD main configs
+# ------------------------------------------------------------------------------
+argocd:
+  server:
+    httproute:
+      hostnames:
+        - argocd.mgmt.rezakara.demo
+
+    grpcroute:
+      hostnames:
+        - argocd.mgmt.rezakara.demo
+
+  configs:
+    cm:
+      url: https://argocd.mgmt.rezakara.demo
+
+# -------------------------------------------------------------------------------
+# -- GitOps platform
+# -------------------------------------------------------------------------------
+# Git source for all ArgoCD application manifests and Helm charts.
+repoURL: https://github.com/rezakaramad/kubepave
+
+# App-of-apps folder ArgoCD recurses to discover Application manifests.
+# Override per environment in values-local.yaml / values-gcp.yaml
+applicationFolder:
+  path: argocd/local

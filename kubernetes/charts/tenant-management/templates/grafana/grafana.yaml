@@ -1,0 +1,152 @@
+{{- if .Values.grafana.enabled }}
+{{- $tenant := .Values.tenant }}
+{{- $name := printf "grafana-%s" ($tenant.name | lower) }}
+# One Grafana per tenant. The Grafana operator cannot manage organizations, so tenants are
+# separated by instance (see kubernetes/charts/lgtm-grafana/DESIGN.md, "Why one Grafana per tenant").
+---
+# Entra ID app registration, the same one the shared Grafana uses, rendered into the env vars its azuread login reads.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: {{ $name }}-oidc
+  namespace: {{ .Values.grafana.namespace }}
+  labels:
+    platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  refreshInterval: 20m
+  secretStoreRef:
+    name: openbao-local
+    kind: SecretStore
+  target:
+    name: {{ $name }}-oidc
+    creationPolicy: Owner
+    template:
+      data:
+        GF_AUTH_AZUREAD_CLIENT_ID: "{{`{{ .client_id }}`}}"
+        GF_AUTH_AZUREAD_CLIENT_SECRET: "{{`{{ .client_secret }}`}}"
+        GF_AUTH_AZUREAD_AUTH_URL: "https://login.microsoftonline.com/{{`{{ .tenant_id }}`}}/oauth2/v2.0/authorize"
+        GF_AUTH_AZUREAD_TOKEN_URL: "https://login.microsoftonline.com/{{`{{ .tenant_id }}`}}/oauth2/v2.0/token"
+        GF_AUTH_AZUREAD_ALLOWED_ORGANIZATIONS: "{{`{{ .tenant_id }}`}}"
+  data:
+    - secretKey: client_id
+      remoteRef:
+        key: grafana/azure/app
+        property: client_id
+    - secretKey: client_secret
+      remoteRef:
+        key: grafana/azure/app
+        property: client_secret
+    - secretKey: tenant_id
+      remoteRef:
+        key: grafana/azure/app
+        property: tenant_id
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Values.grafana.namespace }}
+  labels:
+    dashboards: {{ $name }}
+    platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  config:
+    log:
+      mode: console
+    server:
+      root_url: https://{{ $tenant.name | lower }}.{{ .Values.grafana.hostSuffix }}
+    auth:
+      disable_login_form: "true"
+    auth.azuread:
+      enabled: "true"
+      name: Microsoft
+      allow_sign_up: "true"
+      scopes: openid email profile
+      use_pkce: "true"
+      # Only people whose token carries the tenant's app role get in; no role means no login.
+      role_attribute_path: {{ printf "contains(roles[*], '%s') && 'Editor'" ($tenant.name | lower) | quote }}
+      role_attribute_strict: "true"
+      allow_assign_grafana_admin: "false"
+
+  # Admin credentials come from the grafana-admin Secret instead; the operator uses them to manage this instance.
+  disableDefaultAdminSecret: true
+
+  persistentVolumeClaim:
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+
+  deployment:
+    spec:
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            # The Mimir, Loki and Tempo NetworkPolicies allow pods with this label.
+            platform.rezakara.demo/component: grafana
+        spec:
+          containers:
+            - name: grafana
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 96Mi
+                limits:
+                  memory: 384Mi
+              envFrom:
+                - secretRef:
+                    name: {{ $name }}-oidc
+              env:
+                - name: GF_SECURITY_ADMIN_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-admin
+                      key: admin-user
+                - name: GF_SECURITY_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-admin
+                      key: admin-password
+          volumes:
+            - name: grafana-data
+              persistentVolumeClaim:
+                claimName: {{ $name }}-pvc
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Values.grafana.namespace }}
+  labels:
+    external-dns-create: "true"
+    platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
+spec:
+  hostnames:
+    - {{ $tenant.name | lower }}.{{ .Values.grafana.hostSuffix }}
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: grafana-traefik
+      namespace: platform-system
+  rules:
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ $name }}-service
+          port: 3000
+          weight: 1
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
+{{- end }}
