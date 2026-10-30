@@ -26,9 +26,7 @@
 - [Destroy everything](#destroy-everything)
   - [Argo CD SSO](#argo-cd-sso)
 - [Why Task](#why-task)
-- [Where it runs](#where-does-it-run)
-- [Minikube Driver](#minikube-driver)
-  - [Why KVM instead of Docker?](#why-kvm-instead-of-docker)
+- [Where it runs](#where-it-runs)
 
 ## The layout 
 
