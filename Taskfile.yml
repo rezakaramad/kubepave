@@ -68,6 +68,19 @@ tasks:
         end=$(date +%s)
         echo ""
         echo "⏱️  Total time: $((end - start)) seconds"
+
+        accessor=$(grep '^export OPENBAO_OIDC_ACCESSOR=' ../../../.platform.env 2>/dev/null | cut -d'"' -f2 || true)
+        current=$(grep -E '^\s+oidcAccessor:' ../../../charts/crossplane/values-local-management.yaml | cut -d'"' -f2 || true)
+        echo ""
+        if [ "$accessor" != "$current" ]; then
+          echo "⚠️  ACTION REQUIRED: the OpenBao OIDC accessor changed."
+          echo "   New:     ${accessor:-<not found in .platform.env>}"
+          echo "   In Git:  ${current:-<empty>}"
+          echo "   Set vaultProvider.oidcAccessor in charts/crossplane/values-local-management.yaml,"
+          echo "   commit, push and sync crossplane-management."
+        else
+          echo "✅ OIDC accessor in charts/crossplane/values-local-management.yaml is up to date ($accessor)"
+        fi
   kind:down:
     desc: "Tear down the kind clusters and reset local DNS"
     cmds:
