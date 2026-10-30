@@ -15,3 +15,6 @@ external-dns:
     # it considers them to have no publishable address. With it, any assigned IP is treated as
     # publishable, so DNS records are actually created.
     - --publish-internal-services
+    # PowerDNS rejects a '*' inside a record name, which breaks the TXT ownership record of
+    # wildcard DNSEndpoints (externaldnsa-*.<zone>) and fails the whole zone update.
+    - --txt-wildcard-replacement=wildcard
