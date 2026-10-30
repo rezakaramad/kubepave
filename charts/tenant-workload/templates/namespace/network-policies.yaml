@@ -33,10 +33,10 @@ spec:
     - from:
         # Ingress traffic from any pod in current namespace
         - podSelector: {}
-        # Ingress traffic from any gateway controller pod in 'platform-resources' namespace
+        # Ingress traffic from any gateway controller pod in 'platform-system' namespace
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: platform-resources
+              kubernetes.io/metadata.name: platform-system
           podSelector:
             matchLabels:
               app.kubernetes.io/name: traefik
