@@ -30,21 +30,30 @@
   - [Why KVM instead of Docker?](#why-kvm-instead-of-docker)
 - [Repository Structure](#repository-structure)
 
+## The layout 
+
+This repository is organized around three main layers of the platform:
+- **Argo CD:** Defines and manages the GitOps configurations deployed across the platform's Kubernetes clusters.
+
+- **Infrastructure:** Contains the configurations used to bootstrap, provision, and manage the underlying infrastructure, currently limited to [local/](./local/) and [azure](./azure/). These configurations are relatively static and are rarely modified after initial provisioning
+
+- **Kubernetes:** Contains reusable Helm charts and Kubernetes resources used across the platform.
+
 ## Getting started
 
 ### Bootstrap Azure EntraID
 
-`/src/bootstrap/azure` bootstraps identity resources in Microsoft Entra ID using OpenTofu.
+[azure](./azure/) bootstraps identity resources in **Microsoft Entra ID** using OpenTofu.
 
 It provisions:
-- App registrations (Argo CD, Crossplane, Keycloak, Backstage)
+- App registrations (Argo CD, Crossplane, Keycloak, Backstage, etc.)
 - Service Principals (Enterprise Applications)
 - App Roles and RBAC assignments
 - Required API permissions
 
 #### Prerequisites
 
-After you [install Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest), login to Azure:
+After you install [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest), login to Azure:
 ```bash
 az login
 ```
@@ -58,7 +67,8 @@ az account show
 ```bash
 tofu version
 ```
-[Install **GnuPG**](https://www.gnupg.org/download/) (it is usually included by default on Ubuntu). This is needed because it is used to encrypt Tofu Statefile before pushing to Git repository:
+Install **[GnuPG](https://www.gnupg.org/download/)**; (normally included by default on Ubuntu). Since I don't have any cloud object storage, I'm using GnuPG to encrypt OpenTofu state files before pushing them to the Git repository:
+
 ```bash
 gpg --version
 ```
@@ -100,7 +110,7 @@ git commit -m "Add encrypted state"
 ```
 ### Bootstrap
 
-Make sure [Task is installed](https://taskfile.dev/docs/installation) on your local machine.
+Make sure [Task](https://taskfile.dev/docs/installation) is installed on your local machine.
 
 ```
 task --version
@@ -202,47 +212,16 @@ But there’s no perfect tool for everyone — and this is no exception.
 
 ## Where it runs
 
-It started with Minikube for local development. It now uses Kind to keep the setup lightweight and to make the networking less complex.
+It started with [Minikube](https://minikube.sigs.k8s.io/docs/) for local development. It now uses [Kind](https://kind.sigs.k8s.io/) to keep the setup lightweight and to make the networking less complex.
 
-It may later be extended to support additional environments, including AWS and GCP.
+It may later be extended to support additional environments, including AWS and GCP, but for now, I'm trying to avoid spending money on cloud hyperscalers. 
 
 For local setup, plain **shell scripts** work best, they run everywhere without extra dependencies.
 You don't have to use the scripts, but they make bootstrapping easier.
 
-So the repo uses a few scripts to:
-- start clusters
-- install components
-- wire everything together
+So the repo uses a few scripts to start clusters, install components and wire everything together to get you up and running quickly.
 
-to get you up and running quickly.
+The scripts are only used for local setup. Cloud environments will be fired up with something like OpenTofu.
 
-The scripts are only used for local setup. Cloud environments will be fired up with OpenTofu.
-
-## Minikube Driver
-### Why KVM instead of Docker?
-
-This setup runs multiple Kubernetes clusters (`management` and `workload`) that need to talk to each other reliably.
-
-The Docker driver is easy to start with, but each Minikube profile runs in its own isolated Docker network. This makes cross-cluster communication difficult and often requires extra workarounds like port forwarding, tunnels, or custom routing.
-
-The **KVM** (`kvm2`) driver runs each cluster as a small virtual machine on the same shared network. This gives us:
-- simple, direct networking between clusters
-- predictable IP addresses
-- no Docker NAT or hidden firewall rules
-- behavior closer to real infrastructure
-- fewer hacks and special setup
-
-👉 To learn how to install KVM follow the [installation guide](https://help.ubuntu.com/community/KVM/Installation).
-
-# Repository Structure
-
-| Component | Location | Description |
-|-----------|----------|-------------|
-| **Argo CD** | `argocd/` | Contains all Argo CD resources. |
-| **Helm Charts** | `kubernetes/charts/` | Contains Helm charts used by the platform. We depend on official upstream charts and compose them as dependencies. |
-| **Local Bootstrap** | `local/` | Scripts to bootstrap the platform on a local machine (kind, minikube, PowerDNS). |
-| **GCP Bootstrap** | `gcp/` | OpenTofu code to bootstrap the platform in GCP. |
-| **Azure Bootstrap** | `azure/` | OpenTofu code for the Azure resources (Entra ID) created during bootstrap. |
-| **Crossplane Functions** | `src/crossplane/` | Contains Crossplane functions used by the platform. |
-
-Made with 🤓, 🐧 and 🍷.
+---
+<p align="left">Made with 🤓, 🐧 and 🍷.</p>
