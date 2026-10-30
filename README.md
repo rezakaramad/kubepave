@@ -5,8 +5,7 @@
   A paved road to Kubernetes for developers
 </h1>
 <p align="center" >
-  This repository serves as a central hub for managing platform-related tools
-  and configurations.
+  This repository serves as a central hub for building an internal developer platform.
 </p>
 <p align="center" >
   <img src="https://img.shields.io/badge/Internal_Developer_Platform-a?logo=devbox&labelColor=555555&color=2F855A&logoColor=white" />
@@ -171,7 +170,7 @@ values and re-apply:
 grep OPENBAO_OIDC_ACCESSOR .platform.env
 ```
 Paste that value into `vaultProvider.oidcAccessor` in
-[`charts/crossplane/values-local-management.yaml`](charts/crossplane/values-local-management.yaml),
+[`kubernetes/charts/crossplane/values-local-management.yaml`](kubernetes/charts/crossplane/values-local-management.yaml),
 then sync the crossplane release so the tenant `GroupAlias` picks it up.
 
 > ⚠️ Required after every `task kind:up` (or any time OpenBao is recreated),
@@ -239,9 +238,11 @@ The **KVM** (`kvm2`) driver runs each cluster as a small virtual machine on the 
 
 | Component | Location | Description |
 |-----------|----------|-------------|
-| **Argo CD** | `argocd-applications/` | Contains all Argo CD resources. |
-| **Helm Charts** | `charts/` | Contains Helm charts used by the platform. We depend on official upstream charts and compose them as dependencies. |
-| **Bootstrap Infrastructure** | `infra` | Resources and scripts required to spin up the infrastructure. |
+| **Argo CD** | `argocd/` | Contains all Argo CD resources. |
+| **Helm Charts** | `kubernetes/charts/` | Contains Helm charts used by the platform. We depend on official upstream charts and compose them as dependencies. |
+| **Local Bootstrap** | `local/` | Scripts to bootstrap the platform on a local machine (kind, minikube, PowerDNS). |
+| **GCP Bootstrap** | `gcp/` | OpenTofu code to bootstrap the platform in GCP. |
+| **Azure Bootstrap** | `azure/` | OpenTofu code for the Azure resources (Entra ID) created during bootstrap. |
 | **Crossplane Functions** | `src/crossplane/` | Contains Crossplane functions used by the platform. |
 
 Made with 🤓, 🐧 and 🍷.
