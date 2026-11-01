@@ -9,7 +9,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: {{ $tenant.name | quote }}
+  name: {{ $tenant.name | quote }}-deploy
   namespace: "tn-{{ $tenant.name }}"
   labels:
     platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
@@ -39,7 +39,7 @@ spec:
                     values: ["dev","test","prod", "development"]
   template:
     metadata:
-      name: '{{ `{{ .path.basename }}` }}-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}'
+      name: '{{ `{{ .path.basename }}` }}-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environmentPrefix" }}` }}'
       namespace: "tn-{{ $tenant.name }}"
       labels:
         platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
@@ -48,7 +48,7 @@ spec:
       source:
         repoURL: {{ $repoURL | quote }}
         targetRevision: HEAD
-        path: '{{ `{{ .path.path }}/{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}'
+        path: '{{ `{{ .path.path }}/{{ index .metadata.labels "argocd.rezakara.demo/environmentPrefix" }}` }}'
       destination:
         name: '{{ `{{ .name }}` }}'
         namespace: {{ $tenant.name | quote }}
