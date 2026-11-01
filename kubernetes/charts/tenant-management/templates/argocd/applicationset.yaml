@@ -9,7 +9,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: {{ $tenant.name | quote }}-deploy
+  name: {{ $tenant.name | quote }}
   namespace: "tn-{{ $tenant.name }}"
   labels:
     platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
