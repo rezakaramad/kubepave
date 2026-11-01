@@ -644,7 +644,7 @@ output "backstage_catalog_sync_client_secret_value" {
 # SSO login for human tenant operators.
 # Mirrors the Argo CD pattern:
 # per-tenant app roles (one per tenant) are created by the
-# xtenantentra Crossplane function, assigned to a per-tenant Entra group, and
+# xtenantsso Crossplane function, assigned to a per-tenant Entra group, and
 # surfaced to OpenBao in the "roles" claim of the ID token. OpenBao's OIDC auth
 # method maps that claim (groups_claim = roles) to a per-tenant policy so each
 # operator can read/write only tenants/<tenant>/* in OpenBao.
@@ -654,7 +654,7 @@ resource "azuread_application" "openbao" {
   owners = [
     data.azuread_client_config.current.object_id,
 
-    # Crossplane SP is a co-owner so the xtenantentra function can add/remove
+    # Crossplane SP is a co-owner so the xtenantsso function can add/remove
     # per-tenant app roles on this application at runtime.
     azuread_service_principal.crossplane.object_id
   ]
@@ -672,7 +672,7 @@ resource "azuread_application" "openbao" {
     ]
   }
 
-  # Per-tenant app roles are managed by the xtenantentra function, not Terraform.
+  # Per-tenant app roles are managed by the xtenantsso function, not Terraform.
   # Ignore app_role so Terraform doesn't delete/recreate roles the function owns.
   lifecycle {
     ignore_changes = [

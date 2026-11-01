@@ -42,7 +42,7 @@ secretStore:
 compositeResources:
   xTenant:
     enabled: true
-    packageTag: v0.1.0
+    packageTag: v0.2.0
 
   xTenantSSO:
     enabled: true
