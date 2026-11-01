@@ -13,6 +13,29 @@ spec:
     # metadataVersion is defaulted by the operator to match `version` when omitted.
     listeners:
       {{- toYaml .Values.cluster.listeners | nindent 6 }}
+      {{- if .Values.cluster.external.enabled }}
+      - name: external
+        port: {{ .Values.cluster.external.port }}
+        type: loadbalancer
+        tls: true
+        authentication:
+          {{- toYaml (first .Values.cluster.listeners).authentication | nindent 10 }}
+        configuration:
+          brokerCertChainAndKey:
+            secretName: {{ .Values.cluster.external.certificate.secretName }}
+            certificate: tls.crt
+            key: tls.key
+          bootstrap:
+            annotations:
+              external-dns.alpha.kubernetes.io/hostname: {{ include "kafka.externalBootstrapHost" . | quote }}
+          brokers:
+            {{- range $id := until (int .Values.cluster.broker.replicas) }}
+            - broker: {{ $id }}
+              advertisedHost: {{ include "kafka.externalBrokerHost" (dict "root" $ "id" $id) | quote }}
+              annotations:
+                external-dns.alpha.kubernetes.io/hostname: {{ include "kafka.externalBrokerHost" (dict "root" $ "id" $id) | quote }}
+            {{- end }}
+      {{- end }}
     config:
       {{- toYaml .Values.cluster.config | nindent 6 }}
     {{- if .Values.cluster.authorization.enabled }}

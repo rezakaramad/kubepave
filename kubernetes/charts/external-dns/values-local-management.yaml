@@ -3,6 +3,12 @@ external-dns:
   domainFilters:
     - mgmt.rezakara.demo
     - rezakara.demo # We allow management to manage the root domain.
+  # The default sources plus Services, so the Kafka external listener's LoadBalancer services
+  # get the DNS names set in their hostname annotations. Unannotated Services are ignored.
+  sources:
+    - gateway-httproute
+    - crd
+    - service
   # PowerDNS is in the same cluster — use the ClusterIP service directly
   extraArgs:
     - --pdns-server=http://powerdns-api.powerdns.svc.cluster.local:8081

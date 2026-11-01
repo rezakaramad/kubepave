@@ -9,8 +9,15 @@ scale and roll independently:
 - **controller**: runs the KRaft metadata quorum that tracks cluster state.
 - **broker**: stores topic partitions on disk and serves produce/consume traffic.
 
-Clients connect over a single TLS listener on port `9093` (internal to the cluster).
-Strimzi provisions the cluster CA and broker certificates automatically.
+Clients inside the cluster connect over the internal TLS listener on port `9093`, using the Strimzi
+cluster CA that the operator provisions automatically.
+
+Clients outside the cluster (the development cluster) connect over the `external` listener on port
+`9094` (`cluster.external` in `values.yaml`). It is a LoadBalancer listener: Strimzi creates one service
+for the bootstrap address and one per broker, and external-dns publishes `kafka.<domain>` and
+`kafka-<id>.<domain>` from their hostname annotations. Its certificate is issued by cert-manager from
+the platform root CA (`templates/listener-certificate.yaml`), so clients trust it through the root CA.
+The Certificate lists every one of those names, so adding a broker adds its name automatically.
 
 ## Durability configuration
 

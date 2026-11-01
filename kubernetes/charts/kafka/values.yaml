@@ -59,6 +59,20 @@ cluster:
             oauth.client.id="kafka"
             oauth.validation.skip.type.check="true" ;
 
+  # An extra listener that clients outside the cluster (the development cluster) connect to.
+  # It is a LoadBalancer listener: one service for the bootstrap address and one per broker,
+  # each published in DNS as <cluster>.<domain> and <cluster>-<broker id>.<domain>. It uses the
+  # same authentication as the first listener above.
+  external:
+    enabled: true
+    port: 9094
+    domain: mgmt.rezakara.demo
+    # The listener's TLS certificate is issued by cert-manager, so clients trust it through the
+    # platform root CA instead of the Strimzi cluster CA.
+    certificate:
+      issuerName: local
+      secretName: kafka-external-listener-tls
+
   # Fixes the Accept header on requests to Kubernetes' /openid/v1/jwks (406 otherwise).
   # Not needed against public OIDC providers such as GKE.
   jwksProxy:
