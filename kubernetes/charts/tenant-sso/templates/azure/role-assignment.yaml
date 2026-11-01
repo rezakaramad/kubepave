@@ -1,0 +1,23 @@
+{{- $tenant := include "tenant-sso.tenant" . }}
+{{- range $key, $app := .Values.apps }}
+
+apiVersion: app.azuread.m.upbound.io/v1beta1
+kind: RoleAssignment
+metadata:
+  name: {{ printf "acl-plt-%s-sso-role-%s" $key $tenant }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    platform.rezakara.demo/tenant: {{ $tenant | quote }}
+spec:
+  providerConfigRef:
+    name: {{ $.Values.providerConfigRef.name }}
+    kind: {{ $.Values.providerConfigRef.kind }}
+  forProvider:
+    appRoleId: {{ include "tenant-sso.roleId" (dict "key" $key "tenant" $tenant) | quote }}
+    resourceObjectId: {{ $app.enterpriseAppObjectID | quote }}
+    # Resolved to the group's object ID once the group exists.
+    principalObjectIdRef:
+      name: {{ include "tenant-sso.groupName" (dict "key" $key "tenant" $tenant) }}
+
+---
+{{- end }}

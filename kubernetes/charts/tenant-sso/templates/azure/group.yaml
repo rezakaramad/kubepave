@@ -1,0 +1,23 @@
+{{- $tenant := include "tenant-sso.tenant" . }}
+{{- range $key, $app := .Values.apps }}
+
+apiVersion: groups.azuread.m.upbound.io/v1beta1
+kind: Group
+metadata:
+  name: {{ include "tenant-sso.groupName" (dict "key" $key "tenant" $tenant) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    platform.rezakara.demo/tenant: {{ $tenant | quote }}
+spec:
+  providerConfigRef:
+    name: {{ $.Values.providerConfigRef.name }}
+    kind: {{ $.Values.providerConfigRef.kind }}
+  managementPolicies: ["Create", "Observe", "Update", "Delete"]
+  forProvider:
+    displayName: {{ printf "ACL.PLT.%s.Tenant.%s" $app.displayName (include "tenant-sso.pascal" $tenant) | quote }}
+    description: This application is managed by the Platform team.
+    preventDuplicateNames: true
+    securityEnabled: true
+
+---
+{{- end }}
