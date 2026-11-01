@@ -9,7 +9,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: {{ $tenant.name | quote }}-deploy
+  name: {{ printf "%s-deploy" $tenant.name | quote }}
   namespace: "tn-{{ $tenant.name }}"
   labels:
     platform.rezakara.demo/tenant: "{{ $tenant.name | lower }}"
@@ -36,7 +36,7 @@ spec:
                     values: ["tenant"]
                   - key: argocd.rezakara.demo/environmentPrefix
                     operator: In
-                    values: ["dev","test","prod", "development"]
+                    values: ["dev","test","prod"]
   template:
     metadata:
       name: '{{ `{{ .path.basename }}` }}-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environmentPrefix" }}` }}'
