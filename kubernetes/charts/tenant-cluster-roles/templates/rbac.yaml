@@ -21,7 +21,7 @@ metadata:
 aggregationRule:
   clusterRoleSelectors:
     - matchLabels:
-        rbac.talktorubberduck.dev/aggregate-to-tenant-default-role: "true"
+        rbac.platform.rezakara.demo/aggregate-to-tenant-default-role: "true"
 rules: []
 
 ---
@@ -31,7 +31,7 @@ kind: ClusterRole
 metadata:
   name: tenant-base-defaults
   labels:
-    rbac.talktorubberduck.dev/aggregate-to-tenant-default-role: "true"
+    rbac.platform.rezakara.demo/aggregate-to-tenant-default-role: "true"
 rules:
   # Core resources
   - apiGroups: [""]
@@ -111,7 +111,7 @@ kind: ClusterRole
 metadata:
   name: namespace-viewer
   labels:
-    rbac.talktorubberduck.dev/aggregate-to-tenant-default-role: "true"
+    rbac.platform.rezakara.demo/aggregate-to-tenant-default-role: "true"
 rules:
   - apiGroups: [""]
     resources:

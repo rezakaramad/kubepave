@@ -26,7 +26,7 @@ resource "azuread_group_member" "reza_platform_admin" {
 # ---------------------------------------------------------------
 resource "azuread_invitation" "reza_personal" {
   user_email_address = "r.karamad@gmail.com"
-  redirect_url       = "https://argocd.gcp.talktorubberduck.dev"
+  redirect_url       = "https://argocd.rezakara.demo"
 
   message {
     additional_recipients = []

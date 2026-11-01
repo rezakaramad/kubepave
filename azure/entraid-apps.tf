@@ -44,7 +44,6 @@ resource "azuread_application" "argocd" {
   web {
     redirect_uris = [
       "https://argocd.mgmt.rezakara.demo/auth/callback",
-      "https://argocd.gcp.talktorubberduck.dev/auth/callback"
     ]
   }
 

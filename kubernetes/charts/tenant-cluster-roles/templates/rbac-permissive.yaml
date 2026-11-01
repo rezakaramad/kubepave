@@ -17,7 +17,7 @@ kind: ClusterRole
 metadata:
   name: tenant-cluster-specific-role
   labels:
-    rbac.talktorubberduck.dev/aggregate-to-tenant-default-role: "true"
+    rbac.platform.rezakara.demo/aggregate-to-tenant-default-role: "true"
 rules:
   - apiGroups: [""]
     resources:
