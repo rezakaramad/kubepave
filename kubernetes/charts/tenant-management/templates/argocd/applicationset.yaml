@@ -34,9 +34,9 @@ spec:
                   - key: argocd.rezakara.demo/cluster-type
                     operator: In
                     values: ["tenant"]
-                  - key: argocd.rezakara.demo/environmentPrefix
+                  - key: argocd.rezakara.demo/environment
                     operator: In
-                    values: ["dev","test","prod"]
+                    values: ["dev","test","prod", "development"]
   template:
     metadata:
       name: '{{ `{{ .path.basename }}` }}-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environmentPrefix" }}` }}'
