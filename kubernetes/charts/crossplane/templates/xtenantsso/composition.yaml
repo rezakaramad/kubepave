@@ -15,15 +15,19 @@ spec:
         name: xtenantsso
       input:
         apiVersion: defaults.fn.crossplane.io/v1beta1
-        kind: XTenantSSODefaults
+        kind: Input
 
-        argocdApp:
-          appRegObjectID: 805df85c-99e7-4e82-979f-242334735f59 # The ObjectID of the App Registration
-          enterpriseAppObjectID: 622026ce-04e7-4b50-be99-f4302860da61 # The ObjectID of the Enterprise App
-
-        vaultApp:
-          appRegObjectID: ae09d0bb-9255-48f7-8237-0ecf24228334 # The ObjectID of the App Registration
-          enterpriseAppObjectID: 90335c29-5e38-4f3f-9f44-cfa9cb88cf1e # The ObjectID of the Enterprise App
+        # A Group, an AppRole and a RoleAssignment are created for each app.
+        # The app registrations and enterprise apps are created by Terraform in the bootstrap phase.
+        apps:
+          - name: argocd
+            displayName: ArgoCD
+            appRegObjectID: 805df85c-99e7-4e82-979f-242334735f59 # The ObjectID of the App Registration
+            enterpriseAppObjectID: 622026ce-04e7-4b50-be99-f4302860da61 # The ObjectID of the Enterprise App
+          - name: vault
+            displayName: Vault
+            appRegObjectID: ae09d0bb-9255-48f7-8237-0ecf24228334 # The ObjectID of the App Registration
+            enterpriseAppObjectID: 90335c29-5e38-4f3f-9f44-cfa9cb88cf1e # The ObjectID of the Enterprise App
 
         # The provider config all resources should reference.
         providerConfigRef:
