@@ -23,13 +23,6 @@ spec:
         # The label key set on every generated resource, with the tenant name as its value.
         tenantLabelKey: platform.rezakara.demo/tenant
 
-        # The Application that deploys the tenant's Entra ID SSO resources to the management cluster.
-        sso:
-          repoURL: https://github.com/rezakaramad/kubepave
-          path: kubernetes/charts/tenant-sso
-          targetRevision: HEAD
-          targetNamespace: tenant-system
-
         # The Application that deploys the tenant's management resources to the management cluster.
         management:
           repoURL: https://github.com/rezakaramad/kubepave

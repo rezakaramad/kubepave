@@ -27,7 +27,7 @@ One sentence:
 # Where the "label" comes from
 
 The label is not magic — the platform puts it there. For every tenant, the
-`xtenantentra` Crossplane function creates on the Entra side:
+`xtenantsso` Crossplane function creates on the Entra side:
 
 1. An **App Role** on the Vault app registration with `Value = <tenant name>`.
 2. An Entra **security group** the tenant's people belong to.

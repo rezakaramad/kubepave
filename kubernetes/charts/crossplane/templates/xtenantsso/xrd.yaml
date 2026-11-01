@@ -1,14 +1,14 @@
-{{- if .Values.compositeResources.xTenantEntra.enabled }}
+{{- if .Values.compositeResources.xTenantSSO.enabled }}
 
 apiVersion: apiextensions.crossplane.io/v2
 kind: CompositeResourceDefinition
 metadata:
-  name: xtenantentras.idp.rezakara.demo
+  name: xtenantssos.idp.rezakara.demo
 spec:
   group: idp.rezakara.demo
   names:
-    kind: XTenantEntra
-    plural: xtenantentras
+    kind: XTenantSSO
+    plural: xtenantssos
   scope: Namespaced
   versions:
   - name: v1beta1

@@ -325,6 +325,6 @@ Costs: one pod, one route and one Entra redirect URI per tenant.
 - Login needs the tenant name in the `roles` claim (`role_attribute_strict`), and users get at most Editor, which cannot change datasources.
 
 **Before turning it on for a tenant** (`grafana.enabled` is off by default and not set in the `xtenantargo` composition yet)
-- Entra: an app role with `value = <tenant name>` on the Grafana app, assigned to the tenant's group. `xtenantentra` creates this role only on the Vault app today.
+- Entra: an app role with `value = <tenant name>` on the Grafana app, assigned to the tenant's group. `xtenantsso` creates this role only on the Vault app today.
 - Entra: the callback URL `https://<tenant>.grafana.mgmt.rezakara.demo/login/azuread` as a redirect URI. The Grafana app's list lives in `azure/entraid-apps.tf` and is not set to ignore changes, so a manual edit would be reverted by the next apply.
 

@@ -1,0 +1,7 @@
+{{- $tenant := .Values.tenant }}
+
+apiVersion: idp.rezakara.demo/v1beta1
+kind: XTenantSSO
+metadata:
+  name: {{ $tenant.name }}
+spec: {}

@@ -2,7 +2,7 @@
 {{- $tenant := .Values.tenant }}
 
 # Group alias that maps the Entra ID `roles` claim value (== tenant name, the
-# app-role Value composed by the xtenantentra function) onto the external
+# app-role Value composed by the xtenantsso function) onto the external
 # Identity Group above. This is the join that makes OIDC login resolve to the
 # tenant's group and therefore its policy.
 #

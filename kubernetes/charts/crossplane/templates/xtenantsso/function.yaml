@@ -1,11 +1,11 @@
-{{- if .Values.compositeResources.xTenantEntra.enabled }}
+{{- if .Values.compositeResources.xTenantSSO.enabled }}
 
 apiVersion: pkg.crossplane.io/v1beta1
 kind: Function
 metadata:
-  name: xtenantentra
+  name: xtenantsso
 spec:
-  {{- with .Values.compositeResources.xTenantEntra }}
+  {{- with .Values.compositeResources.xTenantSSO }}
   package: {{ .package }}:{{ .packageTag }}
   {{- end }}
 

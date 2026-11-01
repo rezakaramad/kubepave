@@ -44,9 +44,9 @@ compositeResources:
     enabled: true
     packageTag: v0.1.0
 
-  xTenantEntra:
+  xTenantSSO:
     enabled: true
-    packageTag: v0.2.5
+    packageTag: v0.1.0
 
   xTenantArgo:
     enabled: true

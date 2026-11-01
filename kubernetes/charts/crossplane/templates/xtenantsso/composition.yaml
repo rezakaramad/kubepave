@@ -1,21 +1,21 @@
-{{- if .Values.compositeResources.xTenantEntra.enabled }}
+{{- if .Values.compositeResources.xTenantSSO.enabled }}
 
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: xtenantentra
+  name: xtenantsso
 spec:
   compositeTypeRef:
     apiVersion: idp.rezakara.demo/v1beta1
-    kind: XTenantEntra
+    kind: XTenantSSO
   mode: Pipeline
   pipeline:
     - step: run-the-template
       functionRef:
-        name: xtenantentra
+        name: xtenantsso
       input:
         apiVersion: defaults.fn.crossplane.io/v1beta1
-        kind: XTenantEntraDefaults
+        kind: XTenantSSODefaults
 
         argocdApp:
           appRegObjectID: 805df85c-99e7-4e82-979f-242334735f59 # The ObjectID of the App Registration

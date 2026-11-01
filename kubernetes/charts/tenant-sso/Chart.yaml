@@ -1,9 +1,0 @@
-apiVersion: v2
-name: tenant-sso
-description: Provisions the Entra ID resources that give a tenant single sign-on to Argo CD and Vault.
-version: 0.0.1
-
-# Crossplane (provider-azuread), per application (Argo CD, Vault):
-#     - Group          --> ACL.PLT.<App>.Tenant.<Tenant>, holds the tenant's users
-#     - AppRole        --> app role on the app registration, its value is the tenant name
-#     - RoleAssignment --> assigns the app role on the enterprise application to the group
