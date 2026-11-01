@@ -44,7 +44,7 @@ spec:
       labels:
         platform.rezakara.demo/tenant: {{ $tenant.name | lower | quote }}
     spec:
-      project: '{{ $tenant.name }}-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environment" }}` }}'
+      project: '{{ $tenant.name }}-{{ `{{ index .metadata.labels "argocd.rezakara.demo/environmentPrefix" }}` }}'
       source:
         repoURL: {{ $repoURL | quote }}
         targetRevision: HEAD
