@@ -1,7 +1,0 @@
-{{- $tenant := .Values.tenant }}
-
-apiVersion: idp.rezakara.demo/v1beta1
-kind: XTenantEntra
-metadata:
-  name: {{ $tenant.name }}
-spec: {}
