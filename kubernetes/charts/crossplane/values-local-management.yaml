@@ -40,6 +40,10 @@ secretStore:
           path: jwt-management
 
 compositeResources:
+  xTenant:
+    enabled: true
+    packageTag: v0.1.0
+
   xTenantEntra:
     enabled: true
     packageTag: v0.2.5

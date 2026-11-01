@@ -26,14 +26,22 @@ secretStore:
               - https://kubernetes.default.svc.cluster.local
 
 compositeResources:
+  xTenant:
+    enabled: false
+    package: ghcr.io/rezakaramad/function-xtenant
+    packageTag: <upsert-in-env-values-file>
+
   xTenantEntra:
     enabled: false
+    package: ghcr.io/rezakaramad/function-xtenantentra
     packageTag: <upsert-in-env-values-file>
 
   xTenantArgo:
     enabled: false
+    package: ghcr.io/rezakaramad/function-xtenantargo
     packageTag: <upsert-in-env-values-file>
 
   xWebApp:
     enabled: false
+    package: ghcr.io/rezakaramad/function-xwebapp
     packageTag: <upsert-in-env-values-file>

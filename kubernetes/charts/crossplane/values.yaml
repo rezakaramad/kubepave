@@ -41,21 +41,7 @@ vaultProvider:
   # Empty = human Vault SSO objects stay off.
   oidcAccessor: ""
 
-compositeResources:
-  xTenantEntra:
-    enabled: false
-    package: ghcr.io/rezakaramad/function-xtenantentra
-    packageTag: <upsert-in-env-values-file>
-
-  xTenantArgo:
-    enabled: false
-    package: ghcr.io/rezakaramad/function-xtenantargo
-    packageTag: <upsert-in-env-values-file>
-
-  xWebApp:
-    enabled: false
-    package: ghcr.io/rezakaramad/function-xwebapp
-    packageTag: <upsert-in-env-values-file>
+compositeResources: []
 
 selfSignedRootCA:
   # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Let's Encrypt, etc.).
