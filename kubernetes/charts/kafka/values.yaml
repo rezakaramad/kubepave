@@ -61,8 +61,7 @@ cluster:
 
   # An extra listener that clients outside the cluster (the development cluster) connect to.
   # It is a LoadBalancer listener: one service for the bootstrap address and one per broker,
-  # each published in DNS as <cluster>.<domain> and <cluster>-<broker id>.<domain>. It uses the
-  # same authentication as the first listener above.
+  # each published in DNS as <cluster>.<domain> and <cluster>-<broker id>.<domain>.
   external:
     enabled: true
     port: 9094
@@ -72,6 +71,17 @@ cluster:
     certificate:
       issuerName: local
       secretName: kafka-external-listener-tls
+    # Clients here present development cluster ServiceAccount tokens. That cluster has its own
+    # token issuer and signing keys, so this listener validates against those, not the management ones.
+    oauth:
+      validIssuerUri: https://development.kind.local
+      # The cluster's public signing keys, written to OpenBao by local/kind/setup-secrets.sh and served
+      # to the broker by the jwks-proxy.
+      jwks:
+        secretStore: openbao-local
+        remoteKey: shared/pki/jwks
+        remoteProperty: development
+        secretName: kafka-external-oidc-jwks
 
   # Fixes the Accept header on requests to Kubernetes' /openid/v1/jwks (406 otherwise).
   # Not needed against public OIDC providers such as GKE.

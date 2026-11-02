@@ -76,6 +76,20 @@ publishes a public, lenient issuer endpoint (`container.googleapis.com/...`) tha
 serves `application/json` directly; there you point `oauth.jwks.endpoint.uri` straight
 at it and set `cluster.jwksProxy.enabled: false`, dropping the proxy entirely.
 
+### External listener (development cluster clients)
+
+The `external` listener authenticates the same way (SA token, principal = SA name) but trusts the
+**development** cluster instead of the management one: `cluster.external.oauth.validIssuerUri` is the
+development API server's issuer (`https://development.kind.local`).
+
+The management `jwks-proxy` cannot reach the development API server, so the development JWKS is
+pulled from OpenBao (`shared/pki/jwks`, property `development`) by an ExternalSecret
+(`templates/external-oidc-jwks.yaml`), mounted into the proxy, and served at
+`/external/openid/v1/jwks`. The listener's `oauth.jwks.endpoint.uri` points there.
+
+After recreating the development cluster its signing keys change: re-run
+`setup-secrets.sh push_cluster_jwks` so OpenBao (and then the secret) holds the new JWKS.
+
 ## Links
 - [Strimzi Helm Chart](https://github.com/strimzi/strimzi-kafka-operator)
 - [Strimzi Docs](https://strimzi.io/docs/operators/latest/overview)

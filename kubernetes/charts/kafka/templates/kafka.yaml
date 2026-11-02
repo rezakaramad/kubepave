@@ -19,7 +19,21 @@ spec:
         type: loadbalancer
         tls: true
         authentication:
-          {{- toYaml (first .Values.cluster.listeners).authentication | nindent 10 }}
+          type: custom
+          sasl: true
+          listenerConfig:
+            sasl.enabled.mechanisms: OAUTHBEARER
+            oauthbearer.sasl.server.callback.handler.class: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+            # Same validation as the internal listener, but against the development cluster's issuer and keys.
+            oauthbearer.sasl.jaas.config: >-
+              org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
+              unsecuredLoginStringClaim_sub="kafka-broker"
+              oauth.valid.issuer.uri="{{ .Values.cluster.external.oauth.validIssuerUri }}"
+              oauth.jwks.endpoint.uri="http://jwks-proxy:8080/external/openid/v1/jwks"
+              oauth.username.claim="['kubernetes.io']['serviceaccount']['name']"
+              oauth.check.audience="true"
+              oauth.client.id="kafka"
+              oauth.validation.skip.type.check="true" ;
         configuration:
           brokerCertChainAndKey:
             secretName: {{ .Values.cluster.external.certificate.secretName }}

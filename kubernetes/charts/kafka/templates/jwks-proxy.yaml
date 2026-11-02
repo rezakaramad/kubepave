@@ -38,6 +38,15 @@ data:
           # ...and return application/json so the OAuth client accepts the response.
           add_header Content-Type application/json always;
         }
+        {{- if .Values.cluster.external.enabled }}
+
+        # The external listener's keys are served from the mounted file: the development cluster's
+        # API server is not reachable with this pod's credentials.
+        location = /external/openid/v1/jwks {
+          alias /etc/nginx/jwks/jwks.json;
+          default_type application/json;
+        }
+        {{- end }}
       }
     }
 ---
@@ -68,6 +77,11 @@ spec:
               mountPath: /etc/nginx/nginx.conf
               subPath: nginx.conf
               readOnly: true
+            {{- if .Values.cluster.external.enabled }}
+            - name: external-jwks
+              mountPath: /etc/nginx/jwks
+              readOnly: true
+            {{- end }}
           resources:
             requests:
               cpu: 10m
@@ -79,6 +93,11 @@ spec:
         - name: config
           configMap:
             name: jwks-proxy
+        {{- if .Values.cluster.external.enabled }}
+        - name: external-jwks
+          secret:
+            secretName: {{ .Values.cluster.external.oauth.jwks.secretName }}
+        {{- end }}
 ---
 apiVersion: v1
 kind: Service
