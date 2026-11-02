@@ -1,6 +1,0 @@
-# The development cluster connects to the Kafka external listener on the management cluster.
-# The broker certificate there is signed by the platform root CA, which the tenant namespace
-# already provides as the `root-ca` Secret, so trust that instead of the Strimzi CA.
-kafka:
-  bootstrapServer: kafka.mgmt.rezakara.demo:9094
-  clusterCaSecret: root-ca
