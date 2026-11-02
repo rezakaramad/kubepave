@@ -109,8 +109,27 @@ opentelemetry-demo:
         capabilities:
           drop: ["ALL"]
 
+    # Images that only work as their own user (not the default 65534).
+    image-provider:
+      podSecurityContext:
+        runAsNonRoot: true
+        runAsUser: 101  # owns /etc/nginx, which the entrypoint rewrites
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+    load-generator:
+      envOverrides:
+        - name: HOME  # Chromium crashpad needs a writable home
+          value: /tmp
+
     # Components that only define initContainers upstream (lists are replaced, not merged).
     accounting:
+      podSecurityContext:
+        runAsNonRoot: true
+        runAsUser: 1654  # "app" user, the only one allowed to exec ./instrument.sh
+        runAsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
         - name: wait-for-kafka
           image: busybox:latest

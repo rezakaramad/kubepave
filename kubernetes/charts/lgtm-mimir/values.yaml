@@ -47,7 +47,7 @@ mimir-distributed:
       distributor:
         remote_timeout: null
       ingester:
-        push_grpc_method_enabled: null
+        push_grpc_method_enabled: true  # chart default is false (ingest storage); Helm 4 drops null overrides
         ring:
           replication_factor: 1
       common:
