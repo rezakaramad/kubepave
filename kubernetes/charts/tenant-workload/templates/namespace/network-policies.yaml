@@ -33,6 +33,7 @@ spec:
     - from:
         # Ingress traffic from any pod in current namespace
         - podSelector: {}
+    - from:
         # Ingress traffic from any gateway controller pod in 'platform-system' namespace
         - namespaceSelector:
             matchLabels:
