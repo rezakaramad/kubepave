@@ -69,13 +69,14 @@ The `external` listener authenticates the same way (SA token, principal = SA nam
 **development** cluster instead of the management one: `cluster.external.oauth.validIssuerUri` is the
 development API server's issuer (`https://development.kind.local`).
 
-The management `jwks-proxy` cannot reach the development API server, so the development JWKS is
-pulled from OpenBao (`shared/pki/jwks`, property `development`) by an ExternalSecret
-(`templates/external-oidc-jwks.yaml`), mounted into the proxy, and served at
-`/external/openid/v1/jwks`. The listener's `oauth.jwks.endpoint.uri` points there.
+The broker fetches the development JWKS live from the development API server
+(`cluster.external.oauth.jwksEndpointUri`, the pinned kind node IP) with the same settings. Both
+kind clusters are created with one shared CA (`local/kind/kind-configs/.crt`, see
+`setup-clusters.sh`), so the broker pod's own service account CA already trusts that API server. The
+clusters keep separate service account signing keys, so their tokens stay distinguishable.
 
-After recreating the development cluster its signing keys change: re-run
-`setup-secrets.sh push_cluster_jwks` so OpenBao (and then the secret) holds the new JWKS.
+`oauth.fail.fast="false"` on both listeners lets a broker start and keep retrying if an API server
+is unreachable or does not yet allow anonymous discovery, instead of exiting.
 
 ## Links
 - [Strimzi Helm Chart](https://github.com/strimzi/strimzi-kafka-operator)

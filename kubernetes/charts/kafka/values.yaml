@@ -56,6 +56,7 @@ cluster:
             oauth.include.accept.header="false"
             oauth.ssl.truststore.location="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
             oauth.ssl.truststore.type="PEM"
+            oauth.fail.fast="false"
             oauth.username.claim="['kubernetes.io']['serviceaccount']['name']"
             oauth.check.audience="true"
             oauth.client.id="kafka"
@@ -77,18 +78,8 @@ cluster:
     # token issuer and signing keys, so this listener validates against those, not the management ones.
     oauth:
       validIssuerUri: https://development.kind.local
-      # The cluster's public signing keys, written to OpenBao by local/kind/setup-secrets.sh and served
-      # to the broker by the jwks-proxy.
-      jwks:
-        secretStore: openbao-local
-        remoteKey: shared/pki/jwks
-        remoteProperty: development
-        secretName: kafka-external-oidc-jwks
-
-  # Serves the development cluster's JWKS (from OpenBao) to the external listener as a static file.
-  jwksProxy:
-    enabled: true
-    image: nginx:1.27-alpine
+      # The development API server's JWKS, fetched live. The kind node IP is pinned in setup-clusters.sh.
+      jwksEndpointUri: https://192.168.211.67:6443/openid/v1/jwks
 
   # Authorization: deny-by-default ACLs. Each workload is identified by its principal
   # (= its ServiceAccount name, per the username claim above) and only gets what its

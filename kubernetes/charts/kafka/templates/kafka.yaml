@@ -25,11 +25,16 @@ spec:
             sasl.enabled.mechanisms: OAUTHBEARER
             oauthbearer.sasl.server.callback.handler.class: io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
             # Same validation as the internal listener, but against the development cluster's issuer and keys.
+            # Both clusters share one CA, so this pod's service account CA also trusts the development API server.
             oauthbearer.sasl.jaas.config: >-
               org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
               unsecuredLoginStringClaim_sub="kafka-broker"
               oauth.valid.issuer.uri="{{ .Values.cluster.external.oauth.validIssuerUri }}"
-              oauth.jwks.endpoint.uri="http://jwks-proxy:8080/external/openid/v1/jwks"
+              oauth.jwks.endpoint.uri="{{ .Values.cluster.external.oauth.jwksEndpointUri }}"
+              oauth.include.accept.header="false"
+              oauth.ssl.truststore.location="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+              oauth.ssl.truststore.type="PEM"
+              oauth.fail.fast="false"
               oauth.username.claim="['kubernetes.io']['serviceaccount']['name']"
               oauth.check.audience="true"
               oauth.client.id="kafka"
