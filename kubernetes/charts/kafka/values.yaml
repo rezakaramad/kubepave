@@ -42,10 +42,9 @@ cluster:
           # Validate the JWT: pin the issuer, fetch signing keys from the K8s JWKS endpoint,
           # derive the principal from the SA *name* via JsonPath (so it is a valid KafkaUser name
           # for ACLs — the full `sub` has colons), and require the audience to contain "kafka".
-          # The JWKS URL points at the in-cluster jwks-proxy (see jwksProxy below): Kubernetes'
-          # /openid/v1/jwks returns 406 unless Accept: application/jwk-set+json, which the
-          # Strimzi OAuth library does not send. Against a public OIDC provider (GKE) you'd
-          # point oauth.jwks.endpoint.uri straight at the provider and drop the proxy.
+          # The JWKS is fetched live from the apiserver. Kubernetes' /openid/v1/jwks returns 406 for
+          # `Accept: application/json`, so oauth.include.accept.header=false drops that header and
+          # the JVM's default wildcard Accept is accepted. The pod's own cluster CA verifies TLS.
           # oauth.validation.skip.type.check: K8s SA tokens carry no `typ` header/claim, which
           # the library otherwise requires; unsecuredLoginStringClaim_sub satisfies the broker's
           # own (unused) login on this client-facing listener.
@@ -53,7 +52,10 @@ cluster:
             org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
             unsecuredLoginStringClaim_sub="kafka-broker"
             oauth.valid.issuer.uri="https://kubernetes.default.svc.cluster.local"
-            oauth.jwks.endpoint.uri="http://jwks-proxy:8080/openid/v1/jwks"
+            oauth.jwks.endpoint.uri="https://kubernetes.default.svc/openid/v1/jwks"
+            oauth.include.accept.header="false"
+            oauth.ssl.truststore.location="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+            oauth.ssl.truststore.type="PEM"
             oauth.username.claim="['kubernetes.io']['serviceaccount']['name']"
             oauth.check.audience="true"
             oauth.client.id="kafka"

@@ -159,7 +159,7 @@ and pushed before they take effect.
 OpenBao authenticates development pods with JWT auth, fetching the development cluster's
 JWKS **directly from its API server** (`https://<node-ip>:6443`). Because the API
 server is up the moment the kind cluster exists, `setup-openbao.sh` can configure
-`jwt-development` immediately — nothing has to be pre-seeded on the development cluster.
+`jwt-development` immediately; nothing has to be pre-seeded on the development cluster.
 
 This deliberately avoids the bootstrap cycle that arises if you instead expose the
 JWKS through the development's own Traefik ingress:
