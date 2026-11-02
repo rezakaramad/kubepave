@@ -86,6 +86,26 @@ get_powerdns_ip() {
   get_management_node_ip
 }
 
+# Creates the shared cluster CA once and reuses it across cluster rebuilds.
+# Both clusters mount it as their kubeadm CA, so a pod's default service account
+# ca.crt trusts the other cluster's API server. Never share the sa.key.
+ensure_cluster_ca() {
+  if [ -s "$CLUSTER_CA_DIR/ca.crt" ] && [ -s "$CLUSTER_CA_DIR/ca.key" ]; then
+    return
+  fi
+
+  log "Generating shared cluster CA in $CLUSTER_CA_DIR..."
+  mkdir -p "$CLUSTER_CA_DIR"
+  openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
+    -subj "/CN=kubernetes" \
+    -addext "basicConstraints=critical,CA:TRUE" \
+    -addext "keyUsage=critical,digitalSignature,keyEncipherment,keyCertSign" \
+    -keyout "$CLUSTER_CA_DIR/ca.key" -out "$CLUSTER_CA_DIR/ca.crt" 2>/dev/null
+  chmod 600 "$CLUSTER_CA_DIR/ca.key"
+  chmod 644 "$CLUSTER_CA_DIR/ca.crt"
+  ok "Cluster CA generated"
+}
+
 # Returns the ServiceAccount token issuer (`iss`) of a kind cluster.
 sa_issuer() {
   local cluster=$1

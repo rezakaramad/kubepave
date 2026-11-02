@@ -12,6 +12,14 @@ networking:
 
 nodes:
   - role: control-plane
+    # kubeadm reuses a CA found in /etc/kubernetes/pki. Paths are relative to local/kind.
+    extraMounts:
+      - hostPath: ./kind-configs/.crt/ca.crt
+        containerPath: /etc/kubernetes/pki/ca.crt
+        readOnly: true
+      - hostPath: ./kind-configs/.crt/ca.key
+        containerPath: /etc/kubernetes/pki/ca.key
+        readOnly: true
     # Promiscuous mode on the node interface is enabled post-create for Cilium L2 ARP.
     extraPortMappings: []
     kubeadmConfigPatches:

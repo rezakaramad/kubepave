@@ -90,7 +90,7 @@ cluster:
 
   # Topics created declaratively via the Topic Operator.
   topics:
-    - name: pingkaf
+    - name: pingkafka
       # split the topic into multiple partitions for parallelism
       partitions: 3
       # keep multiple copies of the topic across brokers for fault tolerance
@@ -99,16 +99,16 @@ cluster:
   # Users (ACLs) managed by the User Operator. The user name is the Kafka principal and
   # must match the workload's ServiceAccount name.
   users:
-    - name: pingkaf
+    - name: pingkafka
       acls:
-        # Produce to and consume from the pingkaf topic.
+        # Produce to and consume from the pingkafka topic.
         - resourceType: topic
-          name: pingkaf
+          name: pingkafka
           patternType: literal
           operations: [Read, Write, Describe, Create]
-        # Join the pingkaf consumer group.
+        # Join the pingkafka consumer group.
         - resourceType: group
-          name: pingkaf
+          name: pingkafka
           patternType: literal
           operations: [Read]
 

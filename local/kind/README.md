@@ -61,7 +61,10 @@ Run from `systems/local/kind/`. Each step is idempotent.
 
 1. **`setup-clusters.sh start`** — creates the `management` and `development` kind
    clusters, enables promiscuous mode, and patches CoreDNS in both to forward
-   `rezakara.demo` to PowerDNS. `destroy` tears them down; `status` shows state.
+   `rezakara.demo` to PowerDNS. Both clusters are created with one shared cluster CA
+   (generated once in `kind-configs/.crt/`, gitignored), so each cluster's service
+   account CA already trusts the other's API server. `destroy` tears them down;
+   `status` shows state.
 2. **`setup-cilium.sh install`** — installs Cilium (CNI + L2 load-balancer) and
    configures a `CiliumLoadBalancerIPPool` + `CiliumL2AnnouncementPolicy` per
    cluster, carved from the upper end of the kind Docker bridge CIDR.
@@ -225,6 +228,7 @@ systems/local/kind/
 │   ├── common.sh          # shared constants + log helpers
 │   └── utils.sh           # kind/LB-pool/context helpers
 ├── kind-configs/
+│   ├── .crt/              # shared cluster CA (generated, gitignored)
 │   ├── management.yaml    # kind config for the management cluster
 │   └── development.yaml      # kind config for the development cluster
 ├── setup-clusters.sh      # create/destroy clusters, patch CoreDNS

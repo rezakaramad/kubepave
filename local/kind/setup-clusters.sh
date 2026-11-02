@@ -12,6 +12,9 @@ set -euo pipefail
 # Set the script directory to the current file's directory
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# The kind configs mount the cluster CA by a path relative to this directory.
+cd "$DIR"
+
 # Import common functions and variables
 source "$DIR/libs/common.sh"
 source "$DIR/libs/utils.sh"
@@ -230,6 +233,8 @@ start() {
       --gateway 192.168.211.65 >/dev/null
     log "Created pinned kind Docker network (192.168.211.64/27)"
   fi
+
+  ensure_cluster_ca
 
   for name in "${CLUSTER_ORDER[@]}"; do
     create_cluster "$name"

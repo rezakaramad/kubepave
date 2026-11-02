@@ -177,6 +177,18 @@ development platform can be pure GitOps with no hand-planted identity seed. The 
 thing bootstrapped imperatively is `setup-secrets.sh` registering the development
 cluster with ArgoCD (storing its API server + token in OpenBao).
 
+### Shared cluster CA
+
+Both kind clusters are created with the same cluster CA (`kind-configs/.crt/ca.{crt,key}`,
+generated once by `setup-clusters.sh` and mounted into each control-plane node, where kubeadm
+reuses it). Any pod's default `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt` therefore
+trusts the other cluster's API server, so a workload can read the other cluster's
+`/openid/v1/jwks` live, with no copied keys or extra truststore. Kafka's external listener does this
+to validate development tokens.
+
+The ServiceAccount signing keys (`sa.key`) stay per cluster, so each cluster keeps its own issuer.
+The shared CA key can mint certificates trusted by both clusters; that is acceptable for a local lab only.
+
 ### PowerDNS API at a stable hostname
 
 Workload external-dns must reach the management PowerDNS API. The management node

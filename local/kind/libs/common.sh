@@ -16,6 +16,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 # Absolute path to 'kubernetes/charts/'' directory
 CHARTS_DIR="$REPO_ROOT/kubernetes/charts"
 
+# Shared cluster CA used by both kind clusters so they trust each other's API server (gitignored).
+CLUSTER_CA_DIR="$REPO_ROOT/local/kind/kind-configs/.crt"
+
 # Cluster names (kind automatically prefixes contexts with "kind-",
 # so these become contexts "kind-management" and "kind-development").
 MANAGEMENT_CLUSTER="management"
