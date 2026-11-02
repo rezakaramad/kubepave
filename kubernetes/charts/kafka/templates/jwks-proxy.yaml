@@ -1,4 +1,4 @@
-{{- if .Values.cluster.jwksProxy.enabled }}
+{{- if and .Values.cluster.jwksProxy.enabled .Values.cluster.external.enabled }}
 
 apiVersion: v1
 kind: ConfigMap
@@ -13,32 +13,6 @@ data:
       error_log  /dev/stderr;
       server {
         listen 8080;
-        location = /openid/v1/jwks {
-          # Upstream: the cluster's OIDC JWKS endpoint on the kube API server.
-          proxy_pass https://kubernetes.default.svc/openid/v1/jwks;
-
-          # Set the Accept header to request the JWKS in the correct format.
-          proxy_set_header Accept "application/jwk-set+json";
-
-          # Verify the API server TLS using this pod's own mounted cluster CA.
-          proxy_ssl_trusted_certificate /var/run/secrets/kubernetes.io/serviceaccount/ca.crt;
-
-          # Enable verification of the API server's TLS certificate using the trusted CA.
-          proxy_ssl_verify on;
-
-          # Send SNI on the upstream TLS handshake so the API server presents the right cert.
-          proxy_ssl_server_name on;
-
-          # Name sent as SNI and verified against the API server cert's SAN.
-          proxy_ssl_name kubernetes.default.svc;
-
-          # Drop the upstream's application/jwk-set+json content type...
-          proxy_hide_header Content-Type;
-
-          # ...and return application/json so the OAuth client accepts the response.
-          add_header Content-Type application/json always;
-        }
-        {{- if .Values.cluster.external.enabled }}
 
         # The external listener's keys are served from the mounted file: the development cluster's
         # API server is not reachable with this pod's credentials.
@@ -46,7 +20,6 @@ data:
           alias /etc/nginx/jwks/jwks.json;
           default_type application/json;
         }
-        {{- end }}
       }
     }
 ---
@@ -77,11 +50,9 @@ spec:
               mountPath: /etc/nginx/nginx.conf
               subPath: nginx.conf
               readOnly: true
-            {{- if .Values.cluster.external.enabled }}
             - name: external-jwks
               mountPath: /etc/nginx/jwks
               readOnly: true
-            {{- end }}
           resources:
             requests:
               cpu: 10m
@@ -93,11 +64,9 @@ spec:
         - name: config
           configMap:
             name: jwks-proxy
-        {{- if .Values.cluster.external.enabled }}
         - name: external-jwks
           secret:
             secretName: {{ .Values.cluster.external.oauth.jwks.secretName }}
-        {{- end }}
 ---
 apiVersion: v1
 kind: Service

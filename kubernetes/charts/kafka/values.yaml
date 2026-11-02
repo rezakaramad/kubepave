@@ -45,7 +45,7 @@ cluster:
           # The JWKS is fetched live from the apiserver. Kubernetes' /openid/v1/jwks returns 406 for
           # `Accept: application/json`, so oauth.include.accept.header=false drops that header and
           # the JVM's default wildcard Accept is accepted. The pod's own cluster CA verifies TLS.
-          # oauth.validation.skip.type.check: K8s SA tokens carry no `typ` header/claim, which
+          # oauth.check.access.token.type=false: K8s SA tokens carry no `typ` header/claim, which
           # the library otherwise requires; unsecuredLoginStringClaim_sub satisfies the broker's
           # own (unused) login on this client-facing listener.
           oauthbearer.sasl.jaas.config: >-
@@ -59,7 +59,7 @@ cluster:
             oauth.username.claim="['kubernetes.io']['serviceaccount']['name']"
             oauth.check.audience="true"
             oauth.client.id="kafka"
-            oauth.validation.skip.type.check="true" ;
+            oauth.check.access.token.type="false" ;
 
   # An extra listener that clients outside the cluster (the development cluster) connect to.
   # It is a LoadBalancer listener: one service for the bootstrap address and one per broker,
@@ -85,8 +85,7 @@ cluster:
         remoteProperty: development
         secretName: kafka-external-oidc-jwks
 
-  # Fixes the Accept header on requests to Kubernetes' /openid/v1/jwks (406 otherwise).
-  # Not needed against public OIDC providers such as GKE.
+  # Serves the development cluster's JWKS (from OpenBao) to the external listener as a static file.
   jwksProxy:
     enabled: true
     image: nginx:1.27-alpine

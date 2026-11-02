@@ -33,7 +33,7 @@ spec:
               oauth.username.claim="['kubernetes.io']['serviceaccount']['name']"
               oauth.check.audience="true"
               oauth.client.id="kafka"
-              oauth.validation.skip.type.check="true" ;
+              oauth.check.access.token.type="false" ;
         configuration:
           brokerCertChainAndKey:
             secretName: {{ .Values.cluster.external.certificate.secretName }}

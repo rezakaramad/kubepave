@@ -50,36 +50,18 @@ through `type: custom` using Strimzi's bundled OAuth library (see
 checks the audience contains `kafka`, and derives the Kafka principal from the `sub`
 claim (`system:serviceaccount:<ns>:<sa>`).
 
-### Why the `jwks-proxy` (nginx) exists
+### Fetching the JWKS from the Kubernetes API server
 
-To verify a token's signature, the broker fetches the cluster's public keys from the
-Kubernetes JWKS endpoint `…/openid/v1/jwks`. Two things collide locally:
+To verify a token's signature, the broker fetches the cluster's public keys live from the
+Kubernetes JWKS endpoint `…/openid/v1/jwks`. Kubernetes' endpoint serves **only**
+`application/jwk-set+json` and returns **HTTP 406 Not Acceptable** for an explicit
+`Accept: application/json`, which the Strimzi OAuth library sends by default.
 
-- Kubernetes' JWKS endpoint serves **only** `application/jwk-set+json` and returns
-  **HTTP 406 Not Acceptable** for any other `Accept` header.
-- The bundled Strimzi OAuth library requests `Accept: application/json`, and offers
-  no option to change it; so it gets an 406 error and validation fails.
-
-`templates/jwks-proxy.yaml` deploys a tiny nginx reverse proxy whose only job is to
-relay that one request with the correct `Accept: application/jwk-set+json` header
-(verifying the API server TLS with its own mounted cluster CA). The broker's
-`oauth.jwks.endpoint.uri` points at the proxy over plain in-cluster HTTP:
-
-```
-broker --HTTP--> jwks-proxy:8080 --HTTPS (Accept: jwk-set+json)--> apiserver /openid/v1/jwks
-```
-
-```text
-broker                     nginx                                       kube-apiserver
-Accept: application/json  -> Accept: application/jwk-set+json  ->
-                          <- Content-Type: application/json    <- Content-Type: application/jwk-set+json
-```
-
-This is a workaround for the **raw kube-apiserver's strict content negotiation**, which
-is all a local kind cluster exposes. A managed provider such as GKE additionally
-publishes a public, lenient issuer endpoint (`container.googleapis.com/...`) that
-serves `application/json` directly; there you point `oauth.jwks.endpoint.uri` straight
-at it and set `cluster.jwksProxy.enabled: false`, dropping the proxy entirely.
+Setting `oauth.include.accept.header="false"` stops the library sending that header. The JVM's
+default `Accept` then ends in `*/*`, which the API server accepts, so the broker reads the endpoint
+directly: `oauth.jwks.endpoint.uri="https://kubernetes.default.svc/openid/v1/jwks"`. The pod's own
+cluster CA (`/var/run/secrets/kubernetes.io/serviceaccount/ca.crt`) is the truststore, and the API
+server must allow anonymous reads of the discovery endpoints (the local kind setup already does).
 
 ### External listener (development cluster clients)
 

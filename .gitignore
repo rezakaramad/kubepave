@@ -2,6 +2,7 @@
 .local
 .ideas
 *.key
+.crt/
 *.jnl
 **/.terraform/
 **/.terraform.lock.hcl
