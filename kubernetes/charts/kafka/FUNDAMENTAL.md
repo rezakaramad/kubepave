@@ -41,7 +41,7 @@ A useful mental model:
 **Data plane** = does the actual work and stores/serves data.  
 **Coordination/metadata plane** = keeps everyone organized and in agreement.
 
-For example, in a Kafka cluster with several brokers, the coordination system may maintain facts such as:
+For example, in a Kafka cluster with several brokers (a **broker** is a Kafka server that stores data and serves clients), the coordination system may maintain facts such as:
 
 - “Broker 2 is the leader for partition 7.”
 - “Broker 4 has failed.”
@@ -90,7 +90,7 @@ Kafka eventually gained its own consensus protocol based on **Raft**. That becam
 A bit more about the operational complexity mentioned above: with ZooKeeper-based Kafka, operators effectively had to run and maintain two separate distributed systems:
 
 - a Kafka cluster of brokers
-- a ZooKeeper ensemble
+- a ZooKeeper cluster
 
 That created operational complexity because each system had its own configuration, health model, networking, security, upgrades, and failure modes.
 
@@ -183,12 +183,16 @@ If ZooKeeper stops hearing from the broker for longer than the configured sessio
 Then ZooKeeper automatically removes any ephemeral znodes owned by that session.
 
 So:
+
 Broker ↔ ZooKeeper connection + session ID + heartbeat/timeout = ZooKeeper session
+
 It’s basically ZooKeeper’s way of knowing: “Is this client still alive?”
 
 Networking-wise, it means the Kafka broker has a TCP connection open to a ZooKeeper server, and small ZooKeeper protocol messages travel over that connection.
+
 A heartbeat/ping is basically:
 Broker → TCP socket → ZooKeeper: “I’m still here.”
+
 ZooKeeper replies, and as long as this communication keeps happening within the session timeout, the session stays alive.
 
 Important distinction:
@@ -208,6 +212,7 @@ So when the active controller dies, another controller can become leader while a
 Rough comparison:
 
 **ZooKeeper**: fail → external coordination → reload/sync metadata → resume
+
 **KRaft**: fail → elect new Raft leader → resume
 
 That tighter integration is why controller election and failover are generally faster.

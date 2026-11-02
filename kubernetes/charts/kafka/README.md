@@ -1,6 +1,6 @@
 # Strimzi Kafka Operator
 
-Runs Apache Kafka in KRaft mode via the Strimzi operator, which is
+Runs Apache Kafka in [KRaft mode](https://kafka.apache.org/41/operations/kraft/) via the [Strimzi operator](https://github.com/strimzi/strimzi-kafka-operator), which is
 bundled as a chart dependency. 
 
 The cluster uses two dedicated node pools so the metadata quorum and the data plane
@@ -13,15 +13,14 @@ Clients inside the cluster connect over the internal TLS listener on port `9093`
 cluster CA that the operator provisions automatically.
 
 Clients outside the cluster (the development cluster) connect over the `external` listener on port
-`9094` (`cluster.external` in `values.yaml`). It is a LoadBalancer listener: Strimzi creates one service
-for the bootstrap address and one per broker, and external-dns publishes `kafka.<domain>` and
+`9094` ([`cluster.external`](values.yaml#L65) in `values.yaml`). It is a LoadBalancer listener: Strimzi creates one service for the bootstrap address and one per broker, and external-dns publishes `kafka.<domain>` and
 `kafka-<id>.<domain>` from their hostname annotations. Its certificate is issued by cert-manager from
 the platform root CA (`templates/listener-certificate.yaml`), so clients trust it through the root CA.
 The Certificate lists every one of those names, so adding a broker adds its name automatically.
 
 ## Durability configuration
 
-The `cluster.config` values are Kafka's durability knobs. Every partition can be
+The [`cluster.config`](values.yaml#L123) values are Kafka's durability knobs. Every partition can be
 copied to multiple brokers (its *replicas*); the copies kept current are the
 *in-sync replicas* (ISR). With 3 brokers, the defaults below keep 3 copies and
 require 2 to confirm each write, so the cluster survives one broker failure with no
@@ -59,7 +58,7 @@ Kubernetes JWKS endpoint `…/openid/v1/jwks`. Two things collide locally:
 - Kubernetes' JWKS endpoint serves **only** `application/jwk-set+json` and returns
   **HTTP 406 Not Acceptable** for any other `Accept` header.
 - The bundled Strimzi OAuth library requests `Accept: application/json`, and offers
-  no option to change it; so it gets a 406 and validation fails.
+  no option to change it; so it gets an 406 error and validation fails.
 
 `templates/jwks-proxy.yaml` deploys a tiny nginx reverse proxy whose only job is to
 relay that one request with the correct `Accept: application/jwk-set+json` header
@@ -68,6 +67,12 @@ relay that one request with the correct `Accept: application/jwk-set+json` heade
 
 ```
 broker --HTTP--> jwks-proxy:8080 --HTTPS (Accept: jwk-set+json)--> apiserver /openid/v1/jwks
+```
+
+```text
+broker                     nginx                                       kube-apiserver
+Accept: application/json  -> Accept: application/jwk-set+json  ->
+                          <- Content-Type: application/json    <- Content-Type: application/jwk-set+json
 ```
 
 This is a workaround for the **raw kube-apiserver's strict content negotiation**, which

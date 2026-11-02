@@ -9,7 +9,7 @@ We have:
 - Topic: `delivery-orders`
 - 3 partitions
 - 3 Kafka brokers
-- Replication factor: 2
+- Replication factor: 2 (the number of copies Kafka keeps of each partition)
 - One producer application
 - One consumer group called `dispatch-service`
 
@@ -53,16 +53,16 @@ Partition 1
 
 ## 2. Partitions are hosted by brokers
 
-A partition is stored on Kafka brokers. Because the replication factor is `2`, Partition 1 has two copies, stored on two brokers.
+A partition is stored on Kafka brokers. Because of the `replication factor = 2`, Partition 1 has two copies, stored on two brokers.
 
 For example:
 
 ```text
 Broker 1
-└── Partition 1 — LEADER
+└── Partition 1 - LEADER
 
 Broker 3
-└── Partition 1 — FOLLOWER
+└── Partition 1 - FOLLOWER
 ```
 
 The same is true for the other partitions:
@@ -103,7 +103,7 @@ Producer
    | Produce request
    v
 Broker 1
-└── Partition 1 — LEADER
+└── Partition 1 - LEADER
     └── offset 105 -> ORD-9007
 ```
 
@@ -128,7 +128,7 @@ Broker 3 has the follower replica of Partition 1. It copies records from the lea
 
 ```text
 Broker 1
-Partition 1 — LEADER
+Partition 1 - LEADER
 
 offset 103 -> ORD-9003
 offset 104 -> ORD-9005
@@ -137,7 +137,7 @@ offset 105 -> ORD-9007
         | replication
         v
 Broker 3
-Partition 1 — FOLLOWER
+Partition 1 - FOLLOWER
 
 offset 103 -> ORD-9003
 offset 104 -> ORD-9005
@@ -146,11 +146,13 @@ offset 105 -> ORD-9007
 
 So `ORD-9007` logically belongs to one partition, but it may physically exist on multiple brokers because the partition is replicated. The follower is primarily there for replication and failover.
 
+The follower pulls the data from the leader. 
+
 ---
 
 ## 5. A Python consumer starts
 
-Suppose the dispatch service contains this simplified consumer:
+Suppose the `dispatch` service contains this simplified consumer:
 
 ```python
 from kafka import KafkaConsumer
@@ -193,7 +195,7 @@ Consumers can also move back to an earlier offset and replay previously stored e
 
 ## 6. Kafka assigns partitions to consumers
 
-Suppose there are two running instances of the dispatch service:
+Suppose there are two running instances of the `dispatch` service:
 
 ```text
 Consumer A
