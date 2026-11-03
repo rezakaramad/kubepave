@@ -1,0 +1,22 @@
+[[- /* Square-bracket delimiters keep Argo CD's own curly-brace expressions intact. Settings come from the Composition. */ -]]
+[[- /* The files in this directory are concatenated in name order, so variables defined here are visible to all of them. */ -]]
+[[- $settings := index .context "xtenant-settings" ]]
+[[- $oidcAccessor := $settings.oidcAccessor | default "" ]]
+[[- $tenant := .observed.composite.resource.metadata.name ]]
+[[- $short := .observed.composite.resource.spec.shortName ]]
+[[- $project := $settings.project ]]
+[[- $argoNamespace := $settings.argoNamespace ]]
+[[- $tenantLabel := $settings.tenantLabelKey ]]
+[[- $repo := $settings.repoURL ]]
+[[- $envLabel := $settings.environmentLabelKey ]]
+[[- $typeLabel := $settings.clusterTypeLabelKey ]]
+[[- $environments := $settings.environments ]]
+
+[[- $appName := printf "xtenant-application-management-%s" $tenant ]]
+[[- $setName := printf "xtenant-applicationset-workload-%s" $tenant ]]
+
+[[- $app := getComposedResource . $appName | default dict ]]
+[[- $appReady := and (eq (dig "status" "health" "status" "" $app) "Healthy") (eq (dig "status" "sync" "status" "" $app) "Synced") ]]
+
+[[- $set := getComposedResource . $setName | default dict ]]
+[[- $setReady := eq (print (getResourceCondition "ResourcesUpToDate" $set).Status) "True" ]]

@@ -1,0 +1,39 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: [[ $tenant ]]-management
+  namespace: [[ $argoNamespace ]]
+  labels:
+    [[ $tenantLabel ]]: [[ $tenant ]]
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    [[ setResourceNameAnnotation $appName ]]
+    gotemplating.fn.crossplane.io/ready: [[ if $appReady ]]"True"[[ else ]]"False"[[ end ]]
+spec:
+  project: [[ $project ]]
+  source:
+    repoURL: [[ $repo ]]
+    path: kubernetes/charts/tenant-management
+    targetRevision: HEAD
+    helm:
+      parameters:
+        - {name: tenant.name, value: [[ $tenant | quote ]]}
+        - {name: tenant.tenantShortName, value: [[ $short | quote ]]}
+        - {name: vault.enabled, value: "true"}
+        [[- if $oidcAccessor ]]
+        - {name: vault.oidc.enabled, value: "true"}
+        - {name: vault.oidc.mountAccessor, value: [[ $oidcAccessor | quote ]]}
+        [[- end ]]
+  destination:
+    name: in-cluster
+    namespace: tenant-system
+  syncPolicy:
+    # Readiness requires Synced, so the Application must converge on its own.
+    automated:
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - ApplyOutOfSyncOnly=true
+      - RespectIgnoreDifferences=true

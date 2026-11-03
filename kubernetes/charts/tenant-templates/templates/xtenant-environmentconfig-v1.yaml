@@ -1,0 +1,12 @@
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: xtenant-argocd-v1
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+data:
+  template: |
+    {{- .Files.Get "files/v1/00-variables.yaml.tmpl" | nindent 4 }}
+    {{- .Files.Get "files/v1/10-application.yaml.tmpl" | nindent 4 }}
+    {{- .Files.Get "files/v1/20-applicationset.yaml.tmpl" | nindent 4 }}
+    {{- .Files.Get "files/v1/30-conditions.yaml.tmpl" | nindent 4 }}

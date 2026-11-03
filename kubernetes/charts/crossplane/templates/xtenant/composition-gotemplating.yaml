@@ -1,13 +1,16 @@
 {{- if and .Values.compositeResources.xTenant.enabled .Values.compositeResources.xTenant.goTemplating.enabled }}
 
 # Same XTenant API as the `xtenant` Composition, composed with function-go-templating instead of the Go function.
-# The template ships in the tenant-templates chart as the `xtenant-argocd` EnvironmentConfig; the settings below stay here
-# so changing them creates a Composition revision.
-# Select it per XR with spec.crossplane.compositionRef.name; the XRD defaults to `xtenant`.
+# The template ships in the tenant-templates chart as the versioned `xtenant-argocd-<templateVersion>` EnvironmentConfig;
+# the settings below stay here so changing them creates a Composition revision.
+# XRs pick a revision by label: spec.crossplane.compositionRevisionSelector.matchLabels.channel (stable | next).
+# Select this Composition per XR with spec.crossplane.compositionRef.name; the XRD defaults to `xtenant`.
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
   name: xtenant-gotemplating
+  labels:
+    channel: {{ .Values.compositeResources.xTenant.goTemplating.channel | quote }}
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 spec:
@@ -50,7 +53,7 @@ spec:
           environmentConfigs:
             - type: Reference
               ref:
-                name: xtenant-argocd
+                name: xtenant-argocd-{{ .Values.compositeResources.xTenant.goTemplating.templateVersion }}
     - step: render-argocd-resources
       functionRef:
         name: function-go-templating

@@ -1,0 +1,63 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: [[ $tenant ]]-workload
+  namespace: [[ $argoNamespace ]]
+  labels:
+    [[ $tenantLabel ]]: [[ $tenant ]]
+  annotations:
+    [[ setResourceNameAnnotation $setName ]]
+    gotemplating.fn.crossplane.io/ready: [[ if $setReady ]]"True"[[ else ]]"False"[[ end ]]
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - clusters:
+        selector:
+          matchExpressions:
+            - key: [[ $typeLabel ]]
+              operator: In
+              values: [tenant]
+            - key: [[ $envLabel ]]
+              operator: In
+              values:
+                [[- range $environments ]]
+                - [[ . ]]
+                [[- end ]]
+        template:
+          metadata:
+            name: '[[ $tenant ]]-workload-{{ index .metadata.labels "[[ $envLabel ]]" }}'
+            labels:
+              [[ $tenantLabel ]]: [[ $tenant ]]
+          spec:
+            project: [[ $project ]]
+            source:
+              repoURL: [[ $repo ]]
+              path: kubernetes/charts/tenant-workload
+              targetRevision: HEAD
+              helm:
+                valueFiles:
+                  - values-local.yaml
+                  - 'values-local-{{ index .metadata.labels "[[ $envLabel ]]" }}.yaml'
+                parameters:
+                  - {name: tenant.name, value: [[ $tenant | quote ]]}
+                  - {name: tenant.tenantShortName, value: [[ $short | quote ]]}
+                  - {name: vault.enabled, value: "true"}
+            destination:
+              name: '{{ .name }}'
+              namespace: [[ $tenant ]]
+  template:
+    metadata:
+      labels:
+        [[ $tenantLabel ]]: [[ $tenant ]]
+    spec:
+      project: [[ $project ]]
+      syncPolicy:
+        syncOptions:
+          - ServerSideApply=true
+          - ApplyOutOfSyncOnly=true
+          - RespectIgnoreDifferences=true
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/syncPolicy

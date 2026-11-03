@@ -1,0 +1,12 @@
+---
+apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
+kind: ClaimConditions
+conditions:
+  - type: ArgoCDManagementApplicationReady
+    status: [[ if $appReady ]]"True"[[ else ]]"False"[[ end ]]
+    reason: [[ if $appReady ]]Available[[ else ]]Unavailable[[ end ]]
+    target: Composite
+  - type: ArgoCDWorkloadApplicationSetReady
+    status: [[ if $setReady ]]"True"[[ else ]]"False"[[ end ]]
+    reason: [[ if $setReady ]]Available[[ else ]]Unavailable[[ end ]]
+    target: Composite

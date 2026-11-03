@@ -33,6 +33,11 @@ compositeResources:
     # Alternative xtenant-gotemplating Composition, selected per XR via spec.crossplane.compositionRef.
     goTemplating:
       enabled: false
+      # Revision channel this Composition is published to. To trial a template: set templateVersion to the new
+      # version and channel to `next`; to promote, set channel back to `stable` (XRs follow it by label).
+      channel: stable
+      # Which xtenant-argocd-<version> EnvironmentConfig from the tenant-templates chart to render.
+      templateVersion: v1
       package: xpkg.crossplane.io/crossplane-contrib/function-go-templating
       packageTag: v0.13.2
       environmentConfigs:
