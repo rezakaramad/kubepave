@@ -60,6 +60,7 @@ install_cilium() {
   # Helm doesn't try to create CiliumLoadBalancerIPPool / CiliumL2AnnouncementPolicy
   # before the CRDs are established.
   log "Installing Cilium in $cluster (CNI)..."
+  helm dependency build "$CILIUM_CHART" >/dev/null
   helm upgrade --install cilium "$CILIUM_CHART" \
     --kube-context "$context" \
     --namespace "$CILIUM_NAMESPACE" \

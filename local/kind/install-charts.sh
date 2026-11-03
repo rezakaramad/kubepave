@@ -41,6 +41,11 @@ helm_install() {
 
   log "Installing $release → $namespace ($context)..."
 
+  # Dependency archives are not committed; fetch them as pinned by Chart.lock.
+  if [[ -f "$chart/Chart.lock" ]]; then
+    helm dependency build "$chart" >/dev/null
+  fi
+
   # Namespace handling for this repo's charts:
   #   - Each chart templates its OWN namespace (with helm.sh/resource-policy: keep)
   #     and installs into it, so Helm needs the namespace to exist to store the
