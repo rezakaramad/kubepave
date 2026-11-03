@@ -1,0 +1,68 @@
+{{- if and .Values.compositeResources.xTenant.enabled .Values.compositeResources.xTenant.goTemplating.enabled }}
+
+# Same XTenant API as the `xtenant` Composition, composed with function-go-templating instead of the Go function.
+# The template ships in the tenant-templates chart as the `xtenant-argocd` EnvironmentConfig; the settings below stay here
+# so changing them creates a Composition revision.
+# Select it per XR with spec.crossplane.compositionRef.name; the XRD defaults to `xtenant`.
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xtenant-gotemplating
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  compositeTypeRef:
+    apiVersion: idp.rezakara.demo/v1beta1
+    kind: XTenant
+  mode: Pipeline
+  pipeline:
+    - step: settings
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
+            kind: Context
+            data:
+              xtenant-settings:
+                project: tenant-system
+                argoNamespace: argocd
+                tenantLabelKey: platform.rezakara.demo/tenant
+                repoURL: https://github.com/rezakaramad/kubepave
+                clusterTypeLabelKey: argocd.rezakara.demo/cluster-type
+                environmentLabelKey: argocd.rezakara.demo/environment
+                environments:
+                  - development
+                  - test
+                  - production
+                oidcAccessor: {{ .Values.vaultProvider.oidcAccessor | default "" | quote }}
+    - step: load-template
+      functionRef:
+        name: function-environment-configs
+      input:
+        apiVersion: environmentconfigs.fn.crossplane.io/v1beta1
+        kind: Input
+        spec:
+          environmentConfigs:
+            - type: Reference
+              ref:
+                name: xtenant-argocd
+    - step: render-argocd-resources
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Environment
+        environment:
+          key: template
+        delims:
+          left: "[["
+          right: "]]"
+
+---
+{{- end }}

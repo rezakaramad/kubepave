@@ -1,0 +1,4 @@
+apiVersion: v2
+name: tenant-templates
+description: Go templates that the xtenant-gotemplating Composition renders, shipped as an EnvironmentConfig
+version: 0.0.1

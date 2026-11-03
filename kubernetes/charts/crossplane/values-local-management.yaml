@@ -43,6 +43,8 @@ compositeResources:
   xTenant:
     enabled: true
     packageTag: v0.2.0
+    goTemplating:
+      enabled: true
 
   xTenantSSO:
     enabled: true

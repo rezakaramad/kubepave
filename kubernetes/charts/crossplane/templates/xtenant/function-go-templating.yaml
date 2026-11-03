@@ -1,0 +1,16 @@
+{{- if and .Values.compositeResources.xTenant.enabled .Values.compositeResources.xTenant.goTemplating.enabled }}
+
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: function-go-templating
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  {{- with .Values.compositeResources.xTenant.goTemplating }}
+  package: {{ .package }}:{{ .packageTag }}
+  {{- end }}
+
+---
+{{- end }}
