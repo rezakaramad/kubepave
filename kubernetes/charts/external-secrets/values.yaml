@@ -6,6 +6,16 @@ secretStore:
   name: <upsert-in-env-values-file>
   provider: {}
 
+rootCA:
+  enabled: false
+  refreshTime: 1m
+  # 'platform-system' holds the source root-ca (cert-manager-managed on management).
+  excludedNamespaces:
+    - platform-system
+    - kube-system
+    - kube-public
+    - kube-node-lease
+
 external-secrets:
   # If set, install and upgrade CRDs through helm chart.
   installCRDs: false

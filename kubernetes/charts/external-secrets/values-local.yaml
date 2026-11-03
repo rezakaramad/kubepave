@@ -1,3 +1,6 @@
+rootCA:
+  enabled: true
+
 clusterSecretStore:
   name: openbao-local
   provider:
@@ -8,7 +11,7 @@ clusterSecretStore:
       caProvider:
         type: Secret
         name: root-ca
-        key: tls.crt
+        key: ca.crt
         namespace: platform-system
 
 secretStore:
@@ -21,5 +24,5 @@ secretStore:
       caProvider:
         type: Secret
         name: root-ca
-        key: tls.crt
+        key: ca.crt
         namespace: platform-system

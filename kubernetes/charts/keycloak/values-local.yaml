@@ -21,7 +21,7 @@ secretStore:
             audiences:
               - https://kubernetes.default.svc.cluster.local
       caProvider:
-        key: tls.crt
+        key: ca.crt
         name: root-ca
         namespace: keycloak
         type: Secret

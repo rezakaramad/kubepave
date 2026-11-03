@@ -7,7 +7,7 @@ secretStore:
   provider:
     vault:
       caProvider:
-        key: tls.crt
+        key: ca.crt
         name: root-ca
         namespace: crossplane-system
         type: Secret

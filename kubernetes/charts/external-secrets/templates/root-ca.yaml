@@ -1,0 +1,30 @@
+{{- if and .Values.rootCA.enabled (.Capabilities.APIVersions.Has "external-secrets.io/v1") }}
+# Broadcasts the public root CA to every namespace. The private key (tls.key)
+# is deliberately not copied; it stays in 'platform-system'.
+apiVersion: external-secrets.io/v1
+kind: ClusterExternalSecret
+metadata:
+  name: root-ca
+spec:
+  namespaceSelectors:
+    - matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            {{- toYaml .Values.rootCA.excludedNamespaces | nindent 12 }}
+  refreshTime: {{ .Values.rootCA.refreshTime }}
+  externalSecretSpec:
+    refreshInterval: 1h
+    secretStoreRef:
+      name: {{ .Values.clusterSecretStore.name }}
+      kind: ClusterSecretStore
+    target:
+      name: root-ca
+      creationPolicy: Owner
+      deletionPolicy: Retain
+    data:
+      - secretKey: ca.crt
+        remoteRef:
+          key: shared/pki/root-ca
+          property: ca.crt
+{{- end }}

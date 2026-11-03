@@ -31,7 +31,7 @@ spec:
             {{- if hasPrefix "https://" .Values.vaultProvider.address }}
             env:
             - name: VAULT_CACERT
-              value: /etc/vault-tls/tls.crt
+              value: /etc/vault-tls/ca.crt
             {{- end }}
             volumeMounts:
             - name: vault-token
@@ -60,7 +60,7 @@ spec:
             {{- if hasPrefix "https://" .Values.vaultProvider.address }}
             env:
             - name: VAULT_CACERT
-              value: /etc/vault-tls/tls.crt
+              value: /etc/vault-tls/ca.crt
             {{- end }}
             volumeMounts:
             - name: vault-agent-config

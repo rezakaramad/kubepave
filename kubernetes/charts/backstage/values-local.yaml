@@ -8,7 +8,7 @@ secretStore:
       caProvider:
         type: Secret
         name: root-ca
-        key: tls.crt
+        key: ca.crt
         namespace: backstage
       auth:
         jwt:
