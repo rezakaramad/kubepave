@@ -42,9 +42,7 @@ helm_install() {
   log "Installing $release → $namespace ($context)..."
 
   # Dependency archives are not committed; fetch them as pinned by Chart.lock.
-  if [[ -f "$chart/Chart.lock" ]]; then
-    helm dependency build "$chart" >/dev/null
-  fi
+  helm_deps_build "$chart"
 
   # Namespace handling for this repo's charts:
   #   - Each chart templates its OWN namespace (with helm.sh/resource-policy: keep)
@@ -301,34 +299,6 @@ install_external_secrets() {
 
 
 # -----------------------------------------------------------------------------
-# Install Kafka (Strimzi operator + a Kafka cluster) on the management cluster.
-# Strimzi ships its CRDs inside the operator *subchart*, which Helm does not
-# register before the parent chart's Kafka/KafkaNodePool resources render. We
-# therefore pre-apply the CRD bundle (server-side) and run Helm with --skip-crds,
-# mirroring the cert-manager/external-secrets pattern. Refresh the bundle with
-# `just get-crds` in kubernetes/charts/kafka.
-# -----------------------------------------------------------------------------
-install_kafka() {
-  # Function arguments:
-  #   $1: cluster name (management or development)
-  local cluster=$1
-  local context
-  context="$(kind_context "$cluster")"
-
-  kubectl --context "$context" apply --server-side \
-    -f "$CHARTS_DIR/kafka/crds/bundle.yaml"
-
-  # --skip-crds: Strimzi's CRDs live in the subchart's reserved crds/ dir (no
-  # values toggle to disable them), so this is the only way to stop Helm from
-  # managing them — we applied them above instead.
-  helm_install kafka "$CHARTS_DIR/kafka" \
-    "$KAFKA_NAMESPACE" "$context" \
-    --skip-crds \
-    -f "$CHARTS_DIR/kafka/values.yaml"
-}
-
-
-# -----------------------------------------------------------------------------
 # Install ArgoCD in the management cluster
 # -----------------------------------------------------------------------------
 install_argocd() {
@@ -420,10 +390,6 @@ main() {
   # Install external-dns on management cluster so it can manage DNS records in PowerDNS
   echo "-------- external-dns (mgmt) -----"
   install_external_dns management
-
-  # Install Kafka (Strimzi operator + Kafka cluster) on the management cluster
-  echo "-------- Kafka -------------------"
-  install_kafka management
 
   # Install Argo CD on management cluster
   echo "-------- ArgoCD ------------------"

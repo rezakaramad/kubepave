@@ -121,3 +121,21 @@ kind_context() {
   local cluster=$1
   echo "kind-${cluster}"
 }
+
+# Fetches a chart's dependencies as pinned by Chart.lock. Helm needs each
+# dependency repo registered locally, so missing ones are added first.
+helm_deps_build() {
+  local chart=$1
+  [[ -f "$chart/Chart.lock" ]] || return 0
+
+  local url known
+  while IFS= read -r url; do
+    [[ "$url" == http* ]] || continue
+    known=$(helm repo list -o json 2>/dev/null || echo '[]')
+    if ! jq -e --arg u "${url%/}" 'any(.[]; (.url | rtrimstr("/")) == $u)' <<<"$known" >/dev/null; then
+      helm repo add "dep-$(printf '%s' "${url%/}" | sha256sum | cut -c1-8)" "$url" >/dev/null
+    fi
+  done < <(sed -n 's/^ *repository: *"\{0,1\}\([^"]*\)"\{0,1\} *$/\1/p' "$chart/Chart.yaml")
+
+  helm dependency build "$chart" >/dev/null
+}

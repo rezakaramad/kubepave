@@ -30,7 +30,6 @@ PLATFORM_NAMESPACE="platform-system"
 VAULT_NAMESPACE="vault"
 OPENBAO_NAMESPACE="openbao"
 ARGOCD_NAMESPACE="argocd"
-KAFKA_NAMESPACE="kafka-system"
 COREDNS_NS="kube-system"
 
 # Traefik service in management cluster
