@@ -6,3 +6,4 @@
 *.jnl
 **/.terraform/
 **/.terraform.lock.hcl
+kubernetes/charts/*/charts/*.tgz
