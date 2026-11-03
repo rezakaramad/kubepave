@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: kube-state-metrics-development
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "50"
 spec:
   project: platform-system
   source:
@@ -16,6 +18,7 @@ spec:
     name: kind-development
     namespace: observability
   syncPolicy:
+    automated: {}
     syncOptions:
     - ServerSideApply=true
     - ApplyOutOfSyncOnly=true

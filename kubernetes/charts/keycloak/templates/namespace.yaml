@@ -4,3 +4,4 @@ metadata:
   name: keycloak
   annotations:
     helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-wave: "-20"

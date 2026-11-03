@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: platform-system-management
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: platform-system
   source:
@@ -18,6 +20,7 @@ spec:
   destination:
     name: in-cluster
   syncPolicy:
+    automated: {}
     syncOptions:
     - ServerSideApply=true
     - ApplyOutOfSyncOnly=true

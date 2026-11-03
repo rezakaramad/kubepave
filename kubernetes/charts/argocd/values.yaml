@@ -221,6 +221,22 @@ argocd:
         hs.message = "Waiting for the XRD to be established"
         return hs
 
+      # -- CloudNativePG cluster: ready once its Ready condition is True, so workloads that need its secrets wait.
+      resource.customizations.health.postgresql.cnpg.io_Cluster: |
+        hs = {}
+        if obj.status ~= nil and obj.status.conditions ~= nil then
+          for i, condition in ipairs(obj.status.conditions) do
+            if condition.type == "Ready" and condition.status == "True" then
+              hs.status = "Healthy"
+              hs.message = "Database cluster ready"
+              return hs
+            end
+          end
+        end
+        hs.status = "Progressing"
+        hs.message = "Waiting for the database cluster to be ready"
+        return hs
+
       # -- Health check for all Crossplane provider managed resources
       # (provider-vault + provider-azuread, group *.upbound.io). These share the
       # standard Crossplane Ready/Synced conditions, which ArgoCD cannot assess

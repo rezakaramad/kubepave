@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: crossplane-development
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "35"
 spec:
   project: platform-system
   source:
@@ -18,6 +20,7 @@ spec:
     name: kind-development
     namespace: crossplane-system
   syncPolicy:
+    automated: {}
     syncOptions:
     - ServerSideApply=true
     - ApplyOutOfSyncOnly=true

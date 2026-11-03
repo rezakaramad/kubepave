@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: observability-development
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "35"
 spec:
   project: platform-system
   source:
@@ -12,6 +14,7 @@ spec:
   destination:
     name: kind-development
   syncPolicy:
+    automated: {}
     syncOptions:
     - ServerSideApply=true
     - ApplyOutOfSyncOnly=true

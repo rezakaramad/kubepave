@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: cert-manager-management
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
 spec:
   project: platform-system
   source:
@@ -19,6 +21,7 @@ spec:
     name: in-cluster
     namespace: platform-system
   syncPolicy:
+    automated: {}
     syncOptions:
     - ServerSideApply=true
     - ApplyOutOfSyncOnly=true

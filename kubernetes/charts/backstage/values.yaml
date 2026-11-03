@@ -77,6 +77,9 @@ backstage:
 
   serviceAccount:
     create: true
+    # The SecretStore authenticates with this SA's token, so it must exist before the ExternalSecrets.
+    annotations:
+      argocd.argoproj.io/sync-wave: "-10"
 
   # Use CloudNativePG instead of the bundled postgresql subchart
   postgresql:
