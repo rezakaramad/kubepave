@@ -17,7 +17,8 @@ spec:
     kind: ClusterProviderConfig
     name: {{ printf "github-%s" $githubOrg | quote }}
 
-  managementPolicies: ["Create", "Observe", "Update"]
+  # "Delete" is for this local setup so removing the tenant also removes its repo; leave it out in production.
+  managementPolicies: ["Create", "Observe", "Update", "Delete"]
 
   forProvider:
     name: {{ $repoName | quote }}
