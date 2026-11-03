@@ -4,6 +4,8 @@ apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
   name: xwebapp
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   compositeTypeRef:
     apiVersion: idp.rezakara.demo/v1beta1

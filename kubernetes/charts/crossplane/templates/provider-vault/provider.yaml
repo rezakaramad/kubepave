@@ -1,9 +1,14 @@
-{{- if and .Values.vaultProvider.enabled (.Capabilities.APIVersions.Has "pkg.crossplane.io/v1/Provider") }}
+{{- if .Values.vaultProvider.enabled }}
 
+# Sync waves: 0 Crossplane core, 1 runtime configs, 2 Providers and Functions, 3 XRDs and activation policies,
+# 4 Compositions, 5 ProviderConfigs. The Provider and XRD health checks in the argocd chart make each wave wait.
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-vault
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   package: {{ .Values.vaultProvider.providerPackage }}
   # Pin the provider pod to the stable provider-vault ServiceAccount (see

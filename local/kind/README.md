@@ -107,15 +107,15 @@ the local root CA (trusted after `setup-trust.sh`):
 
 | Service | URL | Cluster |
 |---------|-----|---------|
-| ArgoCD | `https://argocd.mgmt.rezakara.demo` | management |
-| OpenBao | `https://openbao.mgmt.rezakara.demo` | management |
-| PowerDNS API | `https://powerdns.mgmt.rezakara.demo` | management |
-| Keycloak | `https://oidc.mgmt.rezakara.demo` | management |
-| Backstage | `https://backstage.mgmt.rezakara.demo` | management |
-| otel-gateway (collectors write here) | `https://gateway-collector.mgmt.rezakara.demo` | management |
-| Platform Grafana | `https://platform.grafana.mgmt.rezakara.demo` | management |
+| ArgoCD | [https://argocd.mgmt.rezakara.demo](https://argocd.mgmt.rezakara.demo) | management |
+| OpenBao | [https://openbao.mgmt.rezakara.demo](https://openbao.mgmt.rezakara.demo) | management |
+| PowerDNS API | [https://powerdns.mgmt.rezakara.demo](https://powerdns.mgmt.rezakara.demo) | management |
+| Keycloak | [https://oidc.mgmt.rezakara.demo](https://oidc.mgmt.rezakara.demo) | management |
+| Backstage | [https://backstage.mgmt.rezakara.demo](https://backstage.mgmt.rezakara.demo) | management |
+| otel-gateway (collectors write here) | [https://gateway-collector.mgmt.rezakara.demo](https://gateway-collector.mgmt.rezakara.demo) | management |
+| Platform Grafana | [https://platform.grafana.mgmt.rezakara.demo](https://platform.grafana.mgmt.rezakara.demo) | management |
 | Tenant Grafana (off by default) | `https://<tenant>.grafana.mgmt.rezakara.demo` | management |
-| otel demo shop | `https://shop.dev.rezakara.demo` | development |
+| otel demo shop | [https://shop.dev.rezakara.demo](https://shop.dev.rezakara.demo) | development |
 | Tenant apps | `https://<app>.<tenant-short-name>.dev.rezakara.demo` | development |
 
 Not HTTP, so not behind Traefik:

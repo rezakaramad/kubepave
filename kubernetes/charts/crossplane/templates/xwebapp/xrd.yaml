@@ -4,6 +4,8 @@ apiVersion: apiextensions.crossplane.io/v2
 kind: CompositeResourceDefinition
 metadata:
   name: xwebapps.idp.rezakara.demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   group: idp.rezakara.demo
   names:

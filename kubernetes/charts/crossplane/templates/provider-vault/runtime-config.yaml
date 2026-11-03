@@ -1,4 +1,4 @@
-{{- if and .Values.vaultProvider.enabled (.Capabilities.APIVersions.Has "pkg.crossplane.io/v1/Provider") }}
+{{- if .Values.vaultProvider.enabled }}
 
 # A DeploymentRuntimeConfig is a Crossplane object that controls how the provider's controller pod is deployed.
 #

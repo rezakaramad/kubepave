@@ -5,7 +5,7 @@ kind: ManagedResourceActivationPolicy
 metadata:
   name: azuread-resources
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "3"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   activate: {{ .Values.entraIdProvider.activatedResources | toYaml | nindent 4 }}

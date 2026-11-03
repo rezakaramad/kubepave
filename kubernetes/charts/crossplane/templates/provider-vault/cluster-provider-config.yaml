@@ -1,4 +1,4 @@
-{{- if and .Values.vaultProvider.enabled (.Capabilities.APIVersions.Has "pkg.crossplane.io/v1/Provider") }}
+{{- if .Values.vaultProvider.enabled }}
 
 # We create a cluster-scoped ProviderConfig because there is no point in creating a namespaced one 
 # A namespaced ProviderConfig would only improve security if each namespace held differently-scoped credentials.
