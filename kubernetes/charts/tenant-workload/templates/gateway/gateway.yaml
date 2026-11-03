@@ -1,7 +1,7 @@
 # Generate a Gateway resource for the tenant.
 
 {{- $tenant := .Values.tenant }}
-{{- $hostname := include "tn.gateway.hostname" (dict "name" $tenant.tenantShortName "environmentPrefix" .Values.environmentPrefix) }}
+{{- $hostname := include "tn.gateway.hostname" (dict "name" $tenant.name "environmentPrefix" .Values.environmentPrefix) }}
 {{- $wildcardHostname := printf "*.%s" $hostname }}
 {{- $certificateName := printf "%s-cert-traefik" (include "tn.gateway.certificateName" $hostname) }}
 

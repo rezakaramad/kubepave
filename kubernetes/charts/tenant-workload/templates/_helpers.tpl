@@ -25,7 +25,7 @@ platform.rezakara.demo/component: tenant-foundation
 
 {{/*
 Fully-qualified base hostname for a tenant's gateway:
-  <tenantShortName>.<environmentPrefix>.rezakara.demo   e.g. pil.wl.rezakara.demo
+  <tenantName>.<environmentPrefix>.rezakara.demo   e.g. pillow-factory.wl.rezakara.demo
 Callers wildcard it as *.<hostname>. Expects a dict: {name, environmentPrefix}.
 */}}
 {{- define "tn.gateway.hostname" -}}
@@ -34,7 +34,7 @@ Callers wildcard it as *.<hostname>. Expects a dict: {name, environmentPrefix}.
 
 {{/*
 DNS-1123-safe resource name derived from a hostname (dots -> hyphens),
-e.g. pil.wl.rezakara.demo -> pil-wl-rezakara-demo. Expects the hostname string as the context.
+e.g. pillow-factory.wl.rezakara.demo -> pillow-factory-wl-rezakara-demo. Expects the hostname string as the context.
 */}}
 {{- define "tn.gateway.certificateName" -}}
 {{- . | lower | replace "." "-" -}}

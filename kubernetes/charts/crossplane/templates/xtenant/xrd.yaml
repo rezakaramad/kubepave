@@ -26,8 +26,8 @@ spec:
               shortName:
                 type: string
                 description: |-
-                  Short DNS-label alias for the tenant, used to build gateway
-                  hostnames such as <shortName>.<environment>.rezakara.demo.
+                  Short DNS-label alias for the tenant, used where a length-limited
+                  identifier is needed, such as GCP project IDs.
                 minLength: 1
                 maxLength: 10
                 pattern: ^[a-z][a-z0-9-]*[a-z0-9]$

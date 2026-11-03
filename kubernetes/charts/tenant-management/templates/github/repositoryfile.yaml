@@ -42,10 +42,10 @@ spec:
 
       | Environment | Hostname |
       |-------------|-----------|
-      | DEV  | `*.{{ $tenant.tenantShortName }}.dev.rezakara.demo` |
-      | TEST | `*.{{ $tenant.tenantShortName }}.test.rezakara.demo` |
-      | PROD | `*.{{ $tenant.tenantShortName }}.prod.rezakara.demo` |
-      | WL  | `*.{{ $tenant.tenantShortName }}.dev.rezakara.demo` |
+      | DEV  | `*.{{ $tenant.name }}.dev.rezakara.demo` |
+      | TEST | `*.{{ $tenant.name }}.test.rezakara.demo` |
+      | PROD | `*.{{ $tenant.name }}.prod.rezakara.demo` |
+      | WL  | `*.{{ $tenant.name }}.dev.rezakara.demo` |
 
       ---
 

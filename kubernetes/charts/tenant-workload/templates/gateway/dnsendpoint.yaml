@@ -3,7 +3,7 @@
 # Without this, the tenant's applications would not be accessible via the wildcard hostname.
 
 {{- $tenant := .Values.tenant }}
-{{- $hostname := include "tn.gateway.hostname" (dict "name" $tenant.tenantShortName "environmentPrefix" .Values.environmentPrefix) }}
+{{- $hostname := include "tn.gateway.hostname" (dict "name" $tenant.name "environmentPrefix" .Values.environmentPrefix) }}
 {{- $wildcardHostname := printf "*.%s" $hostname }}
 
 apiVersion: externaldns.k8s.io/v1alpha1
