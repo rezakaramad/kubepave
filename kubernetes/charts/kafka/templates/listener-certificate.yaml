@@ -19,6 +19,7 @@ spec:
   privateKey:
     algorithm: RSA
     encoding: PKCS8
+    rotationPolicy: Always
     size: 2048
   # Every name a client can connect to: the bootstrap address and each broker's address.
   dnsNames:
