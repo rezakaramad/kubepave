@@ -10,6 +10,8 @@ spec:
     targetRevision: HEAD
     path: kubernetes/charts/kafka
     helm:
+      # Keeps the release name from install-charts.sh; the Deployment selectors contain it and are immutable.
+      releaseName: kafka
       # Strimzi's CRDs are managed out-of-band (pre-applied bundle in install-charts.sh).
       # Skipping them here avoids rendering them twice (parent crds/ + subchart crds/).
       skipCrds: true
