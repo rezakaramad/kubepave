@@ -45,11 +45,6 @@ compositeResources:
     package: ghcr.io/rezakaramad/function-xtenantsso
     packageTag: <upsert-in-env-values-file>
 
-  xTenantArgo:
-    enabled: false
-    package: ghcr.io/rezakaramad/function-xtenantargo
-    packageTag: <upsert-in-env-values-file>
-
   xWebApp:
     enabled: false
     package: ghcr.io/rezakaramad/function-xwebapp
