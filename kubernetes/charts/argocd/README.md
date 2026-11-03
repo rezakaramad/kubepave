@@ -18,7 +18,7 @@ setup-secrets.sh
   → generates a long-lived SA token Secret
   → stores { server, token } in Vault at local/argocd/clusters/<name>
   → ESO materialises it as an ArgoCD cluster Secret in the argocd namespace
-  → ArgoCD uses that token to reach https://<node-ip>:6443
+  → ArgoCD uses that token to reach https://api.<env>.k8s.rezakara.demo:6443
 ```
 
 The token **never expires** and is the one remaining static long-lived credential

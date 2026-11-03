@@ -51,8 +51,8 @@ cluster:
           oauthbearer.sasl.jaas.config: >-
             org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
             unsecuredLoginStringClaim_sub="kafka-broker"
-            oauth.valid.issuer.uri="https://kubernetes.default.svc.cluster.local"
-            oauth.jwks.endpoint.uri="https://kubernetes.default.svc/openid/v1/jwks"
+            oauth.valid.issuer.uri="https://api.mgmt.k8s.rezakara.demo:6443"
+            oauth.jwks.endpoint.uri="https://api.mgmt.k8s.rezakara.demo:6443/openid/v1/jwks"
             oauth.include.accept.header="false"
             oauth.ssl.truststore.location="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
             oauth.ssl.truststore.type="PEM"
@@ -77,9 +77,9 @@ cluster:
     # Clients here present development cluster ServiceAccount tokens. That cluster has its own
     # token issuer and signing keys, so this listener validates against those, not the management ones.
     oauth:
-      validIssuerUri: https://development.kind.local
-      # The development API server's JWKS, fetched live. The kind node IP is pinned in setup-clusters.sh.
-      jwksEndpointUri: https://192.168.211.67:6443/openid/v1/jwks
+      validIssuerUri: https://api.dev.k8s.rezakara.demo:6443
+      # The development API server's JWKS, fetched live. CoreDNS resolves the name (see setup-clusters.sh).
+      jwksEndpointUri: https://api.dev.k8s.rezakara.demo:6443/openid/v1/jwks
 
   # Authorization: deny-by-default ACLs. Each workload is identified by its principal
   # (= its ServiceAccount name, per the username claim above) and only gets what its

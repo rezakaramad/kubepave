@@ -270,7 +270,7 @@ register_clusters_argocd() {
   log "Registering development clusters with ArgoCD (pull model)..."
 
   get_kind_tenant_clusters | while read -r cluster; do
-    local context name server token node_ip
+    local context name server token
     context="$(kind_context "$cluster")"
     name="$context"  # ArgoCD cluster name == kind context name
 
@@ -311,10 +311,8 @@ EOF
       get secret argocd-manager-token \
       -o jsonpath='{.data.token}' | base64 -d)
 
-    # API server reachable from management pods via the kind Docker bridge
-    node_ip=$(kubectl --context "$context" get node \
-      -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-    server="https://${node_ip}:6443"
+    # The API server name resolves in management pods through CoreDNS (see setup-clusters.sh)
+    server="$(sa_issuer "$cluster")"
 
     log "  server: $server"
 
@@ -456,26 +454,6 @@ create_grafana_secrets() {
 }
 
 # -----------------------------------------------------------------------------
-# Public ServiceAccount signing keys (JWKS) of every kind cluster.
-# Pushed under kv/shared/pki so a consumer on any cluster can validate that cluster's tokens
-# (the otel-gateway does). Re-run after a cluster is recreated or its keys change.
-# -----------------------------------------------------------------------------
-push_cluster_jwks() {
-  log "Writing cluster ServiceAccount JWKS to OpenBao..."
-
-  local args=() cluster jwks
-  for cluster in "$MANAGEMENT_CLUSTER" "$WORKLOAD_CLUSTER"; do
-    jwks=$(kubectl --context "$(kind_context "$cluster")" get --raw /openid/v1/jwks)
-    args+=("$cluster" "$jwks")
-  done
-
-  bao_kv_put "kv/shared/pki/jwks" "${args[@]}"
-
-  ok "Cluster JWKS written to kv/shared/pki/jwks"
-}
-
-
-# -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 main() {
@@ -496,7 +474,6 @@ main() {
   create_seaweedfs_secrets
   create_seaweedfs_sts_secrets
   create_grafana_secrets
-  push_cluster_jwks
   register_clusters_argocd
   create_powerdns_secrets
 

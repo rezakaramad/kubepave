@@ -59,7 +59,8 @@ Kubernetes JWKS endpoint `…/openid/v1/jwks`. Kubernetes' endpoint serves **onl
 
 Setting `oauth.include.accept.header="false"` stops the library sending that header. The JVM's
 default `Accept` then ends in `*/*`, which the API server accepts, so the broker reads the endpoint
-directly: `oauth.jwks.endpoint.uri="https://kubernetes.default.svc/openid/v1/jwks"`. The pod's own
+directly: `oauth.jwks.endpoint.uri="https://api.mgmt.k8s.rezakara.demo:6443/openid/v1/jwks"` (the management
+API server's name, which is also its issuer). The pod's own
 cluster CA (`/var/run/secrets/kubernetes.io/serviceaccount/ca.crt`) is the truststore, and the API
 server must allow anonymous reads of the discovery endpoints (the local kind setup already does).
 
@@ -67,10 +68,10 @@ server must allow anonymous reads of the discovery endpoints (the local kind set
 
 The `external` listener authenticates the same way (SA token, principal = SA name) but trusts the
 **development** cluster instead of the management one: `cluster.external.oauth.validIssuerUri` is the
-development API server's issuer (`https://development.kind.local`).
+development API server's issuer (`https://api.dev.k8s.rezakara.demo:6443`, its own DNS name).
 
 The broker fetches the development JWKS live from the development API server
-(`cluster.external.oauth.jwksEndpointUri`, the pinned kind node IP) with the same settings. Both
+(`cluster.external.oauth.jwksEndpointUri`) with the same settings. Both
 kind clusters are created with one shared CA (`local/kind/kind-configs/.crt`, see
 `setup-clusters.sh`), so the broker pod's own service account CA already trusts that API server. The
 clusters keep separate service account signing keys, so their tokens stay distinguishable.

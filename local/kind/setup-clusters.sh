@@ -75,6 +75,8 @@ patch_coredns() {
   local cluster=$1
   local context
   local pdns_ip
+  local mgmt_ip
+  local dev_ip
   local corefile
 
   # Set the kube context
@@ -82,6 +84,10 @@ patch_coredns() {
 
   # Get the PowerDNS IP address from the kind network
   pdns_ip="$(get_powerdns_ip)"
+
+  # Docker assigns the node IPs, so each API server name is mapped to whatever its node got
+  mgmt_ip="$(get_control_plane_ip management)"
+  dev_ip="$(get_control_plane_ip development)"
 
   log "Patching CoreDNS in $cluster (→ $pdns_ip:53)..."
 
@@ -97,6 +103,11 @@ patch_coredns() {
   corefile="${corefile}
 # BEGIN rezakara DNS
 ${DNS_DOMAIN}:53 {
+    hosts {
+        ${mgmt_ip} ${MANAGEMENT_API_HOST}
+        ${dev_ip} ${DEVELOPMENT_API_HOST}
+        fallthrough
+    }
     forward . ${pdns_ip}:53
     cache 30
     errors

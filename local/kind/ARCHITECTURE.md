@@ -125,8 +125,8 @@ Kubernetes as needed.
   (`jwt-development`) configured by `setup-openbao.sh`.
 
 OpenBao validates each pod's ServiceAccount token cryptographically: it fetches the
-cluster's public signing keys (JWKS) directly from that cluster's API server
-(`https://<node-ip>:6443/openid/v1/jwks`) — the same hub→spoke path ArgoCD uses.
+cluster's public signing keys (JWKS) from that cluster's issuer URL
+(`https://api.<env>.k8s.rezakara.demo:6443/openid/v1/jwks`), like every other consumer.
 No long-lived reviewer token is needed.
 
 > **Operational note:** the local `bao` CLI version may differ from the server.
@@ -157,7 +157,7 @@ and pushed before they take effect.
 ### Why the development cluster needs no identity seed
 
 OpenBao authenticates development pods with JWT auth, fetching the development cluster's
-JWKS **directly from its API server** (`https://<node-ip>:6443`). Because the API
+JWKS **directly from its API server** (`https://api.dev.k8s.rezakara.demo:6443`). Because the API
 server is up the moment the kind cluster exists, `setup-openbao.sh` can configure
 `jwt-development` immediately; nothing has to be pre-seeded on the development cluster.
 
@@ -188,6 +188,43 @@ to validate development tokens.
 
 The ServiceAccount signing keys (`sa.key`) stay per cluster, so each cluster keeps its own issuer.
 The shared CA key can mint certificates trusted by both clusters; that is acceptable for a local lab only.
+
+### ServiceAccount issuers and key discovery
+
+Each cluster signs its ServiceAccount tokens with its own key and puts its own issuer in the `iss` claim.
+The issuers differ on purpose: a consumer that trusts more than one cluster picks the provider by `iss`,
+so two clusters with the same issuer cannot be told apart.
+
+| Cluster | API server name = issuer (`iss`) | Set in |
+|---|---|---|
+| management | `https://api.mgmt.k8s.rezakara.demo:6443` | `kind-configs/management.yaml`, `MANAGEMENT_SA_ISSUER` in `libs/common.sh` |
+| development | `https://api.dev.k8s.rezakara.demo:6443` | `kind-configs/development.yaml`, `DEVELOPMENT_SA_ISSUER` in `libs/common.sh` |
+
+Every issuer is a URL that serves its own OIDC discovery document
+(`<issuer>/.well-known/openid-configuration`), whose `issuer` equals that URL. That is why each issuer is the
+API server's own name and not an arbitrary string. The name is added to the API server cert (`certSANs`) and
+set as `service-account-jwks-uri` when the cluster is created. Docker assigns the node IPs, so
+`setup-clusters.sh` points both names at them in both clusters' CoreDNS (`hosts` block for `rezakara.demo`)
+once the clusters are up, which keeps the issuers stable whatever IPs the nodes get. `api-audiences` is set to
+the kubeadm default (`https://kubernetes.default.svc.cluster.local`) on both clusters, so OpenBao and ESO
+audiences do not change.
+
+No signing key is copied anywhere. Whoever validates a token reads the keys live from the issuing API server,
+and trusts it through the shared cluster CA (a pod's default service account CA):
+
+| Consumer | Validates | Keys fetched from |
+|---|---|---|
+| Kafka `tls` listener | management | `https://api.mgmt.k8s.rezakara.demo:6443/openid/v1/jwks` |
+| Kafka `external` listener | development | `https://api.dev.k8s.rezakara.demo:6443/openid/v1/jwks` |
+| SeaweedFS STS | management | `https://api.mgmt.k8s.rezakara.demo:6443/openid/v1/jwks` |
+| otel-gateway (`oidc` extension) | management and development | discovery at each issuer URL |
+| OpenBao `jwt-management`, `jwt-development`, `jwt-development-tenants` | management / development | `https://api.mgmt.k8s.rezakara.demo:6443/openid/v1/jwks` / `https://api.dev.k8s.rezakara.demo:6443/openid/v1/jwks` |
+
+OpenBao must not depend on the Gateway (see "Why the development cluster needs no identity seed"). The
+API server names resolve through CoreDNS `hosts` entries, which need neither the Gateway nor PowerDNS. Both API servers allow anonymous reads
+of the discovery endpoints (`system:service-account-issuer-discovery` bound to `system:unauthenticated`,
+done by `setup-openbao.sh`). Consumers that fetch keys at startup should tolerate the API server not being
+ready yet; Kafka sets `oauth.fail.fast="false"` for this.
 
 ### PowerDNS API at a stable hostname
 

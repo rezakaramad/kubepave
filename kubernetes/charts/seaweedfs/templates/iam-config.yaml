@@ -21,9 +21,9 @@ data:
           "type": "oidc",
           "enabled": true,
           "config": {
-            "issuer": "https://kubernetes.default.svc.cluster.local",
+            "issuer": "https://api.mgmt.k8s.rezakara.demo:6443",
             "clientId": "seaweedfs-s3",
-            "jwksUri": "https://kubernetes.default.svc.cluster.local/openid/v1/jwks",
+            "jwksUri": "https://api.mgmt.k8s.rezakara.demo:6443/openid/v1/jwks",
             "tlsCaCert": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
           }
         }

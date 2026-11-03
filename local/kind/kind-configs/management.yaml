@@ -28,3 +28,17 @@ nodes:
         nodeRegistration:
           kubeletExtraArgs:
             node-labels: "ingress-ready=true"
+      # The issuer is the API server's own name (see development.yaml). Keep it in sync with MANAGEMENT_API_HOST
+      # in libs/common.sh. api-audiences keeps the kubeadm default, which many roles and tokens pin.
+      # certSANs replaces kind's default list, so localhost and 127.0.0.1 (the host's kubectl) must be repeated.
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          certSANs:
+            - localhost
+            - 127.0.0.1
+            - api.mgmt.k8s.rezakara.demo
+          extraArgs:
+            service-account-issuer: "https://api.mgmt.k8s.rezakara.demo:6443"
+            service-account-jwks-uri: "https://api.mgmt.k8s.rezakara.demo:6443/openid/v1/jwks"
+            api-audiences: "https://kubernetes.default.svc.cluster.local"

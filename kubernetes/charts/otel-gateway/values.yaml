@@ -36,16 +36,6 @@ otelCollector:
       servicePort: 4319
       protocol: TCP
 
-  # Public signing keys of the clusters, from OpenBao kv/shared/pki/jwks (see templates/oidc-jwks.yaml).
-  extraVolumes:
-    - name: oidc-jwks
-      secret:
-        secretName: otel-gateway-oidc-jwks
-  extraVolumeMounts:
-    - name: oidc-jwks
-      mountPath: /etc/otel/jwks
-      readOnly: true
-
   resources:
     requests:
       cpu: 100m
@@ -73,12 +63,12 @@ otelCollector:
       # The issuer is the `iss` claim, so each cluster has its own (see local/kind/README.md).
       oidc:
         providers:
-          - issuer_url: https://kubernetes.default.svc.cluster.local
+          - issuer_url: https://api.mgmt.k8s.rezakara.demo:6443
+            issuer_ca_path: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
             audience: otel-gateway
-            public_keys_file: /etc/otel/jwks/management.json
-          - issuer_url: https://development.kind.local
+          - issuer_url: https://api.dev.k8s.rezakara.demo:6443
+            issuer_ca_path: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
             audience: otel-gateway
-            public_keys_file: /etc/otel/jwks/development.json
       # Sets the tenant header from the tenant_id request metadata that the partitioning processor writes.
       headers_setter:
         headers:

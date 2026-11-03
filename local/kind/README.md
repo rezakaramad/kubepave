@@ -83,13 +83,9 @@ Run from `systems/local/kind/`. Each step is idempotent.
    can authenticate to OpenBao.
 7. **`setup-secrets.sh`** — reads secrets from `pass` and writes them to OpenBao
    (GitHub Apps, Azure AD, PowerDNS, Next Insight) and registers the development
-   cluster with ArgoCD (pull model) by storing its API server + token in OpenBao. It also
-   writes both clusters' ServiceAccount signing keys (JWKS) to `kv/shared/pki/jwks`;
-   the otel-gateway reads them through an ExternalSecret to validate collector tokens.
-   The development cluster issues tokens with the issuer `https://development.kind.local`
-   (set in `kind-configs/development.yaml`); management keeps the default issuer. Re-run
-   after either cluster is recreated, then restart the gateway; until then that cluster's
-   collectors get 401.
+   cluster with ArgoCD (pull model) by storing its API server + token in OpenBao.
+   Cluster signing keys are not copied anywhere: every consumer reads them live from the
+   issuing API server (see "ServiceAccount issuers" in [ARCHITECTURE.md](ARCHITECTURE.md)).
 8. **`setup-trust.sh`** — copies the root CA Secret from the management cluster
    to the development cluster, verifies it, and installs it into the Java / browser
    (NSS) / system trust stores.
@@ -106,14 +102,30 @@ external-secrets, Traefik, and external-dns on the development cluster.
 
 ## Endpoints
 
-Once bootstrapped, these resolve via PowerDNS and terminate TLS at Traefik using
+Once bootstrapped, the HTTPS endpoints resolve via PowerDNS and terminate TLS at Traefik using
 the local root CA (trusted after `setup-trust.sh`):
 
-| Service | URL |
-|---------|-----|
-| ArgoCD | `https://argocd.mgmt.rezakara.demo` |
-| OpenBao | `https://openbao.mgmt.rezakara.demo` |
-| PowerDNS API | `https://powerdns.mgmt.rezakara.demo` |
+| Service | URL | Cluster |
+|---------|-----|---------|
+| ArgoCD | `https://argocd.mgmt.rezakara.demo` | management |
+| OpenBao | `https://openbao.mgmt.rezakara.demo` | management |
+| PowerDNS API | `https://powerdns.mgmt.rezakara.demo` | management |
+| Keycloak | `https://oidc.mgmt.rezakara.demo` | management |
+| Backstage | `https://backstage.mgmt.rezakara.demo` | management |
+| otel-gateway (collectors write here) | `https://gateway-collector.mgmt.rezakara.demo` | management |
+| Platform Grafana | `https://platform.grafana.mgmt.rezakara.demo` | management |
+| Tenant Grafana (off by default) | `https://<tenant>.grafana.mgmt.rezakara.demo` | management |
+| otel demo shop | `https://shop.dev.rezakara.demo` | development |
+| Tenant apps | `https://<app>.<tenant-short-name>.dev.rezakara.demo` | development |
+
+Not HTTP, so not behind Traefik:
+
+| Service | Address | Notes |
+|---------|---------|-------|
+| Kafka bootstrap | `kafka.mgmt.rezakara.demo:9094` | `external` listener, SASL_SSL with a ServiceAccount token |
+| Kafka brokers | `kafka-<id>.mgmt.rezakara.demo:9094` | one per broker, advertised to clients |
+| Management API server | `https://api.mgmt.k8s.rezakara.demo:6443` | also the management issuer |
+| Development API server | `https://api.dev.k8s.rezakara.demo:6443` | also the development issuer |
 
 ArgoCD supports both Azure AD SSO and the local `admin` account. Retrieve the
 admin password with:
@@ -122,6 +134,33 @@ admin password with:
 kubectl --context kind-management -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d; echo
 ```
+
+### DNS names
+
+Everything lives under `rezakara.demo`. The scheme keeps each kind of name in its own subtree, so a
+Gateway wildcard never overlaps a name that something else creates:
+
+| Pattern | Used for | Served by | Created by |
+|---------|----------|-----------|------------|
+| `<app>.mgmt.rezakara.demo` | management apps | default Traefik Gateway, wildcard `*.mgmt.rezakara.demo` | external-dns (management), from HTTPRoutes |
+| `<tenant>.grafana.mgmt.rezakara.demo` | Grafana instances | `grafana-traefik` Gateway, wildcard `*.grafana.mgmt.rezakara.demo` | external-dns (management) |
+| `<app>.dev.rezakara.demo` | development apps | default Traefik Gateway, wildcard `*.dev.rezakara.demo` | external-dns (development, writing to PowerDNS) |
+| `<app>.<tenant-short-name>.dev.rezakara.demo` | tenant apps | the tenant's own Gateway | external-dns, from the tenant's `DNSEndpoint` |
+| `kafka.mgmt.rezakara.demo`, `kafka-<id>.mgmt.rezakara.demo` | Kafka `external` listener | LoadBalancer Services (not Traefik) | external-dns, from the Service annotations |
+| `api.<env>.k8s.rezakara.demo` | Kubernetes API servers and ServiceAccount issuers | the API server itself on `:6443` | CoreDNS `hosts` in both clusters (`setup-clusters.sh`), no PowerDNS record |
+
+- A Gateway wildcard matches a single label, so `api.mgmt.k8s.rezakara.demo` is not under
+  `*.mgmt.rezakara.demo`. That is why the API names sit in the separate `k8s` subtree.
+- PowerDNS is seeded with the zones `rezakara.demo`, `mgmt.rezakara.demo` and `dev.rezakara.demo`. The host
+  resolves `*.rezakara.demo` through it (systemd-resolved drop-in from `setup-dns.sh`), so the
+  `api.<env>.k8s` names do **not** resolve from the host. They resolve only inside the clusters, which is
+  all the consumers need. Your kubeconfig uses `127.0.0.1` and does not depend on them.
+- TLS: Traefik names use the local root CA. The Kafka listener certificate also comes from the root CA.
+  The API servers use the shared cluster CA (`kind-configs/.crt`), and every pod already trusts it through
+  its ServiceAccount CA.
+- The hostnames are defined in the charts (`traefik`, `openbao`, `keycloak`, `backstage`, `lgtm-grafana`,
+  `otel-gateway`, `otel-demo`, `powerdns`, `kafka`) and the API names in `libs/common.sh`. If you add one,
+  extend this table.
 
 ---
 

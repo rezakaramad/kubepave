@@ -13,7 +13,7 @@ can be swapped without touching downstream consumers.
 One JWT auth backend per cluster, mounted at `jwt-<cluster>` (e.g. `jwt-management`,
 `jwt-development`). Each backend is configured to trust that cluster's API server as
 an OIDC identity provider; OpenBao fetches the public signing keys (JWKS) directly
-from `https://<cluster-node-ip>:6443/openid/v1/jwks` at setup time.
+from the issuer URL (`https://api.<env>.k8s.rezakara.demo:6443/openid/v1/jwks`) at setup time.
 
 ### How a development authenticates
 
@@ -26,8 +26,8 @@ from `https://<cluster-node-ip>:6443/openid/v1/jwks` at setup time.
 
 3. **Verification** — OpenBao validates the JWT cryptographically using the cached
    public keys, then checks three claims against the role definition:
-   - `iss` — must equal `bound_issuer` (`https://kubernetes.default.svc.cluster.local`)
-   - `aud` — must equal `bound_audiences` (same value)
+   - `iss` — must equal `bound_issuer` (the cluster's API server name, e.g. `https://api.mgmt.k8s.rezakara.demo:6443`)
+   - `aud` — must equal `bound_audiences` (`https://kubernetes.default.svc.cluster.local`, the default `api-audiences`)
    - `sub` — must equal `bound_subject` (e.g. `system:serviceaccount:platform-system:external-secrets`)
 
 4. **OpenBao token** — if all checks pass, OpenBao issues a short-lived token

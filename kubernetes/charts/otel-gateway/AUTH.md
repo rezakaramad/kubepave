@@ -132,22 +132,23 @@ Each collector pod mounts a projected ServiceAccount token with the audience `ot
 
 ##### Trusting more than one cluster
 
-When collectors run in several clusters, such as the management and the development cluster, the gateway needs the issuer and the signing keys of each one.
+When collectors run in several clusters, such as the management and the development cluster, the gateway needs the issuer of each one and a way to reach its signing keys.
 
-- **Each cluster needs its own issuer URL.** The extension chooses the provider by the token's `iss` claim, so two clusters with the same issuer cannot be told apart. Managed clusters such as GKE already have a unique, public issuer. kind clusters all default to `https://kubernetes.default.svc.cluster.local`, so at least one of them needs its own `service-account-issuer` API server argument. Here the development cluster uses `https://development.kind.local` (with `api-audiences` kept at the default so Vault/OpenBao and ESO audiences do not change) and management keeps the default, which avoids touching everything that pins the management issuer. The URL does not have to resolve.
-- **Clusters the gateway can reach** need only the `issuer_url`. The extension fetches the keys by OpenID Connect Discovery.
-- **Clusters the gateway cannot reach**, such as kind clusters, provide their keys as a file. Export them with `kubectl --context <cluster> get --raw /openid/v1/jwks`, store them in a ConfigMap and mount it into the gateway. With `public_keys_file` set, discovery is off for that provider, so the gateway makes no network calls to the cluster. The file has to be regenerated when the cluster is recreated or its signing keys rotate.
+- **Each cluster needs its own issuer URL.** The extension chooses the provider by the token's `iss` claim, so two clusters with the same issuer cannot be told apart. Managed clusters such as GKE already have a unique, public issuer. kind clusters all default to `https://kubernetes.default.svc.cluster.local`, so each of them needs its own `service-account-issuer` API server argument. Here each cluster uses its API server's own name, `https://api.mgmt.k8s.rezakara.demo:6443` for management and `https://api.dev.k8s.rezakara.demo:6443` for development (with `api-audiences` kept at the default so Vault/OpenBao and ESO audiences do not change).
+- **The issuer URL must serve OIDC discovery.** The extension fetches `<issuer_url>/.well-known/openid-configuration`, and the `issuer` in that document must equal the URL. That is why the development issuer is a name that resolves to its API server rather than an arbitrary string.
+- **Both clusters are fetched live.** The gateway has no copy of any key. `issuer_ca_path` points at the pod's service account CA, which trusts both API servers because the kind clusters share one CA. The API servers must allow anonymous reads of the discovery endpoints (`setup-openbao.sh` grants this). The extension needs to reach each issuer at startup and periodically afterwards, so the gateway cannot start while either API server is down.
+- **A cluster the gateway cannot reach** can still provide its keys as a file with `public_keys_file` (discovery is then off for that provider). Export them with `kubectl --context <cluster> get --raw /openid/v1/jwks`. The file has to be regenerated whenever that cluster's signing keys change.
 
 ```yaml
 extensions:
   oidc:
     providers:
-      - issuer_url: https://kubernetes.default.svc.cluster.local   # management
+      - issuer_url: https://api.mgmt.k8s.rezakara.demo:6443        # management
+        issuer_ca_path: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         audience: otel-gateway
-        public_keys_file: /etc/otel/jwks/management.json
-      - issuer_url: https://development.kind.local
+      - issuer_url: https://api.dev.k8s.rezakara.demo:6443         # development
+        issuer_ca_path: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         audience: otel-gateway
-        public_keys_file: /etc/otel/jwks/development.json
 ```
 
 ### Authorization

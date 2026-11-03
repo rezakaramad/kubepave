@@ -40,10 +40,16 @@ TRAEFIK_NS="platform-system"
 # DNS
 DNS_DOMAIN="rezakara.demo"
 
-# ServiceAccount token issuers (the `iss` claim). The development cluster overrides the default in
-# kind-configs/development.yaml so the otel-gateway can tell the two clusters' tokens apart.
-DEFAULT_SA_ISSUER="https://kubernetes.default.svc.cluster.local"
-DEVELOPMENT_SA_ISSUER="https://development.kind.local"
+# Each cluster's API server name. It is in the API server cert and is the service account issuer, so it must
+# match kind-configs/{management,development}.yaml. setup-clusters.sh points both names at the node IPs in
+# both clusters' CoreDNS.
+MANAGEMENT_API_HOST="api.mgmt.k8s.${DNS_DOMAIN}"
+DEVELOPMENT_API_HOST="api.dev.k8s.${DNS_DOMAIN}"
+
+# ServiceAccount token issuers (the `iss` claim). Each is the cluster's API server name and serves that
+# cluster's OIDC discovery document. `api-audiences` stays the kubeadm default on both clusters.
+MANAGEMENT_SA_ISSUER="https://${MANAGEMENT_API_HOST}:6443"
+DEVELOPMENT_SA_ISSUER="https://${DEVELOPMENT_API_HOST}:6443"
 
 # LoadBalancer IP pools — carved from the upper end of the kind Docker bridge subnet.
 # The exact IPs are computed at runtime from the actual CIDR via get_lb_pool()

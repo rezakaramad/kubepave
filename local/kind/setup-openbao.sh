@@ -24,9 +24,10 @@ set -euo pipefail
 #         NO per-tenant role, mount, or namespace to provision.
 #     oidc — central human-operator method (Entra ID).
 #
-# OpenBao validates pod JWTs by fetching each cluster's
-# public signing keys (JWKS) DIRECTLY from that cluster's API server
-# (https://<node-ip>:6443/openid/v1/jwks). The KV bootstrap (init/unseal/mounts/
+# OpenBao validates pod JWTs by fetching each cluster's public signing keys (JWKS) from that
+# cluster's issuer URL (<issuer>/openid/v1/jwks, see sa_issuer), the same way every other consumer does.
+# The issuer names resolve through CoreDNS and the API server cert is signed by the shared cluster CA.
+# The KV bootstrap (init/unseal/mounts/
 # policies) is done by the chart postStart hook; this script only adds the parts
 # that need cluster API access (JWKS) plus OIDC.
 # -----------------------------------------------------------------------------
@@ -59,21 +60,6 @@ bao_exec() {
 }
 
 
-# Returns the API server URL reachable from the OpenBao pod for a given cluster.
-# Uses the node's InternalIP:6443 — reachable across the shared kind Docker
-# network, exactly like the ArgoCD hub→spoke connection.
-cluster_api_url() {
-  # Function arguments:
-  #   $1: cluster name (management or development)
-  local cluster=$1
-  local node_ip
-  node_ip=$(kubectl --context "$(kind_context "$cluster")" get node \
-    -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-
-  echo "https://${node_ip}:6443"
-}
-
-
 # Allow anonymous callers to read the OIDC discovery endpoints on a cluster.
 # OpenBao fetches the JWKS without credentials, so without this the API server
 # returns 403. The binding is idempotent.
@@ -91,23 +77,17 @@ grant_anonymous_oidc_discovery() {
 }
 
 
-# Copy a cluster's API server CA into the openbao pod under a stable filename so
-# OpenBao trusts the API server's TLS cert when fetching the JWKS.
+# Copy the shared cluster CA into the openbao pod under a stable filename so
+# OpenBao trusts the API servers' TLS certs when fetching the JWKS.
 # Echoes the in-pod path of the copied CA file.
 copy_cluster_ca() {
   # Function arguments:
-  #   $1: cluster name
-  #   $2: filename suffix (unique per backend, avoids clobbering)
-  local cluster=$1
-  local suffix=$2
-  local api_ca
-  api_ca=$(kubectl --context "$(kind_context "$cluster")" \
-    config view --raw --minify \
-    -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d)
+  #   $1: filename suffix (unique per backend, avoids clobbering)
+  local suffix=$1
 
   kubectl --context "$(kind_context management)" \
     -n "$OPENBAO_NAMESPACE" \
-    exec -i openbao-0 -- sh -c "cat > /tmp/api-ca-${suffix}.crt" <<< "$api_ca"
+    exec -i openbao-0 -- sh -c "cat > /tmp/api-ca-${suffix}.crt" < "$CLUSTER_CA_DIR/ca.crt"
 
   echo "/tmp/api-ca-${suffix}.crt"
 }
@@ -125,14 +105,13 @@ configure_platform_cluster_jwt() {
   #   $1: cluster name (management or development)
   local cluster=$1
   local auth_path="jwt-${cluster}"
-  local api_url jwks_url ca_path
-  api_url="$(cluster_api_url "$cluster")"
-  jwks_url="${api_url}/openid/v1/jwks"
+  local jwks_url ca_path
+  jwks_url="$(sa_issuer "$cluster")/openid/v1/jwks"
 
   log "Configuring platform JWT auth for $cluster (path: $auth_path, JWKS: $jwks_url)..."
 
   grant_anonymous_oidc_discovery "$cluster"
-  ca_path="$(copy_cluster_ca "$cluster" "platform-${cluster}")"
+  ca_path="$(copy_cluster_ca "platform-${cluster}")"
 
   bao_exec "bao auth enable -path=${auth_path} jwt 2>/dev/null || true"
 
@@ -229,14 +208,13 @@ configure_platform_cluster_jwt() {
 configure_provider_admin_auth() {
   local cluster="management"
   local auth_path="jwt-management"
-  local api_url jwks_url ca_path
-  api_url="$(cluster_api_url "$cluster")"
-  jwks_url="${api_url}/openid/v1/jwks"
+  local jwks_url ca_path
+  jwks_url="$(sa_issuer "$cluster")/openid/v1/jwks"
 
   log "Configuring ROOT provider-vault admin auth (path: $auth_path, JWKS: $jwks_url)..."
 
   grant_anonymous_oidc_discovery "$cluster"
-  ca_path="$(copy_cluster_ca "$cluster" "root-${auth_path}")"
+  ca_path="$(copy_cluster_ca "root-${auth_path}")"
 
   bao_exec "bao auth enable -path=${auth_path} jwt 2>/dev/null || true"
 
@@ -245,7 +223,7 @@ configure_provider_admin_auth() {
     if bao_exec "bao write auth/${auth_path}/config \
         jwks_url='${jwks_url}' \
         jwks_ca_pem=@${ca_path} \
-        bound_issuer='https://kubernetes.default.svc.cluster.local'" >/dev/null 2>&1; then
+        bound_issuer='$(sa_issuer "$cluster")'" >/dev/null 2>&1; then
       ok=true
       break
     fi
@@ -287,13 +265,12 @@ configure_provider_admin_auth() {
 configure_tenant_jwt() {
   local cluster="development"
   local auth_path="jwt-development-tenants"
-  local api_url jwks_url ca_path
-  api_url="$(cluster_api_url "$cluster")"
-  jwks_url="${api_url}/openid/v1/jwks"
+  local jwks_url ca_path
+  jwks_url="$(sa_issuer "$cluster")/openid/v1/jwks"
 
   log "Configuring ROOT $auth_path backend (namespace-scoped user_claim)..."
 
-  ca_path="$(copy_cluster_ca "$cluster" "root-${auth_path}")"
+  ca_path="$(copy_cluster_ca "root-${auth_path}")"
 
   bao_exec "bao auth enable -path=${auth_path} jwt 2>/dev/null || true"
 

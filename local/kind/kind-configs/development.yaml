@@ -27,11 +27,18 @@ nodes:
         nodeRegistration:
           kubeletExtraArgs:
             node-labels: "ingress-ready=true"
-      # A distinct issuer lets the otel-gateway tell development tokens from management tokens.
+      # The issuer is the API server's own name, so OIDC discovery works from the management cluster and the
+      # issuer differs from management's. Keep the name in sync with DEVELOPMENT_API_HOST in libs/common.sh.
+      # certSANs puts it in the API server cert; setup-clusters.sh makes CoreDNS resolve it to the node IP.
       # api-audiences keeps the default audience, which it would otherwise derive from the issuer.
       - |
         kind: ClusterConfiguration
         apiServer:
+          certSANs:
+            - localhost
+            - 127.0.0.1
+            - api.dev.k8s.rezakara.demo
           extraArgs:
-            service-account-issuer: "https://development.kind.local"
+            service-account-issuer: "https://api.dev.k8s.rezakara.demo:6443"
+            service-account-jwks-uri: "https://api.dev.k8s.rezakara.demo:6443/openid/v1/jwks"
             api-audiences: "https://kubernetes.default.svc.cluster.local"

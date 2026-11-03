@@ -112,7 +112,7 @@ sa_issuer() {
   if [ "$cluster" = "$WORKLOAD_CLUSTER" ]; then
     echo "$DEVELOPMENT_SA_ISSUER"
   else
-    echo "$DEFAULT_SA_ISSUER"
+    echo "$MANAGEMENT_SA_ISSUER"
   fi
 }
 
