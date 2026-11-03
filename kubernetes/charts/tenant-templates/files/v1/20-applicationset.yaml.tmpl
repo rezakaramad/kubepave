@@ -53,6 +53,8 @@ spec:
         [[ $tenantLabel ]]: [[ $tenant ]]
     spec:
       project: [[ $project ]]
+      # The CRD requires destination; the cluster generator template above fills it in.
+      destination: {}
       syncPolicy:
         syncOptions:
           - ServerSideApply=true
