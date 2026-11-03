@@ -22,7 +22,7 @@ from the issuer URL (`https://api.<env>.k8s.rezakara.demo:6443/openid/v1/jwks`) 
    automatically before each OpenBao call.
 
 2. **Login** — the pod calls `POST /v1/auth/jwt-<cluster>/login` on OpenBao, sending
-   the token and the role name (e.g. `eso-shared`).
+   the token and the role name (e.g. `shared`).
 
 3. **Verification** — OpenBao validates the JWT cryptographically using the cached
    public keys, then checks three claims against the role definition:
@@ -57,13 +57,16 @@ Platform-component secrets live under the root `kv` mount.
 
 | Policy | Paths | Capabilities |
 | --- | --- | --- |
-| `eso-shared-policy` | `kv/data/shared/*` | read |
-| `eso-platform-system-policy` | `kv/data/platform/*` | read |
-| `eso-argocd-policy` | `kv/data/argocd/*` | read |
-| `backstage-policy` | `kv/data/backstage/*` | read |
+| `shared-policy` | `kv/data/shared/*` | read |
+| `platform-system-policy` | `kv/data/platform/*` | read |
+| `argocd-policy` | `kv/data/argocd/*` | read |
 | `crossplane-policy` | `kv/data/crossplane/*`, `kv/data/shared/*` | read |
-| `keycloak-policy` | `kv/data/keycloak/*` | read, create, update, patch |
-| `observability-policy` | `kv/data/seaweedfs/*`, `kv/data/grafana/*` | read |
+| `backstage-policy` * | `kv/data/backstage/*` | read |
+| `keycloak-policy` * | `kv/data/keycloak/*` | read, create, update, patch |
+| `observability-policy` * | `kv/data/seaweedfs/*`, `kv/data/grafana/*` | read |
+
+\* Managed by Crossplane provider-vault (`vaultProvider.platformRoles` in the
+crossplane chart), not by the postStart hook.
 
 Tenants share one identity-templated `tenant-policy` that resolves to
 `kv-<cluster>/data/<tenant>/*` from the caller's verified auth alias name, so a new
@@ -72,15 +75,18 @@ tenant needs no new policy.
 ## Roles
 
 Each role binds a ServiceAccount (`bound_subject`) to a policy. Roles exist under
-every cluster's `jwt-<cluster>` backend, except `keycloak` (management only).
+every cluster's `jwt-<cluster>` backend, except `keycloak`, `backstage` and
+`observability` (management only). Those three are created by Crossplane
+provider-vault; the rest by `setup-openbao.sh`.
 
 | Role | ServiceAccount | Policy |
 | --- | --- | --- |
-| `eso-shared` | `platform-system:external-secrets` | `eso-shared-policy` |
-| `eso-platform-system` | `platform-system:external-secrets` | `eso-platform-system-policy` |
-| `eso-argocd` | `argocd:argocd-server` | `eso-argocd-policy` |
+| `shared` | `platform-system:external-secrets` | `shared-policy` |
+| `platform-system` | `platform-system:external-secrets` | `platform-system-policy` |
+| `argocd` | `argocd:argocd-server` | `argocd-policy` |
 | `crossplane` | `crossplane-system:crossplane` | `crossplane-policy` |
 | `keycloak` | `keycloak:keycloak` | `keycloak-policy` |
+| `backstage` | `backstage:backstage` | `backstage-policy` |
 | `observability` | `observability:observability` | `observability-policy` |
 
 Tenants use a single shared `tenant` role on the `jwt-development-tenants` backend.

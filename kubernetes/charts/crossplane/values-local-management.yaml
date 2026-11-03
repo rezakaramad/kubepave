@@ -18,6 +18,45 @@ vaultProvider:
   # composition turns on per-tenant OpenBao OIDC SSO (Policy/Group/GroupAlias) in
   # the tenant-management chart. Leave empty to keep human SSO objects off.
   oidcAccessor: "auth_oidc_898c327c"
+  tenantAccessor: "auth_jwt_7f02bd7d"
+
+  platformRoles:
+    - name: keycloak
+      namespace: keycloak
+      serviceAccount: keycloak
+      policy: |
+        path "kv/data/keycloak/*" {
+          capabilities = ["read", "create", "update", "patch"]
+        }
+        path "kv/metadata/keycloak/*" {
+          capabilities = ["read", "list"]
+        }
+    - name: backstage
+      namespace: backstage
+      serviceAccount: backstage
+      policy: |
+        path "kv/data/backstage/*" {
+          capabilities = ["read"]
+        }
+        path "kv/metadata/backstage/*" {
+          capabilities = ["read", "list"]
+        }
+    - name: observability
+      namespace: observability
+      serviceAccount: observability
+      policy: |
+        path "kv/data/seaweedfs/*" {
+          capabilities = ["read"]
+        }
+        path "kv/metadata/seaweedfs/*" {
+          capabilities = ["read", "list"]
+        }
+        path "kv/data/grafana/*" {
+          capabilities = ["read"]
+        }
+        path "kv/metadata/grafana/*" {
+          capabilities = ["read", "list"]
+        }
 
 entraIdProvider:
   enabled: true

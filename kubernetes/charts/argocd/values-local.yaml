@@ -13,7 +13,7 @@ secretStore:
       auth:
         jwt:
           path: "jwt-management"
-          role: "eso-argocd"
+          role: "argocd"
           kubernetesServiceAccountToken:
             serviceAccountRef:
               name: argocd-server

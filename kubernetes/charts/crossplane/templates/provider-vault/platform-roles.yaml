@@ -1,0 +1,51 @@
+{{- if and .Values.vaultProvider.enabled .Values.vaultProvider.platformRoles }}
+# Platform ESO access, one ACL Policy + one JWT role per component, managed by
+# provider-vault instead of the bootstrap scripts. Only the roles needed to reach
+# provider-vault itself (shared, argocd, provider-vault) stay in setup-openbao.sh.
+# The matching grants must exist in openbao-admin-policy (openbao chart).
+{{- range .Values.vaultProvider.platformRoles }}
+---
+apiVersion: vault.vault.m.upbound.io/v1alpha1
+kind: Policy
+metadata:
+  name: {{ printf "%s-policy" .name }}
+  namespace: crossplane-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  providerConfigRef:
+    kind: ClusterProviderConfig
+    name: vault
+  managementPolicies: ["Create", "Observe", "Update", "Delete"]
+  forProvider:
+    name: {{ printf "%s-policy" .name | quote }}
+    policy: |
+      {{- .policy | nindent 6 }}
+---
+apiVersion: jwt.vault.m.upbound.io/v1alpha1
+kind: AuthBackendRole
+metadata:
+  name: {{ printf "platform-%s" .name }}
+  namespace: crossplane-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  providerConfigRef:
+    kind: ClusterProviderConfig
+    name: vault
+  managementPolicies: ["Create", "Observe", "Update", "Delete"]
+  forProvider:
+    backend: {{ $.Values.vaultProvider.platformJwtBackend | quote }}
+    roleName: {{ .name | quote }}
+    roleType: jwt
+    boundAudiences:
+      - https://kubernetes.default.svc.cluster.local
+    userClaim: sub
+    boundSubject: {{ printf "system:serviceaccount:%s:%s" .namespace .serviceAccount | quote }}
+    tokenPolicies:
+      - {{ printf "%s-policy" .name | quote }}
+    tokenTtl: 3600
+{{- end }}
+{{- end }}

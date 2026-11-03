@@ -102,9 +102,9 @@ openbao:
         # `kv/data/<component>/*` (read) and `kv/metadata/<component>/*` (list).
         ########################################
 
-        echo "Writing ESO shared policy..."
+        echo "Writing shared policy..."
 
-        bao policy write eso-shared-policy - <<EOF
+        bao policy write shared-policy - <<EOF
         path "kv/metadata/shared/*" {
           capabilities = ["read", "list"]
         }
@@ -116,45 +116,13 @@ openbao:
 
         echo "Writing platform-system policy..."
 
-        bao policy write eso-platform-system-policy - <<EOF
+        bao policy write platform-system-policy - <<EOF
         path "kv/metadata/platform/*" {
           capabilities = ["read", "list"]
         }
 
         path "kv/data/platform/*" {
           capabilities = ["read"]
-        }
-        EOF
-
-        echo "Writing Keycloak ESO policy..."
-
-        bao policy write keycloak-policy - <<'EOF'
-        path "kv/data/keycloak/*" {
-          capabilities = ["read", "create", "update", "patch"]
-        }
-
-        path "kv/metadata/keycloak/*" {
-          capabilities = ["read", "list"]
-        }
-        EOF
-
-        echo "Writing observability ESO policy..."
-
-        bao policy write observability-policy - <<'EOF'
-        path "kv/data/seaweedfs/*" {
-          capabilities = ["read"]
-        }
-
-        path "kv/metadata/seaweedfs/*" {
-          capabilities = ["read", "list"]
-        }
-
-        path "kv/data/grafana/*" {
-          capabilities = ["read"]
-        }
-
-        path "kv/metadata/grafana/*" {
-          capabilities = ["read", "list"]
         }
         EOF
 
@@ -178,21 +146,9 @@ openbao:
         }
         EOF
 
-        echo "Writing Backstage policy..."
-
-        bao policy write backstage-policy - <<'EOF'
-        path "kv/data/backstage/*" {
-          capabilities = ["read"]
-        }
-
-        path "kv/metadata/backstage/*" {
-          capabilities = ["read", "list"]
-        }
-        EOF
-
         echo "Writing ArgoCD ESO policy..."
 
-        bao policy write eso-argocd-policy - <<EOF
+        bao policy write argocd-policy - <<EOF
         path "kv/metadata/argocd/*" {
           capabilities = ["read", "list"]
         }
@@ -235,6 +191,35 @@ openbao:
         # provider-vault from the tenant-management chart (central OpenBao OIDC SSO).
         path "sys/policies/acl/oidc-*" {
           capabilities = ["create", "read", "update", "delete", "list"]
+        }
+
+        # Platform ESO policies + JWT roles for keycloak/backstage/observability are
+        # managed by provider-vault (crossplane chart, vaultProvider.platformRoles).
+        # Grants are per exact name so provider-vault cannot rewrite the bootstrap
+        # policies/roles (shared, argocd, provider-vault) it depends on.
+        path "sys/policies/acl/keycloak-policy" {
+          capabilities = ["create", "read", "update", "delete"]
+        }
+        path "sys/policies/acl/backstage-policy" {
+          capabilities = ["create", "read", "update", "delete"]
+        }
+        path "sys/policies/acl/observability-policy" {
+          capabilities = ["create", "read", "update", "delete"]
+        }
+        path "auth/jwt-management/role/keycloak" {
+          capabilities = ["create", "read", "update", "delete"]
+        }
+        path "auth/jwt-management/role/backstage" {
+          capabilities = ["create", "read", "update", "delete"]
+        }
+        path "auth/jwt-management/role/observability" {
+          capabilities = ["create", "read", "update", "delete"]
+        }
+        path "sys/policies/acl/tenant-policy" {
+          capabilities = ["create", "read", "update", "delete"]
+        }
+        path "auth/jwt-development-tenants/role/tenant" {
+          capabilities = ["create", "read", "update", "delete"]
         }
 
         # Per-tenant external Identity Groups + Group Aliases that map the Entra ID

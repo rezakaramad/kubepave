@@ -41,7 +41,20 @@ vaultProvider:
   # Empty = human Vault SSO objects stay off.
   oidcAccessor: ""
 
-compositeResources: []
+  # JWT auth backend (created by setup-openbao.sh) that holds the platform roles below.
+  platformJwtBackend: jwt-management
+  # Each entry becomes a '<name>-policy' ACL policy and a '<name>' JWT role bound to
+  # system:serviceaccount:<namespace>:<serviceAccount>. Add matching grants to
+  # openbao-admin-policy before adding an entry.
+  platformRoles: []
+
+  # Shared tenant machine login: one `tenant` role + identity-templated tenant-policy.
+  # tenantAccessor is the mount accessor of tenantJwtBackend (setup-openbao.sh prints it
+  # and warns on mismatch). Empty = not managed here.
+  tenantJwtBackend: jwt-development-tenants
+  tenantKvMount: kv-development
+  tenantAccessor: ""
+
 
 selfSignedRootCA:
   # Set to false if the cluster uses an external CA provider (e.g. cloud PKI, Let's Encrypt, etc.).

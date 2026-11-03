@@ -7,7 +7,7 @@ clusterSecretStore:
       auth:
         jwt:
           path: "jwt-development"
-          role: "eso-shared"
+          role: "shared"
           kubernetesServiceAccountToken:
             serviceAccountRef:
               name: external-secrets
@@ -22,7 +22,7 @@ secretStore:
       auth:
         jwt:
           path: "jwt-development"
-          role: "eso-platform-system"
+          role: "platform-system"
           kubernetesServiceAccountToken:
             serviceAccountRef:
               name: external-secrets

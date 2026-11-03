@@ -15,13 +15,12 @@ set -euo pipefail
 #     kv-development/  — development-cluster tenant secrets (kv-development/data/<tenant>/*).
 #
 #   Auth backends (all root):
-#     jwt-management / jwt-development — platform-component + provider-vault
-#         admin roles, bound to the `kv` platform policies.
+#     jwt-management / jwt-development — bootstrap roles only (shared, platform-system,
+#         crossplane, argocd, provider-vault). keycloak/backstage/observability
+#         roles + policies and the `tenant` role + tenant-policy are managed by
+#         Crossplane provider-vault (crossplane chart, vaultProvider).
 #     jwt-development-tenants — validates development-cluster tenant ServiceAccount
-#         tokens. A SINGLE shared role (`tenant`) attaches the identity-templated
-#         tenant-policy; the tenant segment is resolved from the caller's alias
-#         name, so every tenant self-scopes to kv-development/data/<tenant>/* with
-#         NO per-tenant role, mount, or namespace to provision.
+#         tokens. Only the backend + JWKS config live here.
 #     oidc — central human-operator method (Entra ID).
 #
 # OpenBao validates pod JWTs by fetching each cluster's public signing keys (JWKS) from that
@@ -99,6 +98,7 @@ copy_cluster_ca() {
 # Platform-component ESO SecretStores (management + development clusters) read
 # their secrets from the root `kv` mount, so their JWT auth backends live at the
 # root namespace too. One backend per cluster (jwt-management / jwt-development).
+# Only the roles needed before Crossplane is running are created here.
 # -----------------------------------------------------------------------------
 configure_platform_cluster_jwt() {
   # Function arguments:
@@ -132,20 +132,20 @@ configure_platform_cluster_jwt() {
     exit 1
   fi
 
-  bao_exec "bao write auth/${auth_path}/role/eso-shared \
+  bao_exec "bao write auth/${auth_path}/role/shared \
     role_type=jwt \
     bound_audiences='https://kubernetes.default.svc.cluster.local' \
     user_claim=sub \
     bound_subject='system:serviceaccount:platform-system:external-secrets' \
-    policies=eso-shared-policy \
+    policies=shared-policy \
     ttl=1h"
 
-  bao_exec "bao write auth/${auth_path}/role/eso-platform-system \
+  bao_exec "bao write auth/${auth_path}/role/platform-system \
     role_type=jwt \
     bound_audiences='https://kubernetes.default.svc.cluster.local' \
     user_claim=sub \
     bound_subject='system:serviceaccount:platform-system:external-secrets' \
-    policies=eso-platform-system-policy \
+    policies=platform-system-policy \
     ttl=1h"
 
   bao_exec "bao write auth/${auth_path}/role/crossplane \
@@ -156,40 +156,13 @@ configure_platform_cluster_jwt() {
     policies=crossplane-policy \
     ttl=1h"
 
-  bao_exec "bao write auth/${auth_path}/role/eso-argocd \
+  bao_exec "bao write auth/${auth_path}/role/argocd \
     role_type=jwt \
     bound_audiences='https://kubernetes.default.svc.cluster.local' \
     user_claim=sub \
     bound_subject='system:serviceaccount:argocd:argocd-server' \
-    policies=eso-argocd-policy \
+    policies=argocd-policy \
     ttl=1h"
-
-  # keycloak, backstage and observability only run on the management cluster.
-  if [ "$cluster" = "management" ]; then
-    bao_exec "bao write auth/${auth_path}/role/keycloak \
-      role_type=jwt \
-      bound_audiences='https://kubernetes.default.svc.cluster.local' \
-      user_claim=sub \
-      bound_subject='system:serviceaccount:keycloak:keycloak' \
-      policies=keycloak-policy \
-      ttl=1h"
-
-    bao_exec "bao write auth/${auth_path}/role/backstage \
-      role_type=jwt \
-      bound_audiences='https://kubernetes.default.svc.cluster.local' \
-      user_claim=sub \
-      bound_subject='system:serviceaccount:backstage:backstage' \
-      policies=backstage-policy \
-      ttl=1h"
-
-    bao_exec "bao write auth/${auth_path}/role/observability \
-      role_type=jwt \
-      bound_audiences='https://kubernetes.default.svc.cluster.local' \
-      user_claim=sub \
-      bound_subject='system:serviceaccount:observability:observability' \
-      policies=observability-policy \
-      ttl=1h"
-  fi
 
   bao_exec "rm -f ${ca_path}"
 
@@ -249,18 +222,13 @@ configure_provider_admin_auth() {
 
 
 # -----------------------------------------------------------------------------
-# Configure the shared tenant JWT auth backend + tenant-policy (root namespace).
+# Configure the shared tenant JWT auth backend (root namespace).
 #
 # A single backend (jwt-development-tenants) validates tenant ServiceAccount
-# tokens minted on the development cluster. A SINGLE shared role (`tenant`)
-# attaches the identity-templated tenant-policy — there are NO per-tenant roles.
-#
-# user_claim is the namespace JSON pointer so the entity alias == the tenant's
-# namespace name (== tenant name). tenant-policy then expands
-# {{identity.entity.aliases[<accessor>].name}} to that name, scoping the tenant
-# to its own path prefix in the development KV mount: kv-development/data/<tenant>/*.
-# A pod in namespace <t> can only ever resolve the template to <t>, so it reaches
-# its own prefix and nothing else. New tenants need no provisioning here.
+# tokens minted on the development cluster. The shared `tenant` role and the
+# identity-templated tenant-policy are managed by Crossplane provider-vault
+# (crossplane chart, vaultProvider.tenantAccessor); only the backend + JWKS
+# config live here because they need cluster API access.
 # -----------------------------------------------------------------------------
 configure_tenant_jwt() {
   local cluster="development"
@@ -291,43 +259,23 @@ configure_tenant_jwt() {
     exit 1
   fi
 
-  # Accessor for this backend, embedded in the identity-templated policy.
-  local accessor
+  # Accessor for this backend. tenant-policy and the `tenant` role are managed by
+  # Crossplane provider-vault, which needs this accessor in its values.
+  local accessor configured
   accessor=$(bao_exec "bao auth list -format=json" \
     | jq -r ".\"${auth_path}/\".accessor")
 
-  log "Writing tenant-policy (accessor: $accessor)..."
+  configured=$(sed -n 's/^ *tenantAccessor: *"\(.*\)".*/\1/p' \
+    "$CHARTS_DIR/crossplane/values-local-management.yaml")
 
-  # The template resolves the tenant segment from the caller's alias name, so a
-  # token minted for tenant <t> can only ever reach kv-development/data/<t>/* and
-  # kv-development/metadata/<t>/*. No list/read is granted at the mount root, so
-  # tenants cannot enumerate other tenants' prefixes.
-  bao_exec "bao policy write tenant-policy - <<EOF
-path \"kv-development/data/{{identity.entity.aliases[${accessor}].name}}/*\" {
-  capabilities = [\"read\", \"list\", \"create\", \"update\", \"delete\"]
-}
-
-path \"kv-development/metadata/{{identity.entity.aliases[${accessor}].name}}/*\" {
-  capabilities = [\"read\", \"list\", \"delete\"]
-}
-EOF"
-
-  # Single shared role. user_claim is the namespace JSON pointer, so each tenant
-  # pod's alias == its namespace == its tenant name, and tenant-policy self-scopes
-  # it. No bound_subject: any development-cluster SA that presents a valid,
-  # audience-bound token is scoped to ITS OWN namespace path and can reach nothing
-  # else, so a single role safely serves every current and future tenant.
-  bao_exec "bao write auth/${auth_path}/role/tenant \
-    role_type=jwt \
-    bound_audiences='https://kubernetes.default.svc.cluster.local' \
-    user_claim=/kubernetes.io/namespace \
-    user_claim_json_pointer=true \
-    policies=tenant-policy \
-    ttl=1h"
+  if [ "$configured" != "$accessor" ]; then
+    warn "vaultProvider.tenantAccessor in crossplane/values-local-management.yaml is '${configured}' but ${auth_path} has '${accessor}'."
+    warn "Update it and commit, or tenants cannot read their secrets."
+  fi
 
   bao_exec "rm -f ${ca_path}"
 
-  ok "$auth_path configured and tenant-policy written"
+  ok "$auth_path configured (accessor: $accessor)"
 }
 
 
@@ -538,7 +486,7 @@ main() {
   configure_provider_admin_auth
   echo "--------------------------------"
 
-  # Shared tenant JWT backend + identity-templated tenant-policy (root).
+  # Shared tenant JWT backend (root). The `tenant` role + tenant-policy come from Crossplane.
   configure_tenant_jwt
   echo "--------------------------------"
 
