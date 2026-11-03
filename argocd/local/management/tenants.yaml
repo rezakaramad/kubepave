@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tenants
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+spec:
+  project: tenant-system
+  source:
+    repoURL: https://github.com/rezakaramad/kubepave-tenants
+    targetRevision: HEAD
+    path: local
+    directory:
+      recurse: true
+      include: '*/tenant.yaml'
+  destination:
+    name: in-cluster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - ServerSideApply=true
+    - ApplyOutOfSyncOnly=true
+    - SkipDryRunOnMissingResource=true
