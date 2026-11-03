@@ -1,6 +1,6 @@
 # tenant-templates
 
-Ships the Go templates that the `xtenant-gotemplating` Composition (in the `crossplane` chart) renders into each tenant's Argo CD `Application` and `ApplicationSet`.
+Ships the Go templates that the [`xtenant-gotemplating` Composition](../crossplane/templates/xtenant/composition-gotemplating.yaml) (in the `crossplane` chart) renders into each tenant's Argo CD `Application` and `ApplicationSet`.
 
 Each template version is one `EnvironmentConfig` named `xtenant-argocd-<version>`, built from the files in `files/<version>/`.
 
@@ -20,7 +20,7 @@ Settings (repo URL, project, environments, OIDC accessor) are not in the templat
 
 ### 1. In `tenant-templates`
 
-```fish
+```bash
 cd kubepave/kubernetes/charts/tenant-templates
 cp -r files/v1 files/v2
 cp templates/xtenant-environmentconfig-v1.yaml templates/xtenant-environmentconfig-v2.yaml
@@ -49,8 +49,6 @@ Point one XR at the `next` channel:
 ```yaml
 spec:
   crossplane:
-    compositionRef:
-      name: xtenant-gotemplating
     compositionRevisionSelector:
       matchLabels:
         channel: next
@@ -97,6 +95,7 @@ kubectl get xtenants -o custom-columns=NAME:.metadata.name,REV:.spec.crossplane.
 
 ## Things to watch
 
+- Every XR needs a `compositionRevisionSelector`. An XR without one follows the latest revision whatever its channel, so it would pick up `next` as well.
 - An XR whose selector matches no revision has no revision and does not render. Create the `next` revision before pointing an XR at it.
 - Change the `channel` label and the template version in the same commit. A label change on its own also creates a revision, but then points at the same template.
 - `tenant-templates` must sync before the Composition uses a new version (sync wave `6`, after crossplane at `5`).

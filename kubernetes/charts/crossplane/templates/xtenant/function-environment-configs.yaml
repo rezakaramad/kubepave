@@ -1,4 +1,4 @@
-{{- if and .Values.compositeResources.xTenant.enabled .Values.compositeResources.xTenant.goTemplating.enabled }}
+{{- if .Values.compositeResources.xTenant.enabled }}
 
 apiVersion: pkg.crossplane.io/v1beta1
 kind: Function

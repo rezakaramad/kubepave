@@ -1,6 +1,6 @@
 {{- if .Values.compositeResources.xTenant.enabled }}
 
-# Lets Crossplane manage the Argo CD Applications and ApplicationSets the xtenant function composes.
+# Lets Crossplane manage the Argo CD Applications and ApplicationSets the xtenant-gotemplating Composition creates.
 # This must be a ClusterRole (not a namespaced Role): Crossplane's composite controller starts a
 # cluster-scoped informer to observe composed resources, so it lists and watches across all namespaces.
 apiVersion: rbac.authorization.k8s.io/v1

@@ -28,13 +28,9 @@ secretStore:
 compositeResources:
   xTenant:
     enabled: false
-    package: ghcr.io/rezakaramad/function-xtenant
-    packageTag: <upsert-in-env-values-file>
-    # Alternative xtenant-gotemplating Composition, selected per XR via spec.crossplane.compositionRef.
     goTemplating:
-      enabled: false
-      # Revision channel this Composition is published to. To trial a template: set templateVersion to the new
-      # version and channel to `next`; to promote, set channel back to `stable` (XRs follow it by label).
+      # Revision channel the xtenant-gotemplating Composition is published to. To trial a template: set
+      # templateVersion to the new version and channel to `next`; to promote, set channel back to `stable`.
       channel: stable
       # Which xtenant-argocd-<version> EnvironmentConfig from the tenant-templates chart to render.
       templateVersion: v1
